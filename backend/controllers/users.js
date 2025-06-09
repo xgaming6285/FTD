@@ -335,7 +335,7 @@ exports.getAgentPerformance = async (req, res, next) => {
     }
     
     // Build date filter
-    const dateFilter = { agentId };
+    const dateFilter = { agent: agentId };
     if (startDate || endDate) {
       dateFilter.date = {};
       if (startDate) dateFilter.date.$gte = new Date(startDate);
@@ -343,7 +343,7 @@ exports.getAgentPerformance = async (req, res, next) => {
     }
     
     const performance = await AgentPerformance.find(dateFilter)
-      .populate('agentId', 'fullName fourDigitCode')
+      .populate('agent', 'fullName fourDigitCode')
       .sort({ date: -1 });
     
     res.status(200).json({
@@ -416,12 +416,12 @@ exports.getTopPerformers = async (req, res, next) => {
       },
       {
         $group: {
-          _id: '$agentId',
-          totalCalls: { $sum: '$metrics.callsMade' },
-          totalEarnings: { $sum: '$metrics.earnings' },
-          totalFTDs: { $sum: '$metrics.ftdCount' },
-          totalFillers: { $sum: '$metrics.fillerCount' },
-          averageCallQuality: { $avg: '$metrics.averageCallQuality' },
+          _id: '$agent',
+          totalCalls: { $sum: '$callsCompleted' },
+          totalEarnings: { $sum: '$earnings' },
+          totalLeadsConverted: { $sum: '$leadsConverted' },
+          totalLeadsContacted: { $sum: '$leadsContacted' },
+          averageCallQuality: { $avg: { $divide: ['$leadsConverted', '$leadsContacted'] } },
           recordCount: { $sum: 1 }
         }
       },
@@ -445,8 +445,8 @@ exports.getTopPerformers = async (req, res, next) => {
           },
           totalCalls: 1,
           totalEarnings: 1,
-          totalFTDs: 1,
-          totalFillers: 1,
+          totalLeadsConverted: 1,
+          totalLeadsContacted: 1,
           averageCallQuality: { $round: ['$averageCallQuality', 2] },
           recordCount: 1
         }
