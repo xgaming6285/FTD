@@ -67,7 +67,7 @@ const DashboardPage = () => {
       } else if (user?.role === 'affiliate_manager') {
         promises.push(
           api.get('/orders?limit=10'),
-          api.get('/leads/assigned'),
+          api.get('/leads?isAssigned=true'),
           api.get('/orders/stats')
         );
       } else if (user?.role === 'agent') {
