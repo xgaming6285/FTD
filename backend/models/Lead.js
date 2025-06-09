@@ -87,6 +87,18 @@ const leadSchema = new mongoose.Schema({
       }
     }
   },
+  clientNetwork: { 
+    type: String,
+    validate: {
+      validator: function(v) {
+        // ClientNetwork should be unique for FTDs if provided
+        if (this.leadType === 'ftd' && v) {
+          return true; // Will be handled by unique index
+        }
+        return true;
+      }
+    }
+  },
 
   // FTD Only Fields
   documents: {
@@ -127,6 +139,7 @@ leadSchema.index({ assignedTo: 1 });
 leadSchema.index({ createdAt: -1 });
 leadSchema.index({ client: 1 }, { sparse: true });
 leadSchema.index({ clientBroker: 1 }, { sparse: true });
+leadSchema.index({ clientNetwork: 1 }, { sparse: true });
 
 // Virtual for full name
 leadSchema.virtual('fullName').get(function() {
