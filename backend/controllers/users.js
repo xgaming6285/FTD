@@ -324,8 +324,8 @@ exports.getUserStats = async (req, res, next) => {
 exports.getAgentPerformance = async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
-    // FIX: Get the agent ID from 'req.params.agentId' to match the route definition
-    const agentId = req.params.agentId;
+    // Get the agent ID from req.params.id to match the route parameter
+    const agentId = req.params.id;
 
     // This authorization check now works correctly
     if (req.user.role !== 'admin' && req.user.id !== agentId) {

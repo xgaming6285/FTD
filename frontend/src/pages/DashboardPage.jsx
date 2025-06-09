@@ -79,8 +79,7 @@ const DashboardPage = () => {
       } else if (user.role === 'agent') {
         promises.push(
           api.get('/leads/assigned'),
-          // FIX: Use the correct endpoint and include the user's ID
-          api.get(`/users/agents/${user.id}/performance`)
+          api.get(`/users/${user.id}/performance`)
         );
       }
 

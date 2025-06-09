@@ -115,7 +115,7 @@ exports.hasPermission = (permission) => {
 
 // Check if user can access their own data or admin
 exports.ownerOrAdmin = (req, res, next) => {
-  const resourceUserId = req.params.userId || req.params.agentId;
+  const resourceUserId = req.params.userId || req.params.agentId || req.params.id;
 
   // FIX: Use the '.id' virtual getter for a reliable string comparison
   if (req.user.role === 'admin' || req.user.id === resourceUserId) {

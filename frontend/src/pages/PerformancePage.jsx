@@ -108,8 +108,8 @@ const PerformancePage = () => {
         // Ensure user.id is available before making the call
         if (user && user.id) {
           promises.push(
-            // FIX: The URL now matches the backend route '/users/agents/:agentId/performance'
-            api.get(`/users/agents/${user.id}/performance?startDate=${startDateStr}&endDate=${today}`)
+            // Use the correct endpoint that matches the backend route
+            api.get(`/users/${user.id}/performance?startDate=${startDateStr}&endDate=${today}`)
           );
         }
       }
