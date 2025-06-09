@@ -1,6 +1,6 @@
-const { validationResult } = require('express-validator');
-const User = require('../models/User');
-const AgentPerformance = require('../models/AgentPerformance');
+const { validationResult } = require("express-validator");
+const User = require("../models/User");
+const AgentPerformance = require("../models/AgentPerformance");
 
 // @desc    Get all users with optional filtering
 // @route   GET /api/users
@@ -8,6 +8,7 @@ const AgentPerformance = require('../models/AgentPerformance');
 exports.getUsers = async (req, res, next) => {
   try {
     const { role, isActive, page = 1, limit = 10 } = req.query;
+
 
     // Build filter object
     const filter = {};
@@ -17,15 +18,18 @@ exports.getUsers = async (req, res, next) => {
     // Calculate pagination
     const skip = (page - 1) * limit;
 
+
     // Get users with pagination
     const users = await User.find(filter)
-      .select('-password')
+      .select("-password")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
 
+
     // Get total count for pagination
     const total = await User.countDocuments(filter);
+
 
     res.status(200).json({
       success: true,
@@ -35,8 +39,8 @@ exports.getUsers = async (req, res, next) => {
         totalPages: Math.ceil(total / limit),
         totalUsers: total,
         hasNextPage: page * limit < total,
-        hasPrevPage: page > 1
-      }
+        hasPrevPage: page > 1,
+      },
     });
   } catch (error) {
     next(error);
@@ -53,13 +57,14 @@ exports.getUserById = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
+
     res.status(200).json({
       success: true,
-      data: user
+      data: user,
     });
   } catch (error) {
     next(error);
@@ -76,8 +81,8 @@ exports.createUser = async (req, res, next) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        message: 'Validation error',
-        errors: errors.array()
+        message: "Validation error",
+        errors: errors.array(),
       });
     }
 
@@ -88,9 +93,10 @@ exports.createUser = async (req, res, next) => {
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: 'User with this email already exists'
+        message: "User with this email already exists",
       });
     }
+
 
     // Create user object
     const userData = {
@@ -98,8 +104,9 @@ exports.createUser = async (req, res, next) => {
       password,
       fullName,
       role,
-      permissions: permissions || { canCreateOrders: true }
+      permissions: permissions || { canCreateOrders: true },
     };
+
 
     // Add fourDigitCode if provided (for agents)
     if (fourDigitCode) {
@@ -108,18 +115,20 @@ exports.createUser = async (req, res, next) => {
       if (existingCode) {
         return res.status(400).json({
           success: false,
-          message: 'Four digit code already in use'
+          message: "Four digit code already in use",
         });
       }
       userData.fourDigitCode = fourDigitCode;
     }
 
+
     const user = await User.create(userData);
+
 
     res.status(201).json({
       success: true,
-      message: 'User created successfully',
-      data: user
+      message: "User created successfully",
+      data: user,
     });
   } catch (error) {
     next(error);
@@ -136,8 +145,8 @@ exports.updateUser = async (req, res, next) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        message: 'Validation error',
-        errors: errors.array()
+        message: "Validation error",
+        errors: errors.array(),
       });
     }
 
@@ -147,9 +156,10 @@ exports.updateUser = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
+
 
     // Check if email is being changed and if it's already in use
     if (email && email !== user.email) {
@@ -157,10 +167,11 @@ exports.updateUser = async (req, res, next) => {
       if (existingUser) {
         return res.status(400).json({
           success: false,
-          message: 'Email already in use'
+          message: "Email already in use",
         });
       }
     }
+
 
     // Check if fourDigitCode is being changed and if it's already in use
     if (fourDigitCode && fourDigitCode !== user.fourDigitCode) {
@@ -168,10 +179,11 @@ exports.updateUser = async (req, res, next) => {
       if (existingCode) {
         return res.status(400).json({
           success: false,
-          message: 'Four digit code already in use'
+          message: "Four digit code already in use",
         });
       }
     }
+
 
     // Build update object
     const updateData = {};
@@ -187,10 +199,11 @@ exports.updateUser = async (req, res, next) => {
       { new: true, runValidators: true }
     );
 
+
     res.status(200).json({
       success: true,
-      message: 'User updated successfully',
-      data: updatedUser
+      message: "User updated successfully",
+      data: updatedUser,
     });
   } catch (error) {
     next(error);
@@ -207,9 +220,10 @@ exports.updateUserPermissions = async (req, res, next) => {
     if (!permissions || typeof permissions !== 'object') {
       return res.status(400).json({
         success: false,
-        message: 'Valid permissions object is required'
+        message: "Valid permissions object is required",
       });
     }
+
 
     const user = await User.findByIdAndUpdate(
       req.params.id,
@@ -217,17 +231,19 @@ exports.updateUserPermissions = async (req, res, next) => {
       { new: true, runValidators: true }
     );
 
+
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
+
     res.status(200).json({
       success: true,
-      message: 'User permissions updated successfully',
-      data: user
+      message: "User permissions updated successfully",
+      data: user,
     });
   } catch (error) {
     next(error);
@@ -245,17 +261,19 @@ exports.deleteUser = async (req, res, next) => {
       { new: true }
     );
 
+
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
+
     res.status(200).json({
       success: true,
-      message: 'User deactivated successfully',
-      data: user
+      message: "User deactivated successfully",
+      data: user,
     });
   } catch (error) {
     next(error);
@@ -271,15 +289,15 @@ exports.getUserStats = async (req, res, next) => {
     const userStats = await User.aggregate([
       {
         $group: {
-          _id: '$role',
+          _id: "$role",
           count: { $sum: 1 },
           active: {
             $sum: {
-              $cond: [{ $eq: ['$isActive', true] }, 1, 0]
-            }
-          }
-        }
-      }
+              $cond: [{ $eq: ["$isActive", true] }, 1, 0],
+            },
+          },
+        },
+      },
     ]);
 
     // Get total counts
@@ -287,8 +305,8 @@ exports.getUserStats = async (req, res, next) => {
     const activeUsers = await User.countDocuments({ isActive: true });
     const newUsersThisMonth = await User.countDocuments({
       createdAt: {
-        $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-      }
+        $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+      },
     });
 
     // Format the response
@@ -297,21 +315,21 @@ exports.getUserStats = async (req, res, next) => {
       active: activeUsers,
       inactive: totalUsers - activeUsers,
       newThisMonth: newUsersThisMonth,
-      byRole: {}
+      byRole: {},
     };
 
     // Organize stats by role
-    userStats.forEach(stat => {
+    userStats.forEach((stat) => {
       stats.byRole[stat._id] = {
         total: stat.count,
         active: stat.active,
-        inactive: stat.count - stat.active
+        inactive: stat.count - stat.active,
       };
     });
 
     res.status(200).json({
       success: true,
-      data: stats
+      data: stats,
     });
   } catch (error) {
     next(error);
@@ -331,10 +349,10 @@ exports.getAgentPerformance = async (req, res, next) => {
     if (req.user.role !== 'admin' && req.user.id !== agentId) {
       return res.status(403).json({
         success: false,
-        message: 'Not authorized to access this performance data'
+        message: "Not authorized to access this performance data",
       });
     }
-    
+
     // Build date filter
     const dateFilter = { agent: agentId };
     if (startDate || endDate) {
@@ -343,13 +361,15 @@ exports.getAgentPerformance = async (req, res, next) => {
       if (endDate) dateFilter.date.$lte = new Date(endDate);
     }
 
+
     const performance = await AgentPerformance.find(dateFilter)
-      .populate('agent', 'fullName fourDigitCode')
+      .populate("agent", "fullName fourDigitCode")
       .sort({ date: -1 });
+
 
     res.status(200).json({
       success: true,
-      data: performance
+      data: performance,
     });
   } catch (error) {
     next(error);
@@ -364,21 +384,24 @@ exports.updateAgentPerformance = async (req, res, next) => {
     const { date, metrics } = req.body;
     const agentId = req.params.id;
 
+
     if (!date || !metrics) {
       return res.status(400).json({
         success: false,
-        message: 'Date and metrics are required'
+        message: "Date and metrics are required",
       });
     }
 
+
     // Check if agent exists
     const agent = await User.findById(agentId);
-    if (!agent || agent.role !== 'agent') {
+    if (!agent || agent.role !== "agent") {
       return res.status(404).json({
         success: false,
-        message: 'Agent not found'
+        message: "Agent not found",
       });
     }
+
 
     // Upsert performance record
     const performance = await AgentPerformance.findOneAndUpdate(
@@ -389,8 +412,8 @@ exports.updateAgentPerformance = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Agent performance updated successfully',
-      data: performance
+      message: "Agent performance updated successfully",
+      data: performance,
     });
   } catch (error) {
     next(error);
@@ -409,61 +432,65 @@ exports.getTopPerformers = async (req, res, next) => {
     const startDate = new Date();
     startDate.setDate(endDate.getDate() - parseInt(period));
 
+
     const topPerformers = await AgentPerformance.aggregate([
       {
         $match: {
-          date: { $gte: startDate, $lte: endDate }
-        }
+          date: { $gte: startDate, $lte: endDate },
+        },
       },
       {
         $group: {
-          _id: '$agent',
-          totalCalls: { $sum: '$callsCompleted' },
-          totalEarnings: { $sum: '$earnings' },
-          totalLeadsConverted: { $sum: '$leadsConverted' },
-          totalLeadsContacted: { $sum: '$leadsContacted' },
-          averageCallQuality: { $avg: { $divide: ['$leadsConverted', '$leadsContacted'] } },
-          recordCount: { $sum: 1 }
-        }
+          _id: "$agent",
+          totalCalls: { $sum: "$callsCompleted" },
+          totalEarnings: { $sum: "$earnings" },
+          totalLeadsConverted: { $sum: "$leadsConverted" },
+          totalLeadsContacted: { $sum: "$leadsContacted" },
+          averageCallQuality: {
+            $avg: { $divide: ["$leadsConverted", "$leadsContacted"] },
+          },
+          recordCount: { $sum: 1 },
+        },
       },
       {
         $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'agent'
-        }
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "agent",
+        },
       },
       {
-        $unwind: '$agent'
+        $unwind: "$agent",
       },
       {
         $project: {
           agent: {
-            id: '$agent._id',
-            fullName: '$agent.fullName',
-            fourDigitCode: '$agent.fourDigitCode'
+            id: "$agent._id",
+            fullName: "$agent.fullName",
+            fourDigitCode: "$agent.fourDigitCode",
           },
           totalCalls: 1,
           totalEarnings: 1,
           totalLeadsConverted: 1,
           totalLeadsContacted: 1,
-          averageCallQuality: { $round: ['$averageCallQuality', 2] },
-          recordCount: 1
-        }
+          averageCallQuality: { $round: ["$averageCallQuality", 2] },
+          recordCount: 1,
+        },
       },
       {
-        $sort: { totalEarnings: -1 }
+        $sort: { totalEarnings: -1 },
       },
       {
-        $limit: parseInt(limit)
-      }
+        $limit: parseInt(limit),
+      },
     ]);
+
 
     res.status(200).json({
       success: true,
       data: topPerformers,
-      period: `Last ${period} days`
+      period: `Last ${period} days`,
     });
   } catch (error) {
     next(error);
@@ -481,35 +508,37 @@ exports.getDailyTeamStats = async (req, res, next) => {
     const nextDay = new Date(targetDate);
     nextDay.setDate(nextDay.getDate() + 1);
 
+
     const teamStats = await AgentPerformance.aggregate([
       {
         $match: {
-          date: { $gte: targetDate, $lt: nextDay }
-        }
+          date: { $gte: targetDate, $lt: nextDay },
+        },
       },
       {
         $group: {
           _id: null,
           totalAgents: { $sum: 1 },
-          totalCalls: { $sum: '$metrics.callsMade' },
-          totalEarnings: { $sum: '$metrics.earnings' },
-          totalFTDs: { $sum: '$metrics.ftdCount' },
-          totalFillers: { $sum: '$metrics.fillerCount' },
-          averageCallQuality: { $avg: '$metrics.averageCallQuality' }
-        }
+          totalCalls: { $sum: "$metrics.callsMade" },
+          totalEarnings: { $sum: "$metrics.earnings" },
+          totalFTDs: { $sum: "$metrics.ftdCount" },
+          totalFillers: { $sum: "$metrics.fillerCount" },
+          averageCallQuality: { $avg: "$metrics.averageCallQuality" },
+        },
       },
       {
         $project: {
           _id: 0,
           totalAgents: 1,
           totalCalls: 1,
-          totalEarnings: { $round: ['$totalEarnings', 2] },
+          totalEarnings: { $round: ["$totalEarnings", 2] },
           totalFTDs: 1,
           totalFillers: 1,
-          averageCallQuality: { $round: ['$averageCallQuality', 2] }
-        }
-      }
+          averageCallQuality: { $round: ["$averageCallQuality", 2] },
+        },
+      },
     ]);
+
 
     const stats = teamStats[0] || {
       totalAgents: 0,
@@ -517,15 +546,16 @@ exports.getDailyTeamStats = async (req, res, next) => {
       totalEarnings: 0,
       totalFTDs: 0,
       totalFillers: 0,
-      averageCallQuality: 0
+      averageCallQuality: 0,
     };
+
 
     res.status(200).json({
       success: true,
       data: stats,
-      date: targetDate.toISOString().split('T')[0]
+      date: targetDate.toISOString().split("T")[0],
     });
   } catch (error) {
     next(error);
   }
-}; 
+};
