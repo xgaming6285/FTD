@@ -48,6 +48,9 @@ exports.getLeads = async (req, res, next) => {
         { lastName: new RegExp(search, "i") },
         { email: new RegExp(search, "i") },
         { phone: new RegExp(search, "i") },
+        { client: new RegExp(search, "i") },
+        { clientBroker: new RegExp(search, "i") },
+        { clientNetwork: new RegExp(search, "i") },
       ];
     }
 
@@ -510,14 +513,14 @@ exports.updateLead = async (req, res, next) => {
       country,
       status,
       documents,
-      leadType
+      leadType,
     } = req.body;
 
     const lead = await Lead.findById(req.params.id);
     if (!lead) {
       return res.status(404).json({
         success: false,
-        message: "Lead not found"
+        message: "Lead not found",
       });
     }
 
@@ -529,7 +532,7 @@ exports.updateLead = async (req, res, next) => {
     if (country) lead.country = country;
     if (status) lead.status = status;
     if (leadType) lead.leadType = leadType;
-    
+
     // Update documents status if provided
     if (documents && documents.status) {
       if (!lead.documents) lead.documents = {};
@@ -545,7 +548,7 @@ exports.updateLead = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Lead updated successfully",
-      data: lead
+      data: lead,
     });
   } catch (error) {
     next(error);

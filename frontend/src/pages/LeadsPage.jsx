@@ -569,6 +569,7 @@ const LeadsPage = () => {
                 <TableCell>Type</TableCell>
                 <TableCell>Contact</TableCell>
                 <TableCell>Country</TableCell>
+                <TableCell>Client Info</TableCell>
                 {isAdmin && <TableCell>Assigned To</TableCell>}
                 <TableCell>Status</TableCell>
                 <TableCell>Created</TableCell>
@@ -578,13 +579,13 @@ const LeadsPage = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 9 : 8} align="center">
+                  <TableCell colSpan={isAdmin ? 10 : 9} align="center">
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
               ) : leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 9 : 8} align="center">
+                  <TableCell colSpan={isAdmin ? 10 : 9} align="center">
                     No leads found
                   </TableCell>
                 </TableRow>
@@ -627,6 +628,30 @@ const LeadsPage = () => {
                         </Box>
                       </TableCell>
                       <TableCell>{lead.country}</TableCell>
+                      <TableCell>
+                        <Box>
+                          {lead.client && (
+                            <Typography variant="caption" display="block">
+                              <strong>Client:</strong> {lead.client}
+                            </Typography>
+                          )}
+                          {lead.clientBroker && (
+                            <Typography variant="caption" display="block">
+                              <strong>Broker:</strong> {lead.clientBroker}
+                            </Typography>
+                          )}
+                          {lead.clientNetwork && (
+                            <Typography variant="caption" display="block">
+                              <strong>Network:</strong> {lead.clientNetwork}
+                            </Typography>
+                          )}
+                          {!lead.client && !lead.clientBroker && !lead.clientNetwork && (
+                            <Typography variant="caption" color="textSecondary">
+                              N/A
+                            </Typography>
+                          )}
+                        </Box>
+                      </TableCell>
                       {isAdmin && (
                         <TableCell>
                           {lead.isAssigned ? (
@@ -726,7 +751,7 @@ const LeadsPage = () => {
                     </TableRow>
                     {expandedRows.has(lead._id) && (
                       <TableRow>
-                        <TableCell colSpan={isAdmin ? 9 : 8}>
+                        <TableCell colSpan={isAdmin ? 10 : 9}>
                           <Box sx={{ p: 2, bgcolor: "grey.50" }}>
                             <Grid container spacing={2}>
                               <Grid item xs={12} md={6}>
@@ -743,6 +768,34 @@ const LeadsPage = () => {
                                   <strong>Country:</strong>{" "}
                                   {lead.country || "N/A"}
                                 </Typography>
+
+                                {/* Client Information */}
+                                {(lead.client || lead.clientBroker || lead.clientNetwork) && (
+                                  <Box sx={{ mt: 2 }}>
+                                    <Typography
+                                      variant="subtitle2"
+                                      gutterBottom
+                                    >
+                                      Client Information
+                                    </Typography>
+                                    {lead.client && (
+                                      <Typography variant="body2">
+                                        <strong>Client:</strong> {lead.client}
+                                      </Typography>
+                                    )}
+                                    {lead.clientBroker && (
+                                      <Typography variant="body2">
+                                        <strong>Client Broker:</strong> {lead.clientBroker}
+                                      </Typography>
+                                    )}
+                                    {lead.clientNetwork && (
+                                      <Typography variant="body2">
+                                        <strong>Client Network:</strong> {lead.clientNetwork}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                )}
+
                                 {lead.leadType === "ftd" && lead.documents && (
                                   <Box sx={{ mt: 2 }}>
                                     <Typography
