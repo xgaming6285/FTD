@@ -1,6 +1,6 @@
 const express = require("express");
 const { body, query } = require("express-validator");
-const { protect, isAdmin, ownerOrAdmin } = require("../middleware/auth");
+const { protect, isAdmin, ownerOrAdmin, isManager } = require("../middleware/auth");
 const {
   getUsers,
   getUserById,
@@ -18,7 +18,29 @@ const {
 const router = express.Router();
 
 // Basic user routes
-router.get("/", [protect, isAdmin], getUsers);
+router.get("/", [
+  protect, 
+  (req, res, next) => {
+    // Allow managers to fetch only agent lists
+    if (req.user.role === 'affiliate_manager') {
+      if (req.query.role === 'agent') {
+        return next();
+      }
+      return res.status(403).json({
+        success: false,
+        message: 'Affiliate managers can only view agent lists'
+      });
+    }
+    // Admin can fetch all users
+    if (req.user.role === 'admin') {
+      return next();
+    }
+    return res.status(403).json({
+      success: false,
+      message: 'Admin access required'
+    });
+  }
+], getUsers);
 router.get("/stats", [protect, isAdmin], getUserStats);
 router.get("/team-stats", [protect, isAdmin], getDailyTeamStats);
 
