@@ -212,7 +212,7 @@ const LeadsPage = () => {
     try {
       setError(null);
       const leadIds = Array.from(selectedLeads);
-      await api.put("/leads/assign", {
+      await api.post("/leads/assign", {
         leadIds,
         agentId: data.agentId,
       });
