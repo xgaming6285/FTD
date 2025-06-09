@@ -98,15 +98,15 @@ const PerformancePage = () => {
       if (user?.role === 'admin') {
         // Admin can see all data
         promises.push(
-          api.get(`/users/performance/team-stats?date=${today}`),
-          api.get(`/users/performance/top?period=${selectedPeriod}&limit=10`),
+          api.get(`/users/agents/performance?date=${today}`),
+          api.get(`/users/agents/performance/top?period=${selectedPeriod}&limit=10`),
           api.get('/leads/stats'),
           api.get(`/orders/stats?startDate=${startDateStr}&endDate=${today}`)
         );
       } else if (user?.role === 'agent') {
         // Agent can only see their own performance
         promises.push(
-          api.get(`/users/${user.id}/performance?startDate=${startDateStr}&endDate=${today}`)
+          api.get(`/users/agents/${user.id}/performance?startDate=${startDateStr}&endDate=${today}`)
         );
       }
 
