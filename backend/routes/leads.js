@@ -10,6 +10,7 @@ const {
   getLeadStats,
   assignLeads,
   unassignLeads,
+  updateLead
 } = require("../controllers/leads");
 
 const router = express.Router();
@@ -171,6 +172,26 @@ router.post(
       .withMessage("Each leadId must be a valid MongoDB ObjectId"),
   ],
   unassignLeads
+);
+
+// @route   PUT /api/leads/:id
+// @desc    Update lead information
+// @access  Private (Admin, Affiliate Manager)
+router.put(
+  "/:id",
+  [
+    protect,
+    authorize("admin", "affiliate_manager"),
+    body("firstName").optional().trim().isLength({ min: 2 }).withMessage("First name must be at least 2 characters"),
+    body("lastName").optional().trim().isLength({ min: 2 }).withMessage("Last name must be at least 2 characters"),
+    body("email").optional().trim().isEmail().withMessage("Please provide a valid email"),
+    body("phone").optional().trim(),
+    body("country").optional().trim().isLength({ min: 2 }).withMessage("Country must be at least 2 characters"),
+    body("status").optional().isIn(["active", "contacted", "converted", "inactive"]).withMessage("Invalid status"),
+    body("leadType").optional().isIn(["ftd", "filler", "cold"]).withMessage("Invalid lead type"),
+    body("documents.status").optional().isIn(["good", "ok", "pending"]).withMessage("Invalid document status")
+  ],
+  updateLead
 );
 
 module.exports = router;

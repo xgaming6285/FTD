@@ -496,3 +496,58 @@ exports.unassignLeads = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Update lead information
+// @route   PUT /api/leads/:id
+// @access  Private (Admin, Affiliate Manager)
+exports.updateLead = async (req, res, next) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      country,
+      status,
+      documents,
+      leadType
+    } = req.body;
+
+    const lead = await Lead.findById(req.params.id);
+    if (!lead) {
+      return res.status(404).json({
+        success: false,
+        message: "Lead not found"
+      });
+    }
+
+    // Update fields if provided
+    if (firstName) lead.firstName = firstName;
+    if (lastName) lead.lastName = lastName;
+    if (email) lead.email = email;
+    if (phone) lead.phone = phone;
+    if (country) lead.country = country;
+    if (status) lead.status = status;
+    if (leadType) lead.leadType = leadType;
+    
+    // Update documents status if provided
+    if (documents && documents.status) {
+      if (!lead.documents) lead.documents = {};
+      lead.documents.status = documents.status;
+    }
+
+    await lead.save();
+
+    // Populate for response
+    await lead.populate("assignedTo", "fullName fourDigitCode");
+    await lead.populate("comments.author", "fullName");
+
+    res.status(200).json({
+      success: true,
+      message: "Lead updated successfully",
+      data: lead
+    });
+  } catch (error) {
+    next(error);
+  }
+};
