@@ -72,18 +72,19 @@ const userSchema = yup.object({
 
 const UsersPage = () => {
   const currentUser = useSelector(selectUser);
-  
+  console.log('Current user in UsersPage:', currentUser);
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  
+
   // Dialog states
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  
+
   // Pagination and filtering
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -118,22 +119,51 @@ const UsersPage = () => {
 
   const watchedRole = watch('role');
 
-  // Fetch users
+    // Fetch users
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const params = new URLSearchParams({
+      // Only include non-empty filter values
+      const queryParams = {
         page: page + 1,
         limit: rowsPerPage,
-        ...filters,
+      };
+
+      // Add filters only if they have values
+      Object.keys(filters).forEach(key => {
+        if (filters[key] !== '' && filters[key] !== null && filters[key] !== undefined) {
+          queryParams[key] = filters[key];
+        }
       });
 
+      const params = new URLSearchParams(queryParams);
+
+      console.log('Fetching users with params:', params.toString());
       const response = await api.get(`/users?${params}`);
-      setUsers(response.data.data);
-      setTotalUsers(response.data.pagination.totalUsers);
+      console.log('API Response:', response);
+      console.log('Response data:', response.data);
+
+      // Check if the response structure is as expected
+      if (response.data && response.data.data) {
+        setUsers(response.data.data);
+        setTotalUsers(response.data.pagination?.totalUsers || 0);
+        console.log('Users set:', response.data.data);
+        console.log('Total users:', response.data.pagination?.totalUsers || 0);
+      } else if (response.data && Array.isArray(response.data)) {
+        // In case the API returns users directly as an array
+        setUsers(response.data);
+        setTotalUsers(response.data.length);
+        console.log('Users set (direct array):', response.data);
+      } else {
+        console.warn('Unexpected response structure:', response.data);
+        setUsers([]);
+        setTotalUsers(0);
+      }
     } catch (err) {
+      console.error('Error fetching users:', err);
+      console.error('Error response:', err.response);
       setError(err.response?.data?.message || 'Failed to fetch users');
     } finally {
       setLoading(false);
@@ -141,6 +171,7 @@ const UsersPage = () => {
   };
 
   useEffect(() => {
+    console.log('Fetching users - page:', page, 'rowsPerPage:', rowsPerPage, 'filters:', filters);
     fetchUsers();
   }, [page, rowsPerPage, filters]);
 
@@ -175,7 +206,7 @@ const UsersPage = () => {
       setUserDialogOpen(false);
       reset();
       fetchUsers();
-      
+
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save user');
@@ -191,7 +222,7 @@ const UsersPage = () => {
       setDeleteDialogOpen(false);
       setSelectedUser(null);
       fetchUsers();
-      
+
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to deactivate user');
@@ -664,7 +695,7 @@ const UsersPage = () => {
         <DialogTitle>Confirm Deactivation</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to deactivate user "{selectedUser?.fullName}"? 
+            Are you sure you want to deactivate user "{selectedUser?.fullName}"?
             This action will disable their access to the system.
           </Typography>
         </DialogContent>
@@ -683,4 +714,4 @@ const UsersPage = () => {
   );
 };
 
-export default UsersPage; 
+export default UsersPage;
