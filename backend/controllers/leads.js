@@ -7,25 +7,33 @@ const User = require('../models/User');
 // @access  Private (Admin only)
 exports.getLeads = async (req, res, next) => {
   try {
-    const { 
-      leadType, 
-      isAssigned, 
-      country, 
-      status, 
+    const {
+      leadType,
+      isAssigned,
+      country,
+      status,
       documentStatus,
-      page = 1, 
+      page = 1,
       limit = 10,
-      search 
+      search,
+      includeConverted = 'true' // New parameter to control visibility of converted leads
     } = req.query;
-    
+
     // Build filter object
     const filter = {};
     if (leadType) filter.leadType = leadType;
     if (isAssigned !== undefined) filter.isAssigned = isAssigned === 'true';
     if (country) filter.country = new RegExp(country, 'i');
-    if (status) filter.status = status;
-    if (documentStatus) filter['documents.status'] = documentStatus;
     
+    // Only apply status filter if includeConverted is false or if status is specifically requested
+    if (status) {
+      filter.status = status;
+    } else if (includeConverted !== 'true') {
+      filter.status = { $ne: 'converted' }; // Exclude converted leads if not explicitly requested
+    }
+    
+    if (documentStatus) filter['documents.status'] = documentStatus;
+
     // Add search functionality
     if (search) {
       filter.$or = [
@@ -35,21 +43,24 @@ exports.getLeads = async (req, res, next) => {
         { phone: new RegExp(search, 'i') }
       ];
     }
-    
+
     // Calculate pagination
     const skip = (page - 1) * limit;
-    
+
     // Get leads with pagination
+    console.log('MongoDB Query Filter:', JSON.stringify(filter, null, 2));
     const leads = await Lead.find(filter)
       .populate('assignedTo', 'fullName fourDigitCode')
       .populate('comments.author', 'fullName')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
-    
+
+    console.log('MongoDB Query Results:', JSON.stringify(leads, null, 2));
+
     // Get total count for pagination
     const total = await Lead.countDocuments(filter);
-    
+
     res.status(200).json({
       success: true,
       data: leads,
@@ -72,28 +83,28 @@ exports.getLeads = async (req, res, next) => {
 exports.getAssignedLeads = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, status } = req.query;
-    
+
     // Build filter object
     const filter = {
       assignedTo: req.user.id,
       isAssigned: true
     };
-    
+
     if (status) filter.status = status;
-    
+
     // Calculate pagination
     const skip = (page - 1) * limit;
-    
+
     // Get assigned leads
     const leads = await Lead.find(filter)
       .populate('comments.author', 'fullName')
       .sort({ assignedAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
-    
+
     // Get total count for pagination
     const total = await Lead.countDocuments(filter);
-    
+
     res.status(200).json({
       success: true,
       data: leads,
@@ -118,14 +129,14 @@ exports.getLeadById = async (req, res, next) => {
     const lead = await Lead.findById(req.params.id)
       .populate('assignedTo', 'fullName fourDigitCode email')
       .populate('comments.author', 'fullName fourDigitCode');
-    
+
     if (!lead) {
       return res.status(404).json({
         success: false,
         message: 'Lead not found'
       });
     }
-    
+
     // Check if user has access to this lead
     if (req.user.role !== 'admin' && req.user.role !== 'affiliate_manager') {
       if (!lead.isAssigned || lead.assignedTo._id.toString() !== req.user.id) {
@@ -135,7 +146,7 @@ exports.getLeadById = async (req, res, next) => {
         });
       }
     }
-    
+
     res.status(200).json({
       success: true,
       data: lead
@@ -159,9 +170,9 @@ exports.addComment = async (req, res, next) => {
         errors: errors.array()
       });
     }
-    
+
     const { text } = req.body;
-    
+
     const lead = await Lead.findById(req.params.id);
     if (!lead) {
       return res.status(404).json({
@@ -169,7 +180,7 @@ exports.addComment = async (req, res, next) => {
         message: 'Lead not found'
       });
     }
-    
+
     // Check if user has access to this lead
     if (req.user.role !== 'admin' && req.user.role !== 'affiliate_manager') {
       if (!lead.isAssigned || lead.assignedTo.toString() !== req.user.id) {
@@ -179,20 +190,20 @@ exports.addComment = async (req, res, next) => {
         });
       }
     }
-    
+
     // Add comment
     const comment = {
       text,
       author: req.user.id,
       createdAt: new Date()
     };
-    
+
     lead.comments.push(comment);
     await lead.save();
-    
+
     // Populate the newly added comment
     await lead.populate('comments.author', 'fullName fourDigitCode');
-    
+
     res.status(200).json({
       success: true,
       message: 'Comment added successfully',
@@ -217,9 +228,9 @@ exports.updateLeadStatus = async (req, res, next) => {
         errors: errors.array()
       });
     }
-    
+
     const { status, documentStatus } = req.body;
-    
+
     const lead = await Lead.findById(req.params.id);
     if (!lead) {
       return res.status(404).json({
@@ -227,7 +238,7 @@ exports.updateLeadStatus = async (req, res, next) => {
         message: 'Lead not found'
       });
     }
-    
+
     // Check if user has access to this lead
     if (req.user.role !== 'admin' && req.user.role !== 'affiliate_manager') {
       if (!lead.isAssigned || lead.assignedTo.toString() !== req.user.id) {
@@ -237,18 +248,18 @@ exports.updateLeadStatus = async (req, res, next) => {
         });
       }
     }
-    
+
     // Update fields
     if (status) lead.status = status;
     if (documentStatus && lead.documents) {
       lead.documents.status = documentStatus;
     }
-    
+
     await lead.save();
-    
+
     // Populate for response
     await lead.populate('assignedTo', 'fullName fourDigitCode');
-    
+
     res.status(200).json({
       success: true,
       message: 'Lead status updated successfully',
@@ -265,7 +276,7 @@ exports.updateLeadStatus = async (req, res, next) => {
 exports.getLeadStats = async (req, res, next) => {
   try {
     const stats = await Lead.getLeadStats();
-    
+
     // Transform aggregation result into a more readable format
     const formattedStats = {
       ftd: { assigned: 0, available: 0, total: 0 },
@@ -273,11 +284,11 @@ exports.getLeadStats = async (req, res, next) => {
       cold: { assigned: 0, available: 0, total: 0 },
       overall: { assigned: 0, available: 0, total: 0 }
     };
-    
+
     stats.forEach(stat => {
       const { leadType, isAssigned } = stat._id;
       const count = stat.count;
-      
+
       if (formattedStats[leadType]) {
         if (isAssigned) {
           formattedStats[leadType].assigned = count;
@@ -285,7 +296,7 @@ exports.getLeadStats = async (req, res, next) => {
           formattedStats[leadType].available = count;
         }
         formattedStats[leadType].total += count;
-        
+
         // Update overall stats
         if (isAssigned) {
           formattedStats.overall.assigned += count;
@@ -295,7 +306,7 @@ exports.getLeadStats = async (req, res, next) => {
         formattedStats.overall.total += count;
       }
     });
-    
+
     // Get document status stats for FTD leads
     const documentStats = await Lead.aggregate([
       {
@@ -308,19 +319,19 @@ exports.getLeadStats = async (req, res, next) => {
         }
       }
     ]);
-    
+
     const formattedDocumentStats = {
       good: 0,
       ok: 0,
       pending: 0
     };
-    
+
     documentStats.forEach(stat => {
       if (formattedDocumentStats.hasOwnProperty(stat._id)) {
         formattedDocumentStats[stat._id] = stat.count;
       }
     });
-    
+
     res.status(200).json({
       success: true,
       data: {
@@ -347,9 +358,9 @@ exports.assignLeads = async (req, res, next) => {
         errors: errors.array()
       });
     }
-    
+
     const { leadIds, agentId } = req.body;
-    
+
     // Validate agent exists and is active
     const agent = await User.findById(agentId);
     if (!agent || agent.role !== 'agent' || !agent.isActive) {
@@ -358,12 +369,12 @@ exports.assignLeads = async (req, res, next) => {
         message: 'Invalid agent selected'
       });
     }
-    
+
     // Update leads
     const result = await Lead.updateMany(
-      { 
+      {
         _id: { $in: leadIds },
-        isAssigned: false 
+        isAssigned: false
       },
       {
         $set: {
@@ -373,7 +384,7 @@ exports.assignLeads = async (req, res, next) => {
         }
       }
     );
-    
+
     res.status(200).json({
       success: true,
       message: `${result.modifiedCount} leads assigned successfully`,
@@ -402,14 +413,14 @@ exports.unassignLeads = async (req, res, next) => {
         errors: errors.array()
       });
     }
-    
+
     const { leadIds } = req.body;
-    
+
     // Update leads
     const result = await Lead.updateMany(
-      { 
+      {
         _id: { $in: leadIds },
-        isAssigned: true 
+        isAssigned: true
       },
       {
         $set: {
@@ -421,7 +432,7 @@ exports.unassignLeads = async (req, res, next) => {
         }
       }
     );
-    
+
     res.status(200).json({
       success: true,
       message: `${result.modifiedCount} leads unassigned successfully`,

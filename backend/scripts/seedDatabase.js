@@ -26,7 +26,7 @@ const connectDB = async () => {
 const createDefaultAdmin = async () => {
   try {
     const existingAdmin = await User.findOne({ role: 'admin' });
-    
+
     if (existingAdmin) {
       console.log('Admin user already exists. Skipping admin creation.');
       return existingAdmin;
@@ -48,7 +48,7 @@ const createDefaultAdmin = async () => {
     console.log('Email: admin@leadmanagement.com');
     console.log('Password: admin123');
     console.log('Please change this password after first login!');
-    
+
     return admin;
   } catch (error) {
     console.error('Error creating admin user:', error);
@@ -60,7 +60,7 @@ const createDefaultAdmin = async () => {
 const createSampleUsers = async () => {
   try {
     const existingUsers = await User.countDocuments();
-    
+
     if (existingUsers > 1) {
       console.log('Sample users already exist. Skipping user creation.');
       return;
@@ -110,10 +110,11 @@ const createSampleUsers = async () => {
 const createSampleLeads = async () => {
   try {
     const existingLeads = await Lead.countDocuments();
-    
+
+    // Delete existing leads if any
     if (existingLeads > 0) {
-      console.log('Sample leads already exist. Skipping lead creation.');
-      return;
+      console.log('Deleting existing leads...');
+      await Lead.deleteMany({});
     }
 
     const sampleLeads = [
@@ -229,26 +230,26 @@ const createSampleLeads = async () => {
 const createSamplePerformance = async () => {
   try {
     const existingPerformance = await AgentPerformance.countDocuments();
-    
+
     if (existingPerformance > 0) {
       console.log('Sample performance data already exists. Skipping creation.');
       return;
     }
 
     const agents = await User.find({ role: 'agent' });
-    
+
     if (agents.length === 0) {
       console.log('No agents found. Skipping performance data creation.');
       return;
     }
 
     const performanceData = [];
-    
+
     // Create performance data for the last 7 days
     for (let i = 0; i < 7; i++) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      
+
       for (const agent of agents) {
         performanceData.push({
           agent: agent._id,
@@ -285,14 +286,14 @@ const createSamplePerformance = async () => {
 const seedDatabase = async () => {
   try {
     console.log('🌱 Starting database seeding...');
-    
+
     await connectDB();
-    
+
     await createDefaultAdmin();
     await createSampleUsers();
     await createSampleLeads();
     await createSamplePerformance();
-    
+
     console.log('🎉 Database seeding completed successfully!');
     console.log('\n📝 Default Login Credentials:');
     console.log('Admin: admin@leadmanagement.com / admin123');
@@ -300,7 +301,7 @@ const seedDatabase = async () => {
     console.log('Agent 1: agent1@leadmanagement.com / agent123');
     console.log('Agent 2: agent2@leadmanagement.com / agent123');
     console.log('\n⚠️  Please change these passwords after first login!');
-    
+
   } catch (error) {
     console.error('❌ Database seeding failed:', error);
   } finally {

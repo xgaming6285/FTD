@@ -33,6 +33,8 @@ import {
   Stack,
   Avatar,
   Divider,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -61,19 +63,19 @@ const assignmentSchema = yup.object({
 
 const LeadsPage = () => {
   const user = useSelector(selectUser);
-  
+
   const [leads, setLeads] = useState([]);
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  
+
   // Dialog states
   const [commentDialogOpen, setCommentDialogOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [selectedLeads, setSelectedLeads] = useState(new Set());
-  
+
   // Pagination and filtering
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -85,6 +87,7 @@ const LeadsPage = () => {
     status: '',
     documentStatus: '',
     search: '',
+    includeConverted: true,
   });
   const [showFilters, setShowFilters] = useState(false);
   const [expandedRows, setExpandedRows] = useState(new Set());
@@ -109,11 +112,16 @@ const LeadsPage = () => {
     defaultValues: { agentId: '' },
   });
 
+  // Log user state when component mounts
+  useEffect(() => {
+    console.log('Current user state:', user);
+  }, [user]);
+
   // Fetch leads
   const fetchLeads = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const params = new URLSearchParams({
         page: page + 1,
@@ -123,11 +131,29 @@ const LeadsPage = () => {
 
       // Use appropriate endpoint based on user role
       const endpoint = user?.role === 'agent' ? '/leads/assigned' : '/leads';
+      console.log('Fetching leads - User role:', user?.role);
+      console.log('Using endpoint:', endpoint);
+      console.log('Request params:', Object.fromEntries(params));
+
       const response = await api.get(`${endpoint}?${params}`);
+      console.log('API Response:', response.data);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to fetch leads');
+      }
+
       setLeads(response.data.data);
       setTotalLeads(response.data.pagination.totalLeads);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch leads');
+      console.error('Error fetching leads:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch leads';
+      console.error('Error details:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        message: errorMessage
+      });
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -159,7 +185,7 @@ const LeadsPage = () => {
       setCommentDialogOpen(false);
       resetComment();
       fetchLeads();
-      
+
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to add comment');
@@ -180,7 +206,7 @@ const LeadsPage = () => {
       resetAssign();
       setSelectedLeads(new Set());
       fetchLeads();
-      
+
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to assign leads');
@@ -194,7 +220,7 @@ const LeadsPage = () => {
       await api.put(`/leads/${leadId}/status`, { status });
       setSuccess('Lead status updated successfully!');
       fetchLeads();
-      
+
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update lead status');
@@ -228,6 +254,7 @@ const LeadsPage = () => {
       status: '',
       documentStatus: '',
       search: '',
+      includeConverted: true,
     });
     setPage(0);
   };
@@ -387,6 +414,23 @@ const LeadsPage = () => {
                   </Select>
                 </FormControl>
               </Grid>
+              {isAdmin && (
+                <Grid item xs={12} sm={6} md={2}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={filters.includeConverted}
+                        onChange={(e) => setFilters(prev => ({
+                          ...prev,
+                          includeConverted: e.target.checked
+                        }))}
+                        color="primary"
+                      />
+                    }
+                    label="Show Converted"
+                  />
+                </Grid>
+              )}
               <Grid item xs={12} sm={6} md={2}>
                 <TextField
                   fullWidth
@@ -558,8 +602,8 @@ const LeadsPage = () => {
                                     </Typography>
                                     <Chip
                                       label={lead.documents.status}
-                                      color={lead.documents.status === 'good' ? 'success' : 
-                                             lead.documents.status === 'ok' ? 'warning' : 'default'}
+                                      color={lead.documents.status === 'good' ? 'success' :
+                                        lead.documents.status === 'ok' ? 'warning' : 'default'}
                                       size="small"
                                     />
                                   </Box>
