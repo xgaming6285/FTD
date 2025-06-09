@@ -1,0 +1,662 @@
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  Box,
+  Typography,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Grid,
+  Card,
+  CardContent,
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TablePagination,
+  IconButton,
+  Collapse,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Stack,
+  Alert,
+  CircularProgress,
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  FilterList as FilterIcon,
+  Visibility as ViewIcon,
+} from '@mui/icons-material';
+import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import api from '../services/api';
+import { selectUser } from '../store/slices/authSlice';
+
+// Validation schema for order creation
+const orderSchema = yup.object({
+  ftd: yup.number().min(0, 'Must be 0 or greater').integer('Must be a whole number'),
+  filler: yup.number().min(0, 'Must be 0 or greater').integer('Must be a whole number'),
+  cold: yup.number().min(0, 'Must be 0 or greater').integer('Must be a whole number'),
+  priority: yup.string().oneOf(['low', 'medium', 'high'], 'Invalid priority'),
+  notes: yup.string(),
+}).test('at-least-one', 'At least one lead type must be requested', function(value) {
+  return (value.ftd || 0) + (value.filler || 0) + (value.cold || 0) > 0;
+});
+
+const OrdersPage = () => {
+  const dispatch = useDispatch();
+  const user = useSelector(selectUser);
+  
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  
+  // Dialog states
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  
+  // Pagination and filtering
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [filters, setFilters] = useState({
+    status: '',
+    priority: '',
+    startDate: '',
+    endDate: '',
+  });
+  const [showFilters, setShowFilters] = useState(false);
+  const [expandedRows, setExpandedRows] = useState(new Set());
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: yupResolver(orderSchema),
+    defaultValues: {
+      ftd: 0,
+      filler: 0,
+      cold: 0,
+      priority: 'medium',
+      notes: '',
+    },
+  });
+
+  // Fetch orders
+  const fetchOrders = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const params = new URLSearchParams({
+        page: page + 1,
+        limit: rowsPerPage,
+        ...filters,
+      });
+
+      const response = await api.get(`/orders?${params}`);
+      setOrders(response.data.data);
+      setTotalOrders(response.data.pagination.total);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to fetch orders');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, [page, rowsPerPage, filters]);
+
+  // Create order
+  const onSubmitOrder = async (data) => {
+    try {
+      setError(null);
+      const orderData = {
+        requests: {
+          ftd: data.ftd || 0,
+          filler: data.filler || 0,
+          cold: data.cold || 0,
+        },
+        priority: data.priority,
+        notes: data.notes,
+      };
+
+      await api.post('/orders', orderData);
+      setSuccess('Order created successfully!');
+      setCreateDialogOpen(false);
+      reset();
+      fetchOrders();
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to create order');
+    }
+  };
+
+  // View order details
+  const handleViewOrder = async (orderId) => {
+    try {
+      const response = await api.get(`/orders/${orderId}`);
+      setSelectedOrder(response.data.data);
+      setViewDialogOpen(true);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to fetch order details');
+    }
+  };
+
+  // Pagination handlers
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // Filter handlers
+  const handleFilterChange = (field) => (event) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: event.target.value,
+    }));
+    setPage(0);
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      status: '',
+      priority: '',
+      startDate: '',
+      endDate: '',
+    });
+    setPage(0);
+  };
+
+  // Toggle row expansion
+  const toggleRowExpansion = (orderId) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(orderId)) {
+      newExpanded.delete(orderId);
+    } else {
+      newExpanded.add(orderId);
+    }
+    setExpandedRows(newExpanded);
+  };
+
+  // Status color mapping
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'fulfilled': return 'success';
+      case 'pending': return 'warning';
+      case 'cancelled': return 'error';
+      case 'partial': return 'info';
+      default: return 'default';
+    }
+  };
+
+  // Priority color mapping
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high': return 'error';
+      case 'medium': return 'warning';
+      case 'low': return 'info';
+      default: return 'default';
+    }
+  };
+
+  return (
+    <Box>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4" gutterBottom>
+          Orders
+        </Typography>
+        {(user?.role === 'admin' || user?.role === 'affiliate_manager') && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateDialogOpen(true)}
+          >
+            Create Order
+          </Button>
+        )}
+      </Box>
+
+      {/* Success/Error Messages */}
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+          {success}
+        </Alert>
+      )}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Filters */}
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">Filters</Typography>
+            <IconButton onClick={() => setShowFilters(!showFilters)}>
+              {showFilters ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
+          </Box>
+          <Collapse in={showFilters}>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12} sm={6} md={3}>
+                <FormControl fullWidth>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={filters.status}
+                    label="Status"
+                    onChange={handleFilterChange('status')}
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    <MenuItem value="pending">Pending</MenuItem>
+                    <MenuItem value="fulfilled">Fulfilled</MenuItem>
+                    <MenuItem value="partial">Partial</MenuItem>
+                    <MenuItem value="cancelled">Cancelled</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <FormControl fullWidth>
+                  <InputLabel>Priority</InputLabel>
+                  <Select
+                    value={filters.priority}
+                    label="Priority"
+                    onChange={handleFilterChange('priority')}
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    <MenuItem value="low">Low</MenuItem>
+                    <MenuItem value="medium">Medium</MenuItem>
+                    <MenuItem value="high">High</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  fullWidth
+                  label="Start Date"
+                  type="date"
+                  value={filters.startDate}
+                  onChange={handleFilterChange('startDate')}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  fullWidth
+                  label="End Date"
+                  type="date"
+                  value={filters.endDate}
+                  onChange={handleFilterChange('endDate')}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Button onClick={clearFilters} variant="outlined">
+                  Clear Filters
+                </Button>
+              </Grid>
+            </Grid>
+          </Collapse>
+        </CardContent>
+      </Card>
+
+      {/* Orders Table */}
+      <Paper>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Order ID</TableCell>
+                <TableCell>Requester</TableCell>
+                <TableCell>Requests (F/Fi/C)</TableCell>
+                <TableCell>Fulfilled (F/Fi/C)</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Priority</TableCell>
+                <TableCell>Created</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">
+                    <CircularProgress />
+                  </TableCell>
+                </TableRow>
+              ) : orders.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">
+                    No orders found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                orders.map((order) => (
+                  <React.Fragment key={order._id}>
+                    <TableRow>
+                      <TableCell>{order._id.slice(-8)}</TableCell>
+                      <TableCell>{order.requester?.fullName}</TableCell>
+                      <TableCell>
+                        {order.requests?.ftd || 0}/{order.requests?.filler || 0}/{order.requests?.cold || 0}
+                      </TableCell>
+                      <TableCell>
+                        {order.fulfilled?.ftd || 0}/{order.fulfilled?.filler || 0}/{order.fulfilled?.cold || 0}
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={order.status}
+                          color={getStatusColor(order.status)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={order.priority}
+                          color={getPriorityColor(order.priority)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {new Date(order.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleViewOrder(order._id)}
+                        >
+                          <ViewIcon />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => toggleRowExpansion(order._id)}
+                        >
+                          {expandedRows.has(order._id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                    {expandedRows.has(order._id) && (
+                      <TableRow>
+                        <TableCell colSpan={8}>
+                          <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
+                            <Typography variant="subtitle2" gutterBottom>
+                              Order Details
+                            </Typography>
+                            <Grid container spacing={2}>
+                              <Grid item xs={12} md={6}>
+                                <Typography variant="body2">
+                                  <strong>Notes:</strong> {order.notes || 'No notes'}
+                                </Typography>
+                              </Grid>
+                              <Grid item xs={12} md={6}>
+                                <Typography variant="body2">
+                                  <strong>Leads Assigned:</strong> {order.leads?.length || 0}
+                                </Typography>
+                              </Grid>
+                            </Grid>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={totalOrders}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+      </Paper>
+
+      {/* Create Order Dialog */}
+      <Dialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Create New Order</DialogTitle>
+        <form onSubmit={handleSubmit(onSubmitOrder)}>
+          <DialogContent>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={4}>
+                <Controller
+                  name="ftd"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="FTD Leads"
+                      type="number"
+                      error={!!errors.ftd}
+                      helperText={errors.ftd?.message}
+                      inputProps={{ min: 0 }}
+                    />
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Controller
+                  name="filler"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Filler Leads"
+                      type="number"
+                      error={!!errors.filler}
+                      helperText={errors.filler?.message}
+                      inputProps={{ min: 0 }}
+                    />
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Controller
+                  name="cold"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Cold Leads"
+                      type="number"
+                      error={!!errors.cold}
+                      helperText={errors.cold?.message}
+                      inputProps={{ min: 0 }}
+                    />
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Controller
+                  name="priority"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth>
+                      <InputLabel>Priority</InputLabel>
+                      <Select
+                        {...field}
+                        label="Priority"
+                        error={!!errors.priority}
+                      >
+                        <MenuItem value="low">Low</MenuItem>
+                        <MenuItem value="medium">Medium</MenuItem>
+                        <MenuItem value="high">High</MenuItem>
+                      </Select>
+                    </FormControl>
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Controller
+                  name="notes"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Notes"
+                      multiline
+                      rows={3}
+                      error={!!errors.notes}
+                      helperText={errors.notes?.message}
+                    />
+                  )}
+                />
+              </Grid>
+            </Grid>
+            {errors.root && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {errors.root.message}
+              </Alert>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? <CircularProgress size={24} /> : 'Create Order'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      {/* View Order Dialog */}
+      <Dialog
+        open={viewDialogOpen}
+        onClose={() => setViewDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Order Details</DialogTitle>
+        <DialogContent>
+          {selectedOrder && (
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2">Order ID</Typography>
+                <Typography variant="body2" gutterBottom>
+                  {selectedOrder._id}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2">Requester</Typography>
+                <Typography variant="body2" gutterBottom>
+                  {selectedOrder.requester?.fullName} ({selectedOrder.requester?.email})
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2">Status</Typography>
+                <Chip
+                  label={selectedOrder.status}
+                  color={getStatusColor(selectedOrder.status)}
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2">Priority</Typography>
+                <Chip
+                  label={selectedOrder.priority}
+                  color={getPriorityColor(selectedOrder.priority)}
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle2">Requests vs Fulfilled</Typography>
+                <Typography variant="body2">
+                  FTD: {selectedOrder.requests?.ftd || 0} requested, {selectedOrder.fulfilled?.ftd || 0} fulfilled
+                </Typography>
+                <Typography variant="body2">
+                  Filler: {selectedOrder.requests?.filler || 0} requested, {selectedOrder.fulfilled?.filler || 0} fulfilled
+                </Typography>
+                <Typography variant="body2">
+                  Cold: {selectedOrder.requests?.cold || 0} requested, {selectedOrder.fulfilled?.cold || 0} fulfilled
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle2">Notes</Typography>
+                <Typography variant="body2" gutterBottom>
+                  {selectedOrder.notes || 'No notes provided'}
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle2">Created</Typography>
+                <Typography variant="body2" gutterBottom>
+                  {new Date(selectedOrder.createdAt).toLocaleString()}
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle2">Assigned Leads ({selectedOrder.leads?.length || 0})</Typography>
+                {selectedOrder.leads && selectedOrder.leads.length > 0 ? (
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Type</TableCell>
+                        <TableCell>Name</TableCell>
+                        <TableCell>Country</TableCell>
+                        <TableCell>Email</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {selectedOrder.leads.map((lead) => (
+                        <TableRow key={lead._id}>
+                          <TableCell>
+                            <Chip label={lead.leadType.toUpperCase()} size="small" />
+                          </TableCell>
+                          <TableCell>{lead.firstName} {lead.lastName}</TableCell>
+                          <TableCell>{lead.country}</TableCell>
+                          <TableCell>{lead.email}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <Typography variant="body2">No leads assigned</Typography>
+                )}
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+export default OrdersPage; 
