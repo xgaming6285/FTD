@@ -1,21 +1,21 @@
-const { validationResult } = require('express-validator');
-const mongoose = require('mongoose');
-const Order = require('../models/Order');
-const Lead = require('../models/Lead');
+const { validationResult } = require("express-validator");
+const mongoose = require("mongoose");
+const Order = require("../models/Order");
+const Lead = require("../models/Lead");
 
 // @desc    Create a new order and pull leads
 // @route   POST /api/orders
 // @access  Private (Admin, Manager with canCreateOrders permission)
 exports.createOrder = async (req, res, next) => {
   const session = await mongoose.startSession();
-  
+
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        message: 'Validation error',
-        errors: errors.array()
+        message: "Validation error",
+        errors: errors.array(),
       });
     }
 
@@ -25,7 +25,7 @@ exports.createOrder = async (req, res, next) => {
     if (ftd + filler + cold === 0) {
       return res.status(400).json({
         success: false,
-        message: 'At least one lead type must be requested'
+        message: "At least one lead type must be requested",
       });
     }
 
@@ -36,15 +36,23 @@ exports.createOrder = async (req, res, next) => {
       // Pull FTD leads
       if (ftd > 0) {
         const ftdLeads = await Lead.find({
-          leadType: 'ftd',
+          leadType: "ftd",
           isAssigned: false,
-          'documents.status': { $in: ['good', 'ok'] }
-        }).limit(ftd).session(session);
+          "documents.status": { $in: ["good", "ok"] },
+        })
+          .limit(ftd)
+          .session(session);
 
         if (ftdLeads.length > 0) {
           await Lead.updateMany(
-            { _id: { $in: ftdLeads.map(l => l._id) } },
-            { $set: { isAssigned: true, assignedAt: new Date() } },
+            { _id: { $in: ftdLeads.map((l) => l._id) } },
+            {
+              $set: {
+                isAssigned: true,
+                assignedTo: req.user._id,
+                assignedAt: new Date(),
+              },
+            },
             { session }
           );
           pulledLeads.push(...ftdLeads);
@@ -55,24 +63,25 @@ exports.createOrder = async (req, res, next) => {
       // Pull Filler leads
       if (filler > 0) {
         const fillerLeads = await Lead.find({
-          leadType: 'filler',
-          isAssigned: false
+          leadType: "filler",
+          isAssigned: false,
         })
-        .limit(filler)
-        .session(session);
+          .limit(filler)
+          .session(session);
 
         if (fillerLeads.length > 0) {
           await Lead.updateMany(
-            { _id: { $in: fillerLeads.map(l => l._id) } },
-            { 
-              $set: { 
-                isAssigned: true, 
-                assignedAt: new Date() 
-              } 
+            { _id: { $in: fillerLeads.map((l) => l._id) } },
+            {
+              $set: {
+                isAssigned: true,
+                assignedTo: req.user._id,
+                assignedAt: new Date(),
+              },
             },
             { session }
           );
-          
+
           pulledLeads.push(...fillerLeads);
           fulfilled.filler = fillerLeads.length;
         }
@@ -81,24 +90,25 @@ exports.createOrder = async (req, res, next) => {
       // Pull Cold leads
       if (cold > 0) {
         const coldLeads = await Lead.find({
-          leadType: 'cold',
-          isAssigned: false
+          leadType: "cold",
+          isAssigned: false,
         })
-        .limit(cold)
-        .session(session);
+          .limit(cold)
+          .session(session);
 
         if (coldLeads.length > 0) {
           await Lead.updateMany(
-            { _id: { $in: coldLeads.map(l => l._id) } },
-            { 
-              $set: { 
-                isAssigned: true, 
-                assignedAt: new Date() 
-              } 
+            { _id: { $in: coldLeads.map((l) => l._id) } },
+            {
+              $set: {
+                isAssigned: true,
+                assignedTo: req.user._id,
+                assignedAt: new Date(),
+              },
             },
             { session }
           );
-          
+
           pulledLeads.push(...coldLeads);
           fulfilled.cold = coldLeads.length;
         }
@@ -109,27 +119,29 @@ exports.createOrder = async (req, res, next) => {
         requester: req.user._id,
         requests: { ftd, filler, cold },
         fulfilled,
-        leads: pulledLeads.map(l => l._id),
-        priority: priority || 'medium',
+        leads: pulledLeads.map((l) => l._id),
+        priority: priority || "medium",
         notes,
-        status: 'fulfilled'
+        status: "fulfilled",
       });
 
       await order.save({ session });
 
       // Populate the order for response
       await order.populate([
-        { path: 'requester', select: 'fullName email role' },
-        { path: 'leads', select: 'leadType firstName lastName country email phone' }
+        { path: "requester", select: "fullName email role" },
+        {
+          path: "leads",
+          select: "leadType firstName lastName country email phone",
+        },
       ]);
 
       res.status(201).json({
         success: true,
-        message: 'Order created successfully',
-        data: order
+        message: "Order created successfully",
+        data: order,
       });
     });
-
   } catch (error) {
     next(error);
   } finally {
@@ -147,8 +159,8 @@ exports.getOrders = async (req, res, next) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        message: 'Validation error',
-        errors: errors.array()
+        message: "Validation error",
+        errors: errors.array(),
       });
     }
 
@@ -158,14 +170,14 @@ exports.getOrders = async (req, res, next) => {
       status,
       priority,
       startDate,
-      endDate
+      endDate,
     } = req.query;
 
     // Build query
     let query = {};
-    
+
     // Role-based filtering
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== "admin") {
       query.requester = req.user._id;
     }
 
@@ -185,8 +197,8 @@ exports.getOrders = async (req, res, next) => {
 
     // Get orders with pagination
     const orders = await Order.find(query)
-      .populate('requester', 'fullName email role')
-      .populate('leads', 'leadType firstName lastName country')
+      .populate("requester", "fullName email role")
+      .populate("leads", "leadType firstName lastName country")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum);
@@ -201,8 +213,8 @@ exports.getOrders = async (req, res, next) => {
         page: pageNum,
         limit: limitNum,
         total,
-        totalPages: Math.ceil(total / limitNum)
-      }
+        totalPages: Math.ceil(total / limitNum),
+      },
     });
   } catch (error) {
     next(error);
@@ -215,27 +227,30 @@ exports.getOrders = async (req, res, next) => {
 exports.getOrderById = async (req, res, next) => {
   try {
     const order = await Order.findById(req.params.id)
-      .populate('requester', 'fullName email role')
-      .populate('leads');
+      .populate("requester", "fullName email role")
+      .populate("leads");
 
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: 'Order not found'
+        message: "Order not found",
       });
     }
 
     // Check permission (non-admin can only see their own orders)
-    if (req.user.role !== 'admin' && order.requester._id.toString() !== req.user._id.toString()) {
+    if (
+      req.user.role !== "admin" &&
+      order.requester._id.toString() !== req.user._id.toString()
+    ) {
       return res.status(403).json({
         success: false,
-        message: 'Not authorized to view this order'
+        message: "Not authorized to view this order",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: order
+      data: order,
     });
   } catch (error) {
     next(error);
@@ -252,8 +267,8 @@ exports.updateOrder = async (req, res, next) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        message: 'Validation error',
-        errors: errors.array()
+        message: "Validation error",
+        errors: errors.array(),
       });
     }
 
@@ -262,20 +277,23 @@ exports.updateOrder = async (req, res, next) => {
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: 'Order not found'
+        message: "Order not found",
       });
     }
 
     // Check permission
-    if (req.user.role !== 'admin' && order.requester.toString() !== req.user._id.toString()) {
+    if (
+      req.user.role !== "admin" &&
+      order.requester.toString() !== req.user._id.toString()
+    ) {
       return res.status(403).json({
         success: false,
-        message: 'Not authorized to update this order'
+        message: "Not authorized to update this order",
       });
     }
 
     const { priority, notes } = req.body;
-    
+
     if (priority) order.priority = priority;
     if (notes !== undefined) order.notes = notes;
 
@@ -283,8 +301,8 @@ exports.updateOrder = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Order updated successfully',
-      data: order
+      message: "Order updated successfully",
+      data: order,
     });
   } catch (error) {
     next(error);
@@ -296,7 +314,7 @@ exports.updateOrder = async (req, res, next) => {
 // @access  Private (Admin, Manager - own orders only)
 exports.cancelOrder = async (req, res, next) => {
   const session = await mongoose.startSession();
-  
+
   try {
     const { reason } = req.body;
 
@@ -306,40 +324,43 @@ exports.cancelOrder = async (req, res, next) => {
       if (!order) {
         return res.status(404).json({
           success: false,
-          message: 'Order not found'
+          message: "Order not found",
         });
       }
 
       // Check permission
-      if (req.user.role !== 'admin' && order.requester.toString() !== req.user._id.toString()) {
+      if (
+        req.user.role !== "admin" &&
+        order.requester.toString() !== req.user._id.toString()
+      ) {
         return res.status(403).json({
           success: false,
-          message: 'Not authorized to cancel this order'
+          message: "Not authorized to cancel this order",
         });
       }
 
-      if (order.status === 'cancelled') {
+      if (order.status === "cancelled") {
         return res.status(400).json({
           success: false,
-          message: 'Order is already cancelled'
+          message: "Order is already cancelled",
         });
       }
 
       // Unassign leads
       await Lead.updateMany(
         { _id: { $in: order.leads } },
-        { 
-          $set: { 
+        {
+          $set: {
             isAssigned: false,
             assignedTo: null,
-            assignedAt: null
-          } 
+            assignedAt: null,
+          },
         },
         { session }
       );
 
       // Update order
-      order.status = 'cancelled';
+      order.status = "cancelled";
       order.cancelledAt = new Date();
       order.cancellationReason = reason;
 
@@ -347,11 +368,10 @@ exports.cancelOrder = async (req, res, next) => {
 
       res.status(200).json({
         success: true,
-        message: 'Order cancelled successfully',
-        data: order
+        message: "Order cancelled successfully",
+        data: order,
       });
     });
-
   } catch (error) {
     next(error);
   } finally {
@@ -368,9 +388,9 @@ exports.getOrderStats = async (req, res, next) => {
 
     // Build match stage for aggregation
     let matchStage = {};
-    
+
     // Role-based filtering
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== "admin") {
       matchStage.requester = new mongoose.Types.ObjectId(req.user._id);
     }
 
@@ -385,27 +405,27 @@ exports.getOrderStats = async (req, res, next) => {
       { $match: matchStage },
       {
         $group: {
-          _id: '$status',
+          _id: "$status",
           count: { $sum: 1 },
           totalRequested: {
             $sum: {
-              $add: ['$requests.ftd', '$requests.filler', '$requests.cold']
-            }
+              $add: ["$requests.ftd", "$requests.filler", "$requests.cold"],
+            },
           },
           totalFulfilled: {
             $sum: {
-              $add: ['$fulfilled.ftd', '$fulfilled.filler', '$fulfilled.cold']
-            }
-          }
-        }
-      }
+              $add: ["$fulfilled.ftd", "$fulfilled.filler", "$fulfilled.cold"],
+            },
+          },
+        },
+      },
     ]);
 
     res.status(200).json({
       success: true,
-      data: stats
+      data: stats,
     });
   } catch (error) {
     next(error);
   }
-}; 
+};
