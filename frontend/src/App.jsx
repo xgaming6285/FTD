@@ -8,19 +8,19 @@ import { Toaster } from 'react-hot-toast';
 import { store, persistor } from './store/store';
 
 // Import components
-import ProtectedRoute from './components/common/ProtectedRoute';
-import PublicRoute from './components/common/PublicRoute';
-import MainLayout from './layouts/MainLayout';
+import ProtectedRoute from './components/common/ProtectedRoute.jsx';
+import PublicRoute from './components/common/PublicRoute.jsx';
+import MainLayout from './layouts/MainLayout.jsx';
 
 // Import pages
-import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import OrdersPage from './pages/OrdersPage';
-import LeadsPage from './pages/LeadsPage';
-import UsersPage from './pages/UsersPage';
-import PerformancePage from './pages/PerformancePage';
-import ProfilePage from './pages/ProfilePage';
-import NotFoundPage from './pages/NotFoundPage';
+import LoginPage from './pages/LoginPage.jsx';
+import DashboardPage from './pages/DashboardPage.jsx';
+import OrdersPage from './pages/OrdersPage.jsx';
+import LeadsPage from './pages/LeadsPage.jsx';
+import UsersPage from './pages/UsersPage.jsx';
+import PerformancePage from './pages/PerformancePage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
+import NotFoundPage from './pages/NotFoundPage.jsx';
 
 // Create theme
 const theme = createTheme({

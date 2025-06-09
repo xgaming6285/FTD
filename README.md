@@ -15,6 +15,7 @@ A comprehensive Lead Management Platform built with the MERN stack for managing 
 - **UI Framework**: Material-UI (MUI) components
 - **Routing**: React Router with protected routes
 - **Forms**: React Hook Form with Yup validation
+- **Build Tool**: Vite for fast development and optimized builds
 
 ## 🚀 Quick Start
 
@@ -41,10 +42,6 @@ npm run install-all
 # Backend environment
 cp backend/env.example backend/.env
 # Edit backend/.env with your configuration
-
-# Frontend environment (optional)
-# Create frontend/.env for custom API URL
-echo "REACT_APP_API_URL=http://localhost:5000/api" > frontend/.env
 ```
 
 4. **Database Setup and Seeding**
@@ -111,16 +108,17 @@ FTD/
 │   ├── models/             # Mongoose models
 │   ├── routes/             # API routes
 │   └── server.js           # Main server file
-├── frontend/               # React frontend
-│   ├── public/             # Static assets
+├── frontend/               # React frontend (Vite)
+│   ├── public/             # Static assets (fonts, images)
 │   └── src/
 │       ├── components/     # Reusable UI components
-│       ├── features/       # Feature-based components
+│       ├── contexts/       # React contexts
 │       ├── hooks/          # Custom React hooks
 │       ├── layouts/        # Layout components
 │       ├── pages/          # Page components
 │       ├── services/       # API services
 │       └── store/          # Redux store and slices
+├── vite.config.js         # Vite configuration
 └── package.json           # Root package.json
 ```
 
