@@ -51,12 +51,18 @@ const DashboardPage = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
+      // Ensure user object is loaded before making calls
+      if (!user || !user.id) {
+        setLoading(false);
+        return;
+      }
+
       const promises = [];
-      
+
       // Based on role, fetch relevant data
-      if (user?.role === 'admin') {
+      if (user.role === 'admin') {
         promises.push(
           api.get('/leads/stats'),
           api.get('/users/stats'),
@@ -64,21 +70,27 @@ const DashboardPage = () => {
           api.get('/users/top-performers'),
           api.get('/users/team-stats')
         );
-      } else if (user?.role === 'affiliate_manager') {
+      } else if (user.role === 'affiliate_manager') {
         promises.push(
           api.get('/orders?limit=10'),
           api.get('/leads/assigned'),
           api.get('/orders/stats')
         );
-      } else if (user?.role === 'agent') {
+      } else if (user.role === 'agent') {
         promises.push(
           api.get('/leads/assigned'),
-          api.get('/users/performance')
+          // FIX: Use the correct endpoint and include the user's ID
+          api.get(`/users/agents/${user.id}/performance`)
         );
       }
 
       const responses = await Promise.allSettled(promises);
-      
+
+      const firstRejected = responses.find(res => res.status === 'rejected');
+      if (firstRejected) {
+        throw new Error(firstRejected.reason.response?.data?.message || 'Failed to fetch some dashboard data');
+      }
+
       // Process responses based on role
       const data = {
         overview: {},
@@ -89,45 +101,25 @@ const DashboardPage = () => {
         ordersStats: {},
       };
 
-      if (user?.role === 'admin') {
-        if (responses[0]?.status === 'fulfilled') {
-          data.leadsStats = responses[0].value.data;
-        }
-        if (responses[1]?.status === 'fulfilled') {
-          data.usersStats = responses[1].value.data;
-        }
-        if (responses[2]?.status === 'fulfilled') {
-          data.recentActivity = responses[2].value.data.data || [];
-        }
-        if (responses[3]?.status === 'fulfilled') {
-          data.performance = responses[3].value.data;
-        }
-        if (responses[4]?.status === 'fulfilled') {
-          data.overview = responses[4].value.data;
-        }
-      } else if (user?.role === 'affiliate_manager') {
-        if (responses[0]?.status === 'fulfilled') {
-          data.recentActivity = responses[0].value.data.data || [];
-        }
-        if (responses[1]?.status === 'fulfilled') {
-          data.leadsStats = { assigned: responses[1].value.data.length };
-        }
-        if (responses[2]?.status === 'fulfilled') {
-          data.ordersStats = responses[2].value.data;
-        }
-      } else if (user?.role === 'agent') {
-        if (responses[0]?.status === 'fulfilled') {
-          data.leadsStats = { assigned: responses[0].value.data.length };
-          data.recentActivity = responses[0].value.data.slice(0, 5) || [];
-        }
-        if (responses[1]?.status === 'fulfilled') {
-          data.performance = responses[1].value.data;
-        }
+      if (user.role === 'admin') {
+        data.leadsStats = responses[0].value.data.data;
+        data.usersStats = responses[1].value.data.data;
+        data.recentActivity = responses[2].value.data.data || [];
+        data.performance = responses[3].value.data.data;
+        data.overview = responses[4].value.data.data;
+      } else if (user.role === 'affiliate_manager') {
+        data.recentActivity = responses[0].value.data.data || [];
+        data.leadsStats = { assigned: responses[1].value.data.data.length };
+        data.ordersStats = responses[2].value.data.data;
+      } else if (user.role === 'agent') {
+        data.leadsStats = { assigned: responses[0].value.data.data.length };
+        data.recentActivity = responses[0].value.data.data.slice(0, 5) || [];
+        data.performance = responses[1].value.data.data;
       }
 
       setDashboardData(data);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch dashboard data');
+      setError(err.message || 'Failed to fetch dashboard data');
     } finally {
       setLoading(false);
     }
@@ -408,12 +400,12 @@ const DashboardPage = () => {
         {/* Recent Activity */}
         <Grid item xs={12} md={6}>
           <Card>
-            <CardHeader 
+            <CardHeader
               title={
-                user?.role === 'agent' ? 'Recent Assigned Leads' : 
-                user?.role === 'affiliate_manager' ? 'Recent Orders' : 
-                'Recent Orders'
-              } 
+                user?.role === 'agent' ? 'Recent Assigned Leads' :
+                  user?.role === 'affiliate_manager' ? 'Recent Orders' :
+                    'Recent Orders'
+              }
             />
             <CardContent>
               {dashboardData.recentActivity.length > 0 ? (
@@ -422,7 +414,7 @@ const DashboardPage = () => {
                     <ListItem key={item._id} divider={index < dashboardData.recentActivity.length - 1}>
                       <ListItemText
                         primary={
-                          user?.role === 'agent' 
+                          user?.role === 'agent'
                             ? `${item.firstName} ${item.lastName}`
                             : `Order #${item._id.slice(-6)}`
                         }

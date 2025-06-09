@@ -8,25 +8,25 @@ const AgentPerformance = require('../models/AgentPerformance');
 exports.getUsers = async (req, res, next) => {
   try {
     const { role, isActive, page = 1, limit = 10 } = req.query;
-    
+
     // Build filter object
     const filter = {};
     if (role) filter.role = role;
     if (isActive !== undefined) filter.isActive = isActive === 'true';
-    
+
     // Calculate pagination
     const skip = (page - 1) * limit;
-    
+
     // Get users with pagination
     const users = await User.find(filter)
       .select('-password')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
-    
+
     // Get total count for pagination
     const total = await User.countDocuments(filter);
-    
+
     res.status(200).json({
       success: true,
       data: users,
@@ -49,14 +49,14 @@ exports.getUsers = async (req, res, next) => {
 exports.getUserById = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
-    
+
     res.status(200).json({
       success: true,
       data: user
@@ -80,9 +80,9 @@ exports.createUser = async (req, res, next) => {
         errors: errors.array()
       });
     }
-    
+
     const { email, password, fullName, role, fourDigitCode, permissions } = req.body;
-    
+
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -91,7 +91,7 @@ exports.createUser = async (req, res, next) => {
         message: 'User with this email already exists'
       });
     }
-    
+
     // Create user object
     const userData = {
       email,
@@ -100,7 +100,7 @@ exports.createUser = async (req, res, next) => {
       role,
       permissions: permissions || { canCreateOrders: true }
     };
-    
+
     // Add fourDigitCode if provided (for agents)
     if (fourDigitCode) {
       // Check if fourDigitCode is already in use
@@ -113,9 +113,9 @@ exports.createUser = async (req, res, next) => {
       }
       userData.fourDigitCode = fourDigitCode;
     }
-    
+
     const user = await User.create(userData);
-    
+
     res.status(201).json({
       success: true,
       message: 'User created successfully',
@@ -140,9 +140,9 @@ exports.updateUser = async (req, res, next) => {
         errors: errors.array()
       });
     }
-    
+
     const { fullName, email, role, fourDigitCode, isActive } = req.body;
-    
+
     const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({
@@ -150,7 +150,7 @@ exports.updateUser = async (req, res, next) => {
         message: 'User not found'
       });
     }
-    
+
     // Check if email is being changed and if it's already in use
     if (email && email !== user.email) {
       const existingUser = await User.findOne({ email });
@@ -161,7 +161,7 @@ exports.updateUser = async (req, res, next) => {
         });
       }
     }
-    
+
     // Check if fourDigitCode is being changed and if it's already in use
     if (fourDigitCode && fourDigitCode !== user.fourDigitCode) {
       const existingCode = await User.findOne({ fourDigitCode });
@@ -172,7 +172,7 @@ exports.updateUser = async (req, res, next) => {
         });
       }
     }
-    
+
     // Build update object
     const updateData = {};
     if (fullName) updateData.fullName = fullName;
@@ -180,13 +180,13 @@ exports.updateUser = async (req, res, next) => {
     if (role) updateData.role = role;
     if (fourDigitCode) updateData.fourDigitCode = fourDigitCode;
     if (isActive !== undefined) updateData.isActive = isActive;
-    
+
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
     );
-    
+
     res.status(200).json({
       success: true,
       message: 'User updated successfully',
@@ -203,27 +203,27 @@ exports.updateUser = async (req, res, next) => {
 exports.updateUserPermissions = async (req, res, next) => {
   try {
     const { permissions } = req.body;
-    
+
     if (!permissions || typeof permissions !== 'object') {
       return res.status(400).json({
         success: false,
         message: 'Valid permissions object is required'
       });
     }
-    
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { permissions },
       { new: true, runValidators: true }
     );
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
-    
+
     res.status(200).json({
       success: true,
       message: 'User permissions updated successfully',
@@ -244,14 +244,14 @@ exports.deleteUser = async (req, res, next) => {
       { isActive: false },
       { new: true }
     );
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
-    
+
     res.status(200).json({
       success: true,
       message: 'User deactivated successfully',
@@ -324,28 +324,29 @@ exports.getUserStats = async (req, res, next) => {
 exports.getAgentPerformance = async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
-    const agentId = req.params.id;
-    
-    // Check if user is admin or the agent themselves
+    // FIX: Get the agent ID from 'req.params.agentId' to match the route definition
+    const agentId = req.params.agentId;
+
+    // This authorization check now works correctly
     if (req.user.role !== 'admin' && req.user.id !== agentId) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to access this performance data'
       });
     }
-    
-    // Build date filter
-    const dateFilter = { agentId };
+
+    // Build date filter - this will now also work correctly
+    const dateFilter = { agent: agentId }; // Also ensure your AgentPerformance model uses 'agent' as the ref field
     if (startDate || endDate) {
       dateFilter.date = {};
       if (startDate) dateFilter.date.$gte = new Date(startDate);
       if (endDate) dateFilter.date.$lte = new Date(endDate);
     }
-    
+
     const performance = await AgentPerformance.find(dateFilter)
-      .populate('agentId', 'fullName fourDigitCode')
+      .populate('agent', 'fullName fourDigitCode') // It's good practice to populate 'agent' instead of 'agentId'
       .sort({ date: -1 });
-    
+
     res.status(200).json({
       success: true,
       data: performance
@@ -362,14 +363,14 @@ exports.updateAgentPerformance = async (req, res, next) => {
   try {
     const { date, metrics } = req.body;
     const agentId = req.params.id;
-    
+
     if (!date || !metrics) {
       return res.status(400).json({
         success: false,
         message: 'Date and metrics are required'
       });
     }
-    
+
     // Check if agent exists
     const agent = await User.findById(agentId);
     if (!agent || agent.role !== 'agent') {
@@ -378,14 +379,14 @@ exports.updateAgentPerformance = async (req, res, next) => {
         message: 'Agent not found'
       });
     }
-    
+
     // Upsert performance record
     const performance = await AgentPerformance.findOneAndUpdate(
       { agentId, date: new Date(date) },
       { ...metrics },
       { upsert: true, new: true, runValidators: true }
     ).populate('agentId', 'fullName fourDigitCode');
-    
+
     res.status(200).json({
       success: true,
       message: 'Agent performance updated successfully',
@@ -402,12 +403,12 @@ exports.updateAgentPerformance = async (req, res, next) => {
 exports.getTopPerformers = async (req, res, next) => {
   try {
     const { period = '30', limit = 10 } = req.query;
-    
+
     // Calculate date range
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(endDate.getDate() - parseInt(period));
-    
+
     const topPerformers = await AgentPerformance.aggregate([
       {
         $match: {
@@ -458,7 +459,7 @@ exports.getTopPerformers = async (req, res, next) => {
         $limit: parseInt(limit)
       }
     ]);
-    
+
     res.status(200).json({
       success: true,
       data: topPerformers,
@@ -475,11 +476,11 @@ exports.getTopPerformers = async (req, res, next) => {
 exports.getDailyTeamStats = async (req, res, next) => {
   try {
     const { date = new Date().toISOString().split('T')[0] } = req.query;
-    
+
     const targetDate = new Date(date);
     const nextDay = new Date(targetDate);
     nextDay.setDate(nextDay.getDate() + 1);
-    
+
     const teamStats = await AgentPerformance.aggregate([
       {
         $match: {
@@ -509,7 +510,7 @@ exports.getDailyTeamStats = async (req, res, next) => {
         }
       }
     ]);
-    
+
     const stats = teamStats[0] || {
       totalAgents: 0,
       totalCalls: 0,
@@ -518,7 +519,7 @@ exports.getDailyTeamStats = async (req, res, next) => {
       totalFillers: 0,
       averageCallQuality: 0
     };
-    
+
     res.status(200).json({
       success: true,
       data: stats,

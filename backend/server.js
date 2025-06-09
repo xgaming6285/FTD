@@ -19,6 +19,8 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
+// Set trust proxy to fix express-rate-limit issue behind a proxy
+app.set('trust proxy', 1); // <-- FIX: THIS IS THE ONLY ADDED LINE
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/lead-management', {
@@ -45,8 +47,8 @@ app.use('/api/', limiter);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-production-domain.com'] 
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://your-production-domain.com']
     : ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true
 }));
@@ -101,4 +103,4 @@ process.on('SIGTERM', () => {
   });
 });
 
-module.exports = app; 
+module.exports = app;

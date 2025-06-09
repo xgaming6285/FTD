@@ -63,11 +63,11 @@ ChartJS.register(
 
 const PerformancePage = () => {
   const user = useSelector(selectUser);
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState('30');
-  
+
   // Performance data
   const [teamStats, setTeamStats] = useState(null);
   const [topPerformers, setTopPerformers] = useState([]);
@@ -85,7 +85,7 @@ const PerformancePage = () => {
   const fetchPerformanceData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const today = new Date().toISOString().split('T')[0];
       const startDate = new Date();
@@ -94,7 +94,7 @@ const PerformancePage = () => {
 
       // Fetch different data based on user role
       const promises = [];
-      
+
       if (user?.role === 'admin') {
         // Admin can see all data
         promises.push(
@@ -105,13 +105,16 @@ const PerformancePage = () => {
         );
       } else if (user?.role === 'agent') {
         // Agent can only see their own performance
-        promises.push(
-          api.get(`/users/${user.id}/performance?startDate=${startDateStr}&endDate=${today}`)
-        );
+        // Ensure user.id is available before making the call
+        if (user && user.id) {
+          promises.push(
+            // FIX: The URL now matches the backend route '/users/agents/:agentId/performance'
+            api.get(`/users/agents/${user.id}/performance?startDate=${startDateStr}&endDate=${today}`)
+          );
+        }
       }
-
       const results = await Promise.all(promises);
-      
+
       if (user?.role === 'admin') {
         setTeamStats(results[0].data.data);
         setTopPerformers(results[1].data.data);
@@ -123,7 +126,7 @@ const PerformancePage = () => {
 
       // Generate chart data
       generateChartData();
-      
+
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch performance data');
     } finally {
@@ -136,7 +139,7 @@ const PerformancePage = () => {
     // Generate last 7 days for demo
     const labels = [];
     const data = [];
-    
+
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
@@ -211,7 +214,7 @@ const PerformancePage = () => {
       const totalCalls = agentPerformance.reduce((sum, p) => sum + (p.metrics?.callsMade || 0), 0);
       const totalEarnings = agentPerformance.reduce((sum, p) => sum + (p.metrics?.earnings || 0), 0);
       const avgQuality = agentPerformance.reduce((sum, p) => sum + (p.metrics?.averageCallQuality || 0), 0) / agentPerformance.length;
-      
+
       return {
         totalCalls,
         totalEarnings: totalEarnings.toFixed(2),
@@ -376,8 +379,8 @@ const PerformancePage = () => {
               {/* Top Performers Table */}
               <Grid item xs={12}>
                 <Card>
-                  <CardHeader 
-                    title="Top Performers" 
+                  <CardHeader
+                    title="Top Performers"
                     avatar={<TrophyIcon color="warning" />}
                   />
                   <CardContent>
@@ -426,8 +429,8 @@ const PerformancePage = () => {
                               <TableCell>
                                 <Chip
                                   label={performer.averageCallQuality}
-                                  color={performer.averageCallQuality >= 4 ? 'success' : 
-                                         performer.averageCallQuality >= 3 ? 'warning' : 'error'}
+                                  color={performer.averageCallQuality >= 4 ? 'success' :
+                                    performer.averageCallQuality >= 3 ? 'warning' : 'error'}
                                   size="small"
                                 />
                               </TableCell>
@@ -627,7 +630,7 @@ const PerformancePage = () => {
                                   label={record.metrics?.averageCallQuality || 0}
                                   color={
                                     (record.metrics?.averageCallQuality || 0) >= 4 ? 'success' :
-                                    (record.metrics?.averageCallQuality || 0) >= 3 ? 'warning' : 'error'
+                                      (record.metrics?.averageCallQuality || 0) >= 3 ? 'warning' : 'error'
                                   }
                                   size="small"
                                 />
