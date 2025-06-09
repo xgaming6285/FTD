@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Box,
@@ -44,6 +44,20 @@ import * as yup from 'yup';
 import api from '../services/api';
 import { selectUser } from '../store/slices/authSlice';
 
+// Debounce utility function
+function debounce(func, wait) {
+  let timeout;
+  const debouncedFunction = function (...args) {
+    const context = this;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), wait);
+  };
+  debouncedFunction.cancel = function () {
+    clearTimeout(timeout);
+  };
+  return debouncedFunction;
+}
+
 // Validation schema for order creation
 const orderSchema = yup.object({
   ftd: yup.number().min(0, 'Must be 0 or greater').integer('Must be a whole number'),
@@ -51,24 +65,24 @@ const orderSchema = yup.object({
   cold: yup.number().min(0, 'Must be 0 or greater').integer('Must be a whole number'),
   priority: yup.string().oneOf(['low', 'medium', 'high'], 'Invalid priority'),
   notes: yup.string(),
-}).test('at-least-one', 'At least one lead type must be requested', function(value) {
+}).test('at-least-one', 'At least one lead type must be requested', function (value) {
   return (value.ftd || 0) + (value.filler || 0) + (value.cold || 0) > 0;
 });
 
 const OrdersPage = () => {
   const dispatch = useDispatch();
   const user = useSelector(selectUser);
-  
+
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  
+
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  
+
   // Pagination and filtering
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -98,31 +112,57 @@ const OrdersPage = () => {
     },
   });
 
-  // Fetch orders
-  const fetchOrders = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const params = new URLSearchParams({
-        page: page + 1,
-        limit: rowsPerPage,
-        ...filters,
-      });
+  // Add debounce timer ref
+  const fetchTimer = useRef(null);
 
-      const response = await api.get(`/orders?${params}`);
-      setOrders(response.data.data);
-      setTotalOrders(response.data.pagination.total);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch orders');
-    } finally {
-      setLoading(false);
+  // Modified fetch orders with debouncing
+  const fetchOrders = async () => {
+    if (fetchTimer.current) {
+      clearTimeout(fetchTimer.current);
     }
+
+    fetchTimer.current = setTimeout(async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Create base params
+        const params = new URLSearchParams({
+          page: page + 1,
+          limit: rowsPerPage,
+        });
+
+        // Only add non-empty filter values
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value) {
+            params.append(key, value);
+          }
+        });
+
+        const response = await api.get(`/orders?${params}`);
+        setOrders(response.data.data);
+        setTotalOrders(response.data.pagination.total);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to fetch orders');
+      } finally {
+        setLoading(false);
+      }
+    }, 500); // 500ms debounce delay
   };
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (fetchTimer.current) {
+        clearTimeout(fetchTimer.current);
+      }
+    };
+  }, []);
+
+  // Watch for changes in filters and pagination
   useEffect(() => {
     fetchOrders();
-  }, [page, rowsPerPage, filters]);
+  }, [page, rowsPerPage, filters.status, filters.priority]);  // Remove date filters if not needed immediately
 
   // Create order
   const onSubmitOrder = async (data) => {
@@ -143,7 +183,7 @@ const OrdersPage = () => {
       setCreateDialogOpen(false);
       reset();
       fetchOrders();
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -172,11 +212,12 @@ const OrdersPage = () => {
     setPage(0);
   };
 
-  // Filter handlers
+  // Filter handlers with debounce
   const handleFilterChange = (field) => (event) => {
+    const value = event.target.value;
     setFilters(prev => ({
       ...prev,
-      [field]: event.target.value,
+      [field]: value,
     }));
     setPage(0);
   };
