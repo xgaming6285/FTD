@@ -160,7 +160,7 @@ const UsersPage = () => {
         userData.fourDigitCode = data.fourDigitCode;
       }
 
-      if (!isEditing && data.password) {
+      if (!isEditing) {
         userData.password = data.password;
       }
 

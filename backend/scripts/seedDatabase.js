@@ -7,48 +7,25 @@ const User = require('../models/User');
 const Lead = require('../models/Lead');
 const Order = require('../models/Order');
 const AgentPerformance = require('../models/AgentPerformance');
+const connectDB = require('../config/db');
 
-// Connect to database
-const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/lead-management', {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log('Connected to MongoDB');
-  } catch (error) {
-    console.error('Database connection error:', error);
-    process.exit(1);
-  }
-};
-
-// Create default admin user
+// Create default admin
 const createDefaultAdmin = async () => {
   try {
-    const existingAdmin = await User.findOne({ role: 'admin' });
+    // Delete existing admin
+    await User.deleteMany({ role: 'admin' });
+    console.log('Deleted existing admin users');
 
-    if (existingAdmin) {
-      console.log('Admin user already exists. Skipping admin creation.');
-      return existingAdmin;
-    }
-
-    const adminData = {
+    const admin = await User.create({
       email: 'admin@leadmanagement.com',
       password: 'admin123',
-      fullName: 'System Administrator',
+      fullName: 'System Admin',
       role: 'admin',
-      permissions: {
-        canCreateOrders: true
-      },
+      permissions: { canCreateOrders: true },
       isActive: true
-    };
+    });
 
-    const admin = await User.create(adminData);
-    console.log('✅ Default admin user created:');
-    console.log('Email: admin@leadmanagement.com');
-    console.log('Password: admin123');
-    console.log('Please change this password after first login!');
-
+    console.log('✅ Admin user created successfully');
     return admin;
   } catch (error) {
     console.error('Error creating admin user:', error);
@@ -59,13 +36,12 @@ const createDefaultAdmin = async () => {
 // Create sample users
 const createSampleUsers = async () => {
   try {
-    const existingUsers = await User.countDocuments();
+    // Delete all existing users
+    console.log('Deleting all existing users...');
+    await User.deleteMany({});
+    console.log('All existing users deleted');
 
-    if (existingUsers > 1) {
-      console.log('Sample users already exist. Skipping user creation.');
-      return;
-    }
-
+    console.log('Creating sample users...');
     const sampleUsers = [
       {
         email: 'manager@leadmanagement.com',
@@ -95,7 +71,10 @@ const createSampleUsers = async () => {
       }
     ];
 
-    await User.insertMany(sampleUsers);
+    console.log('Inserting new sample users...');
+    const createdUsers = await User.insertMany(sampleUsers);
+    console.log('Sample users created:', createdUsers);
+
     console.log('✅ Sample users created successfully');
     console.log('Manager: manager@leadmanagement.com / manager123');
     console.log('Agent 1: agent1@leadmanagement.com / agent123');
@@ -289,10 +268,10 @@ const seedDatabase = async () => {
 
     await connectDB();
 
-    await createDefaultAdmin();
+    // Force recreate all users
+    console.log('Force recreating all users...');
     await createSampleUsers();
-    await createSampleLeads();
-    await createSamplePerformance();
+    await createDefaultAdmin();
 
     console.log('🎉 Database seeding completed successfully!');
     console.log('\n📝 Default Login Credentials:');
@@ -311,9 +290,7 @@ const seedDatabase = async () => {
   }
 };
 
-// Run seeding if called directly
-if (require.main === module) {
-  seedDatabase();
-}
+// Run seeding
+seedDatabase();
 
 module.exports = { seedDatabase, createDefaultAdmin }; 

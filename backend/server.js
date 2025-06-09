@@ -39,18 +39,25 @@ app.use(helmet());
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
+  windowMs: process.env.NODE_ENV === 'production'
+    ? parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000 // 15 minutes in production
+    : 1 * 60 * 1000, // 1 minute in development
+  max: process.env.NODE_ENV === 'production'
+    ? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100 // 100 requests per window in production
+    : 1000, // 1000 requests per window in development
   message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? ['https://your-production-domain.com']
-    : ['http://localhost:3000', 'http://localhost:3001'],
-  credentials: true
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL || 'https://your-production-domain.com'
+    : ['http://localhost:3000', 'http://localhost:5173'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200
 }));
 
 // Body parsing middleware

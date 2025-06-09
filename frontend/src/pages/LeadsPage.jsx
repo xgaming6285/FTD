@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import {
   Box,
   Typography,
@@ -35,7 +35,7 @@ import {
   Divider,
   FormControlLabel,
   Switch,
-} from '@mui/material';
+} from "@mui/material";
 import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
@@ -44,21 +44,24 @@ import {
   Assignment as AssignmentIcon,
   PersonAdd as PersonAddIcon,
   FilterList as FilterIcon,
-} from '@mui/icons-material';
-import { useForm, Controller } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import api from '../services/api';
-import { selectUser } from '../store/slices/authSlice';
+} from "@mui/icons-material";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import api from "../services/api";
+import { selectUser } from "../store/slices/authSlice";
 
 // Validation schema for comments
 const commentSchema = yup.object({
-  text: yup.string().required('Comment is required').min(3, 'Comment must be at least 3 characters'),
+  text: yup
+    .string()
+    .required("Comment is required")
+    .min(3, "Comment must be at least 3 characters"),
 });
 
 // Validation schema for assignment
 const assignmentSchema = yup.object({
-  agentId: yup.string().required('Agent is required'),
+  agentId: yup.string().required("Agent is required"),
 });
 
 const LeadsPage = () => {
@@ -81,12 +84,12 @@ const LeadsPage = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalLeads, setTotalLeads] = useState(0);
   const [filters, setFilters] = useState({
-    leadType: '',
-    isAssigned: '',
-    country: '',
-    status: '',
-    documentStatus: '',
-    search: '',
+    leadType: "",
+    isAssigned: "",
+    country: "",
+    status: "",
+    documentStatus: "",
+    search: "",
     includeConverted: true,
   });
   const [showFilters, setShowFilters] = useState(false);
@@ -99,7 +102,7 @@ const LeadsPage = () => {
     formState: { errors: commentErrors, isSubmitting: isCommentSubmitting },
   } = useForm({
     resolver: yupResolver(commentSchema),
-    defaultValues: { text: '' },
+    defaultValues: { text: "" },
   });
 
   const {
@@ -109,12 +112,12 @@ const LeadsPage = () => {
     formState: { errors: assignErrors, isSubmitting: isAssignSubmitting },
   } = useForm({
     resolver: yupResolver(assignmentSchema),
-    defaultValues: { agentId: '' },
+    defaultValues: { agentId: "" },
   });
 
   // Log user state when component mounts
   useEffect(() => {
-    console.log('Current user state:', user);
+    console.log("Current user state:", user);
   }, [user]);
 
   // Fetch leads
@@ -123,35 +126,47 @@ const LeadsPage = () => {
     setError(null);
 
     try {
-      const params = new URLSearchParams({
+      // For system administrators, don't include empty isAssigned filter to show all leads
+      const paramsObject = {
         page: page + 1,
         limit: rowsPerPage,
         ...filters,
-      });
+      };
+
+      // For admins, if isAssigned filter is empty, remove it to show all leads
+      if (
+        (user?.role === "admin" || user?.role === "affiliate_manager") &&
+        !paramsObject.isAssigned
+      ) {
+        delete paramsObject.isAssigned;
+      }
+
+      const params = new URLSearchParams(paramsObject);
 
       // Use appropriate endpoint based on user role
-      const endpoint = user?.role === 'agent' ? '/leads/assigned' : '/leads';
-      console.log('Fetching leads - User role:', user?.role);
-      console.log('Using endpoint:', endpoint);
-      console.log('Request params:', Object.fromEntries(params));
+      const endpoint = user?.role === "agent" ? "/leads/assigned" : "/leads";
+      console.log("Fetching leads - User role:", user?.role);
+      console.log("Using endpoint:", endpoint);
+      console.log("Request params:", Object.fromEntries(params));
 
       const response = await api.get(`${endpoint}?${params}`);
-      console.log('API Response:', response.data);
+      console.log("API Response:", response.data);
 
       if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to fetch leads');
+        throw new Error(response.data.message || "Failed to fetch leads");
       }
 
       setLeads(response.data.data);
       setTotalLeads(response.data.pagination.totalLeads);
     } catch (err) {
-      console.error('Error fetching leads:', err);
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch leads';
-      console.error('Error details:', {
+      console.error("Error fetching leads:", err);
+      const errorMessage =
+        err.response?.data?.message || err.message || "Failed to fetch leads";
+      console.error("Error details:", {
         status: err.response?.status,
         statusText: err.response?.statusText,
         data: err.response?.data,
-        message: errorMessage
+        message: errorMessage,
       });
       setError(errorMessage);
     } finally {
@@ -162,16 +177,16 @@ const LeadsPage = () => {
   // Fetch agents for assignment
   const fetchAgents = async () => {
     try {
-      const response = await api.get('/users?role=agent&isActive=true');
+      const response = await api.get("/users?role=agent&isActive=true");
       setAgents(response.data.data);
     } catch (err) {
-      console.error('Failed to fetch agents:', err);
+      console.error("Failed to fetch agents:", err);
     }
   };
 
   useEffect(() => {
     fetchLeads();
-    if (user?.role === 'admin' || user?.role === 'affiliate_manager') {
+    if (user?.role === "admin" || user?.role === "affiliate_manager") {
       fetchAgents();
     }
   }, [page, rowsPerPage, filters, user]);
@@ -181,14 +196,14 @@ const LeadsPage = () => {
     try {
       setError(null);
       await api.put(`/leads/${selectedLead._id}/comment`, data);
-      setSuccess('Comment added successfully!');
+      setSuccess("Comment added successfully!");
       setCommentDialogOpen(false);
       resetComment();
       fetchLeads();
 
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to add comment');
+      setError(err.response?.data?.message || "Failed to add comment");
     }
   };
 
@@ -197,7 +212,7 @@ const LeadsPage = () => {
     try {
       setError(null);
       const leadIds = Array.from(selectedLeads);
-      await api.put('/leads/assign', {
+      await api.post("/leads/assign", {
         leadIds,
         agentId: data.agentId,
       });
@@ -209,7 +224,7 @@ const LeadsPage = () => {
 
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to assign leads');
+      setError(err.response?.data?.message || "Failed to assign leads");
     }
   };
 
@@ -218,12 +233,12 @@ const LeadsPage = () => {
     try {
       setError(null);
       await api.put(`/leads/${leadId}/status`, { status });
-      setSuccess('Lead status updated successfully!');
+      setSuccess("Lead status updated successfully!");
       fetchLeads();
 
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update lead status');
+      setError(err.response?.data?.message || "Failed to update lead status");
     }
   };
 
@@ -239,7 +254,7 @@ const LeadsPage = () => {
 
   // Filter handlers
   const handleFilterChange = (field) => (event) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       [field]: event.target.value,
     }));
@@ -248,12 +263,12 @@ const LeadsPage = () => {
 
   const clearFilters = () => {
     setFilters({
-      leadType: '',
-      isAssigned: '',
-      country: '',
-      status: '',
-      documentStatus: '',
-      search: '',
+      leadType: "",
+      isAssigned: "",
+      country: "",
+      status: "",
+      documentStatus: "",
+      search: "",
       includeConverted: true,
     });
     setPage(0);
@@ -262,7 +277,7 @@ const LeadsPage = () => {
   // Selection handlers
   const handleSelectAll = (event) => {
     if (event.target.checked) {
-      const newSelected = new Set(leads.map(lead => lead._id));
+      const newSelected = new Set(leads.map((lead) => lead._id));
       setSelectedLeads(newSelected);
     } else {
       setSelectedLeads(new Set());
@@ -293,33 +308,47 @@ const LeadsPage = () => {
   // Status color mapping
   const getStatusColor = (status) => {
     switch (status) {
-      case 'active': return 'success';
-      case 'contacted': return 'info';
-      case 'converted': return 'success';
-      case 'inactive': return 'error';
-      default: return 'default';
+      case "active":
+        return "success";
+      case "contacted":
+        return "info";
+      case "converted":
+        return "success";
+      case "inactive":
+        return "error";
+      default:
+        return "default";
     }
   };
 
   // Lead type color mapping
   const getLeadTypeColor = (leadType) => {
     switch (leadType) {
-      case 'ftd': return 'primary';
-      case 'filler': return 'secondary';
-      case 'cold': return 'info';
-      default: return 'default';
+      case "ftd":
+        return "primary";
+      case "filler":
+        return "secondary";
+      case "cold":
+        return "info";
+      default:
+        return "default";
     }
   };
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'affiliate_manager';
+  const isAdmin = user?.role === "admin" || user?.role === "affiliate_manager";
   const canAssignLeads = isAdmin;
   const numSelected = selectedLeads.size;
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={3}
+      >
         <Typography variant="h4" gutterBottom>
-          {user?.role === 'agent' ? 'My Assigned Leads' : 'Lead Management'}
+          {user?.role === "agent" ? "My Assigned Leads" : "Lead Management"}
         </Typography>
         {canAssignLeads && numSelected > 0 && (
           <Button
@@ -327,14 +356,18 @@ const LeadsPage = () => {
             startIcon={<PersonAddIcon />}
             onClick={() => setAssignDialogOpen(true)}
           >
-            Assign {numSelected} Lead{numSelected !== 1 ? 's' : ''}
+            Assign {numSelected} Lead{numSelected !== 1 ? "s" : ""}
           </Button>
         )}
       </Box>
 
       {/* Success/Error Messages */}
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+        <Alert
+          severity="success"
+          sx={{ mb: 2 }}
+          onClose={() => setSuccess(null)}
+        >
           {success}
         </Alert>
       )}
@@ -344,10 +377,72 @@ const LeadsPage = () => {
         </Alert>
       )}
 
+      {/* Lead Statistics for Admins */}
+      {isAdmin && (
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Lead Assignment Summary
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={6} sm={3}>
+                <Box textAlign="center">
+                  <Typography variant="h4" color="primary">
+                    {totalLeads}
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    Total Leads
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Box textAlign="center">
+                  <Typography variant="h4" color="success.main">
+                    {leads.filter((lead) => lead.isAssigned).length}
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    Assigned
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Box textAlign="center">
+                  <Typography variant="h4" color="warning.main">
+                    {leads.filter((lead) => !lead.isAssigned).length}
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    Unassigned
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Box textAlign="center">
+                  <Typography variant="h4" color="info.main">
+                    {Math.round(
+                      (leads.filter((lead) => lead.isAssigned).length /
+                        (leads.length || 1)) *
+                        100
+                    )}
+                    %
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    Assignment Rate
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Filters */}
       <Card sx={{ mb: 2 }}>
         <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+          >
             <Typography variant="h6">Filters & Search</Typography>
             <IconButton onClick={() => setShowFilters(!showFilters)}>
               {showFilters ? <ExpandLessIcon /> : <ExpandMoreIcon />}
@@ -360,10 +455,12 @@ const LeadsPage = () => {
                   fullWidth
                   label="Search"
                   value={filters.search}
-                  onChange={handleFilterChange('search')}
+                  onChange={handleFilterChange("search")}
                   placeholder="Name, email, phone..."
                   InputProps={{
-                    startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />,
+                    startAdornment: (
+                      <SearchIcon sx={{ mr: 1, color: "action.active" }} />
+                    ),
                   }}
                 />
               </Grid>
@@ -373,7 +470,7 @@ const LeadsPage = () => {
                   <Select
                     value={filters.leadType}
                     label="Lead Type"
-                    onChange={handleFilterChange('leadType')}
+                    onChange={handleFilterChange("leadType")}
                   >
                     <MenuItem value="">All</MenuItem>
                     <MenuItem value="ftd">FTD</MenuItem>
@@ -389,7 +486,7 @@ const LeadsPage = () => {
                     <Select
                       value={filters.isAssigned}
                       label="Assignment"
-                      onChange={handleFilterChange('isAssigned')}
+                      onChange={handleFilterChange("isAssigned")}
                     >
                       <MenuItem value="">All</MenuItem>
                       <MenuItem value="true">Assigned</MenuItem>
@@ -404,7 +501,7 @@ const LeadsPage = () => {
                   <Select
                     value={filters.status}
                     label="Status"
-                    onChange={handleFilterChange('status')}
+                    onChange={handleFilterChange("status")}
                   >
                     <MenuItem value="">All</MenuItem>
                     <MenuItem value="active">Active</MenuItem>
@@ -420,10 +517,12 @@ const LeadsPage = () => {
                     control={
                       <Switch
                         checked={filters.includeConverted}
-                        onChange={(e) => setFilters(prev => ({
-                          ...prev,
-                          includeConverted: e.target.checked
-                        }))}
+                        onChange={(e) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            includeConverted: e.target.checked,
+                          }))
+                        }
                         color="primary"
                       />
                     }
@@ -436,7 +535,7 @@ const LeadsPage = () => {
                   fullWidth
                   label="Country"
                   value={filters.country}
-                  onChange={handleFilterChange('country')}
+                  onChange={handleFilterChange("country")}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -458,7 +557,9 @@ const LeadsPage = () => {
                 {canAssignLeads && (
                   <TableCell padding="checkbox">
                     <Checkbox
-                      indeterminate={numSelected > 0 && numSelected < leads.length}
+                      indeterminate={
+                        numSelected > 0 && numSelected < leads.length
+                      }
                       checked={leads.length > 0 && numSelected === leads.length}
                       onChange={handleSelectAll}
                     />
@@ -502,7 +603,8 @@ const LeadsPage = () => {
                       <TableCell>
                         <Box>
                           <Typography variant="body2" fontWeight="medium">
-                            {lead.fullName || `${lead.firstName} ${lead.lastName || ''}`.trim()}
+                            {lead.fullName ||
+                              `${lead.firstName} ${lead.lastName || ""}`.trim()}
                           </Typography>
                           <Typography variant="caption" color="textSecondary">
                             ID: {lead._id.slice(-8)}
@@ -529,15 +631,54 @@ const LeadsPage = () => {
                         <TableCell>
                           {lead.isAssigned ? (
                             <Box display="flex" alignItems="center">
-                              <Avatar sx={{ width: 24, height: 24, mr: 1, fontSize: '0.75rem' }}>
-                                {lead.assignedTo?.fourDigitCode || lead.assignedTo?.fullName?.[0] || 'A'}
+                              <Avatar
+                                sx={{
+                                  width: 24,
+                                  height: 24,
+                                  mr: 1,
+                                  fontSize: "0.75rem",
+                                }}
+                              >
+                                {lead.assignedTo?.fourDigitCode ||
+                                  lead.assignedTo?.fullName?.[0] ||
+                                  "A"}
                               </Avatar>
-                              <Typography variant="caption">
-                                {lead.assignedTo?.fullName || 'Unknown'}
-                              </Typography>
+                              <Box>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ fontWeight: "medium" }}
+                                >
+                                  {lead.assignedTo?.fullName || "Unknown Agent"}
+                                </Typography>
+                                {lead.assignedTo?.fourDigitCode && (
+                                  <Typography
+                                    variant="caption"
+                                    color="textSecondary"
+                                    display="block"
+                                  >
+                                    #{lead.assignedTo.fourDigitCode}
+                                  </Typography>
+                                )}
+                                {lead.assignedAt && (
+                                  <Typography
+                                    variant="caption"
+                                    color="textSecondary"
+                                    display="block"
+                                  >
+                                    {new Date(
+                                      lead.assignedAt
+                                    ).toLocaleDateString()}
+                                  </Typography>
+                                )}
+                              </Box>
                             </Box>
                           ) : (
-                            <Chip label="Unassigned" size="small" variant="outlined" />
+                            <Chip
+                              label="Unassigned"
+                              size="small"
+                              variant="outlined"
+                              color="warning"
+                            />
                           )}
                         </TableCell>
                       )}
@@ -545,7 +686,9 @@ const LeadsPage = () => {
                         <FormControl size="small" sx={{ minWidth: 100 }}>
                           <Select
                             value={lead.status}
-                            onChange={(e) => updateLeadStatus(lead._id, e.target.value)}
+                            onChange={(e) =>
+                              updateLeadStatus(lead._id, e.target.value)
+                            }
                           >
                             <MenuItem value="active">Active</MenuItem>
                             <MenuItem value="contacted">Contacted</MenuItem>
@@ -573,37 +716,50 @@ const LeadsPage = () => {
                           onClick={() => toggleRowExpansion(lead._id)}
                           title="View Details"
                         >
-                          {expandedRows.has(lead._id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                          {expandedRows.has(lead._id) ? (
+                            <ExpandLessIcon />
+                          ) : (
+                            <ExpandMoreIcon />
+                          )}
                         </IconButton>
                       </TableCell>
                     </TableRow>
                     {expandedRows.has(lead._id) && (
                       <TableRow>
                         <TableCell colSpan={isAdmin ? 9 : 8}>
-                          <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
+                          <Box sx={{ p: 2, bgcolor: "grey.50" }}>
                             <Grid container spacing={2}>
                               <Grid item xs={12} md={6}>
                                 <Typography variant="subtitle2" gutterBottom>
                                   Contact Details
                                 </Typography>
                                 <Typography variant="body2">
-                                  <strong>Email:</strong> {lead.email || 'N/A'}
+                                  <strong>Email:</strong> {lead.email || "N/A"}
                                 </Typography>
                                 <Typography variant="body2">
-                                  <strong>Phone:</strong> {lead.phone || 'N/A'}
+                                  <strong>Phone:</strong> {lead.phone || "N/A"}
                                 </Typography>
                                 <Typography variant="body2">
-                                  <strong>Country:</strong> {lead.country || 'N/A'}
+                                  <strong>Country:</strong>{" "}
+                                  {lead.country || "N/A"}
                                 </Typography>
-                                {lead.leadType === 'ftd' && lead.documents && (
+                                {lead.leadType === "ftd" && lead.documents && (
                                   <Box sx={{ mt: 2 }}>
-                                    <Typography variant="subtitle2" gutterBottom>
+                                    <Typography
+                                      variant="subtitle2"
+                                      gutterBottom
+                                    >
                                       Documents Status
                                     </Typography>
                                     <Chip
                                       label={lead.documents.status}
-                                      color={lead.documents.status === 'good' ? 'success' :
-                                        lead.documents.status === 'ok' ? 'warning' : 'default'}
+                                      color={
+                                        lead.documents.status === "good"
+                                          ? "success"
+                                          : lead.documents.status === "ok"
+                                          ? "warning"
+                                          : "default"
+                                      }
                                       size="small"
                                     />
                                   </Box>
@@ -613,21 +769,35 @@ const LeadsPage = () => {
                                 <Typography variant="subtitle2" gutterBottom>
                                   Comments ({lead.comments?.length || 0})
                                 </Typography>
-                                <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
+                                <Box sx={{ maxHeight: 200, overflowY: "auto" }}>
                                   {lead.comments && lead.comments.length > 0 ? (
                                     lead.comments.map((comment, index) => (
                                       <Box key={index} sx={{ mb: 2 }}>
-                                        <Typography variant="caption" color="textSecondary">
-                                          {comment.author?.fullName} - {new Date(comment.createdAt).toLocaleString()}
+                                        <Typography
+                                          variant="caption"
+                                          color="textSecondary"
+                                        >
+                                          {comment.author?.fullName} -{" "}
+                                          {new Date(
+                                            comment.createdAt
+                                          ).toLocaleString()}
                                         </Typography>
-                                        <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                        <Typography
+                                          variant="body2"
+                                          sx={{ mt: 0.5 }}
+                                        >
                                           {comment.text}
                                         </Typography>
-                                        {index < lead.comments.length - 1 && <Divider sx={{ mt: 1 }} />}
+                                        {index < lead.comments.length - 1 && (
+                                          <Divider sx={{ mt: 1 }} />
+                                        )}
                                       </Box>
                                     ))
                                   ) : (
-                                    <Typography variant="body2" color="textSecondary">
+                                    <Typography
+                                      variant="body2"
+                                      color="textSecondary"
+                                    >
                                       No comments yet
                                     </Typography>
                                   )}
@@ -699,7 +869,11 @@ const LeadsPage = () => {
               variant="contained"
               disabled={isCommentSubmitting}
             >
-              {isCommentSubmitting ? <CircularProgress size={24} /> : 'Add Comment'}
+              {isCommentSubmitting ? (
+                <CircularProgress size={24} />
+              ) : (
+                "Add Comment"
+              )}
             </Button>
           </DialogActions>
         </form>
@@ -716,7 +890,8 @@ const LeadsPage = () => {
         <form onSubmit={handleAssignSubmit(onSubmitAssignment)}>
           <DialogContent>
             <Typography variant="body2" sx={{ mb: 2 }}>
-              Assigning {numSelected} lead{numSelected !== 1 ? 's' : ''} to an agent:
+              Assigning {numSelected} lead{numSelected !== 1 ? "s" : ""} to an
+              agent:
             </Typography>
             <Controller
               name="agentId"
@@ -724,14 +899,18 @@ const LeadsPage = () => {
               render={({ field }) => (
                 <FormControl fullWidth error={!!assignErrors.agentId}>
                   <InputLabel>Select Agent</InputLabel>
-                  <Select
-                    {...field}
-                    label="Select Agent"
-                  >
+                  <Select {...field} label="Select Agent">
                     {agents.map((agent) => (
                       <MenuItem key={agent._id} value={agent._id}>
                         <Box display="flex" alignItems="center">
-                          <Avatar sx={{ width: 24, height: 24, mr: 1, fontSize: '0.75rem' }}>
+                          <Avatar
+                            sx={{
+                              width: 24,
+                              height: 24,
+                              mr: 1,
+                              fontSize: "0.75rem",
+                            }}
+                          >
                             {agent.fourDigitCode || agent.fullName[0]}
                           </Avatar>
                           {agent.fullName} ({agent.fourDigitCode})
@@ -740,7 +919,11 @@ const LeadsPage = () => {
                     ))}
                   </Select>
                   {assignErrors.agentId && (
-                    <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                    <Typography
+                      variant="caption"
+                      color="error"
+                      sx={{ mt: 0.5 }}
+                    >
                       {assignErrors.agentId.message}
                     </Typography>
                   )}
@@ -755,7 +938,11 @@ const LeadsPage = () => {
               variant="contained"
               disabled={isAssignSubmitting}
             >
-              {isAssignSubmitting ? <CircularProgress size={24} /> : 'Assign Leads'}
+              {isAssignSubmitting ? (
+                <CircularProgress size={24} />
+              ) : (
+                "Assign Leads"
+              )}
             </Button>
           </DialogActions>
         </form>
@@ -764,4 +951,4 @@ const LeadsPage = () => {
   );
 };
 
-export default LeadsPage; 
+export default LeadsPage;
