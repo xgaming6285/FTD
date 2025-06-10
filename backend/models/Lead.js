@@ -40,6 +40,18 @@ const leadSchema = new mongoose.Schema({
   assignedAt: {
     type: Date
   },
+  client: { 
+    type: String,
+    trim: true
+  },
+  clientBroker: { 
+    type: String,
+    trim: true
+  },
+  clientNetwork: { 
+    type: String,
+    trim: true
+  },
 
   // Social Media Fields
   socialMedia: {
@@ -73,42 +85,6 @@ const leadSchema = new mongoose.Schema({
     street: String, 
     city: String, 
     postalCode: String 
-  },
-  client: { 
-    type: String,
-    validate: {
-      validator: function(v) {
-        // Client should be unique for FTDs if provided
-        if (this.leadType === 'ftd' && v) {
-          return true; // Will be handled by unique index
-        }
-        return true;
-      }
-    }
-  },
-  clientBroker: { 
-    type: String,
-    validate: {
-      validator: function(v) {
-        // ClientBroker should be unique for FTDs if provided
-        if (this.leadType === 'ftd' && v) {
-          return true; // Will be handled by unique index
-        }
-        return true;
-      }
-    }
-  },
-  clientNetwork: { 
-    type: String,
-    validate: {
-      validator: function(v) {
-        // ClientNetwork should be unique for FTDs if provided
-        if (this.leadType === 'ftd' && v) {
-          return true; // Will be handled by unique index
-        }
-        return true;
-      }
-    }
   },
 
   // FTD Only Fields
