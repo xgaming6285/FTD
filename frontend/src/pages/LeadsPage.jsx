@@ -47,6 +47,7 @@ import {
   PersonAdd as PersonAddIcon,
   FilterList as FilterIcon,
   Description as DescriptionIcon,
+  FileUpload as ImportIcon,
 } from "@mui/icons-material";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -399,15 +400,34 @@ const LeadsPage = () => {
         <Typography variant="h4" gutterBottom>
           {user?.role === "agent" ? "My Assigned Leads" : "Lead Management"}
         </Typography>
-        {canAssignLeads && numSelected > 0 && (
-          <Button
-            variant="contained"
-            startIcon={<PersonAddIcon />}
-            onClick={() => setAssignDialogOpen(true)}
-          >
-            Assign {numSelected} Lead{numSelected !== 1 ? "s" : ""}
-          </Button>
-        )}
+        <Box display="flex" gap={2} alignItems="center">
+          {/* Import button - visible only for Admin and Affiliate Manager */}
+          {isAdmin && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<ImportIcon />}
+              disabled
+              sx={{
+                fontSize: "0.8rem",
+                padding: "6px 12px",
+                opacity: 0.7,
+                cursor: "not-allowed",
+              }}
+            >
+              Import
+            </Button>
+          )}
+          {canAssignLeads && numSelected > 0 && (
+            <Button
+              variant="contained"
+              startIcon={<PersonAddIcon />}
+              onClick={() => setAssignDialogOpen(true)}
+            >
+              Assign {numSelected} Lead{numSelected !== 1 ? "s" : ""}
+            </Button>
+          )}
+        </Box>
       </Box>
 
       {/* Success/Error Messages */}
