@@ -61,6 +61,11 @@ const leadSchema = new mongoose.Schema({
     ref: 'Order',
     index: true // Add index for better query performance
   },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    index: true // Add index for better query performance
+  },
 
   // Social Media Fields
   socialMedia: {

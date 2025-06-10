@@ -27,9 +27,9 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['admin', 'affiliate_manager', 'agent', 'pending_approval'], // <-- КОРИГИРАНО: Добавена 'pending_approval'
-    default: 'pending_approval', // <-- КОРИГИРАНО: Добавена стойност по подразбиране
-    required: true // Остава true, тъй като вече има default стойност
+    enum: ['admin', 'affiliate_manager', 'agent', 'pending_approval', 'lead_manager'], // Added 'lead_manager' role
+    default: 'pending_approval',
+    required: true // Remains true since it has a default value
   },
   fourDigitCode: {
     type: String,

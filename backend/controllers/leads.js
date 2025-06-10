@@ -50,6 +50,9 @@ exports.getLeads = async (req, res, next) => {
       // Affiliate managers can only see leads assigned to them
       filter.assignedTo = req.user.id;
       filter.isAssigned = true;
+    } else if (req.user.role === "lead_manager") {
+      // Lead managers can only see leads they added
+      filter.createdBy = req.user.id;
     }
 
     // Only apply status filter if includeConverted is false or if status is specifically requested
@@ -557,6 +560,16 @@ exports.updateLead = async (req, res, next) => {
       });
     }
 
+    // Check if lead manager is trying to update a lead they didn't create
+    if (req.user.role === "lead_manager" &&
+      lead.createdBy &&
+      lead.createdBy.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only edit leads that you created",
+      });
+    }
+
     // Update fields if provided
     if (firstName) lead.firstName = firstName;
     if (lastName) lead.lastName = lastName;
@@ -590,6 +603,76 @@ exports.updateLead = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Lead updated successfully",
+      data: lead,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Create a new lead
+// @route   POST /api/leads
+// @access  Private (Admin, Affiliate Manager, Lead Manager)
+exports.createLead = async (req, res, next) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation error",
+        errors: errors.array(),
+      });
+    }
+
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      country,
+      leadType,
+      socialMedia,
+      sin,
+      client,
+      clientBroker,
+      clientNetwork,
+      dob,
+      address
+    } = req.body;
+
+    // Create a new lead
+    const lead = new Lead({
+      firstName,
+      lastName,
+      email,
+      phone,
+      country,
+      leadType,
+      socialMedia,
+      sin,
+      client,
+      clientBroker,
+      clientNetwork,
+      dob,
+      address,
+      createdBy: req.user.id,
+      isAssigned: false,
+      status: 'active'
+    });
+
+    // Set document status to pending for FTD leads
+    if (leadType === 'ftd') {
+      lead.documents = {
+        status: 'pending'
+      };
+    }
+
+    await lead.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Lead created successfully",
       data: lead,
     });
   } catch (error) {

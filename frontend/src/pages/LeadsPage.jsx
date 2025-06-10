@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import AddLeadForm from "../components/AddLeadForm";
 import {
   Box,
   Typography,
@@ -140,7 +141,7 @@ const LeadsPage = () => {
 
       // For admins, if isAssigned filter is empty, remove it to show all leads
       if (
-        (user?.role === "admin" || user?.role === "affiliate_manager") &&
+        (user?.role === "admin" || user?.role === "affiliate_manager" || user?.role === "lead_manager") &&
         !paramsObject.isAssigned
       ) {
         delete paramsObject.isAssigned;
@@ -211,6 +212,16 @@ const LeadsPage = () => {
   const onSubmitComment = async (data) => {
     try {
       setError(null);
+
+      // For lead managers, check if they created the lead
+      if (isLeadManager && selectedLead) {
+        const lead = leads.find(l => l._id === selectedLead._id);
+        if (lead && lead.createdBy && lead.createdBy !== user.id) {
+          setError("You can only comment on leads that you created");
+          return;
+        }
+      }
+
       await api.put(`/leads/${selectedLead._id}/comment`, data);
       setSuccess("Comment added successfully!");
       setCommentDialogOpen(false);
@@ -248,6 +259,16 @@ const LeadsPage = () => {
   const updateLeadStatus = async (leadId, status) => {
     try {
       setError(null);
+
+      // For lead managers, check if they created the lead
+      if (isLeadManager) {
+        const lead = leads.find(l => l._id === leadId);
+        if (lead && lead.createdBy && lead.createdBy !== user.id) {
+          setError("You can only update leads that you created");
+          return;
+        }
+      }
+
       await api.put(`/leads/${leadId}/status`, { status });
       setSuccess("Lead status updated successfully!");
       fetchLeads();
@@ -357,8 +378,15 @@ const LeadsPage = () => {
   };
 
   const isAdmin = user?.role === "admin" || user?.role === "affiliate_manager";
+  const isLeadManager = user?.role === "lead_manager";
   const canAssignLeads = isAdmin;
   const numSelected = selectedLeads.size;
+
+  // Handle lead added event
+  const handleLeadAdded = (newLead) => {
+    // Refresh leads list
+    fetchLeads();
+  };
 
   return (
     <Box>
@@ -396,6 +424,13 @@ const LeadsPage = () => {
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
         </Alert>
+      )}
+
+      {/* Add Lead Form for Lead Managers */}
+      {isLeadManager && (
+        <Box sx={{ mb: 3 }}>
+          <AddLeadForm onLeadAdded={handleLeadAdded} />
+        </Box>
       )}
 
       {/* Lead Statistics for Admins */}
@@ -872,11 +907,13 @@ const LeadsPage = () => {
                         </TableCell>
                         <TableCell>
                           <Stack direction="row" spacing={1}>
+                            {/* Status dropdown - show for all roles */}
                             <FormControl size="small" sx={{ minWidth: 120 }}>
                               <Select
                                 value={lead.status}
                                 onChange={(e) => updateLeadStatus(lead._id, e.target.value)}
                                 size="small"
+                                disabled={isLeadManager && lead.createdBy && lead.createdBy !== user.id}
                               >
                                 <MenuItem value="active">Active</MenuItem>
                                 <MenuItem value="contacted">Contacted</MenuItem>
@@ -884,15 +921,20 @@ const LeadsPage = () => {
                                 <MenuItem value="inactive">Inactive</MenuItem>
                               </Select>
                             </FormControl>
+
+                            {/* Comment button - show for all roles */}
                             <IconButton
                               size="small"
                               onClick={() => {
                                 setSelectedLead(lead);
                                 setCommentDialogOpen(true);
                               }}
+                              disabled={isLeadManager && lead.createdBy && lead.createdBy !== user.id}
                             >
                               <CommentIcon />
                             </IconButton>
+
+                            {/* Expand button - show for all roles */}
                             <IconButton
                               size="small"
                               onClick={() => toggleRowExpansion(lead._id)}

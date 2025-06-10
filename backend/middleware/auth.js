@@ -90,6 +90,16 @@ exports.isManager = (req, res, next) => {
   next();
 };
 
+exports.isLeadManager = (req, res, next) => {
+  if (req.user.role !== 'lead_manager') {
+    return res.status(403).json({
+      success: false,
+      message: 'Lead Manager access required'
+    });
+  }
+  next();
+};
+
 exports.isAgent = (req, res, next) => {
   if (req.user.role !== 'agent') {
     return res.status(403).json({

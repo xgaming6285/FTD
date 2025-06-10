@@ -1,6 +1,6 @@
 const express = require("express");
 const { body, query } = require("express-validator");
-const { protect, isAdmin, isAgent, authorize } = require("../middleware/auth");
+const { protect, isAdmin, isAgent, authorize, isLeadManager } = require("../middleware/auth");
 const {
   getLeads,
   getAssignedLeads,
@@ -10,19 +10,20 @@ const {
   getLeadStats,
   assignLeads,
   unassignLeads,
-  updateLead
+  updateLead,
+  createLead
 } = require("../controllers/leads");
 
 const router = express.Router();
 
 // @route   GET /api/leads
 // @desc    Get leads with advanced filtering (Admin and Affiliate Manager)
-// @access  Private (Admin, Affiliate Manager)
+// @access  Private (Admin, Affiliate Manager, Lead Manager)
 router.get(
   "/",
   [
     protect,
-    authorize("admin", "affiliate_manager"),
+    authorize("admin", "affiliate_manager", "lead_manager"),
     query("page")
       .optional()
       .isInt({ min: 1 })
@@ -182,14 +183,38 @@ router.post(
   unassignLeads
 );
 
+// @route   POST /api/leads
+// @desc    Create a new lead
+// @access  Private (Admin, Affiliate Manager, Lead Manager)
+router.post(
+  "/",
+  [
+    protect,
+    authorize("admin", "affiliate_manager", "lead_manager"),
+    body("firstName").trim().isLength({ min: 2 }).withMessage("First name must be at least 2 characters"),
+    body("lastName").trim().isLength({ min: 2 }).withMessage("Last name must be at least 2 characters"),
+    body("email").trim().isEmail().withMessage("Please provide a valid email"),
+    body("phone").optional().trim(),
+    body("country").trim().isLength({ min: 2 }).withMessage("Country must be at least 2 characters"),
+    body("leadType").isIn(["ftd", "filler", "cold", "live"]).withMessage("Invalid lead type"),
+    body("sin").optional().trim().custom((value, { req }) => {
+      if (req.body.leadType === 'ftd' && !value) {
+        throw new Error('SIN is required for FTD leads');
+      }
+      return true;
+    })
+  ],
+  createLead
+);
+
 // @route   PUT /api/leads/:id
 // @desc    Update lead information
-// @access  Private (Admin, Affiliate Manager)
+// @access  Private (Admin, Affiliate Manager, Lead Manager)
 router.put(
   "/:id",
   [
     protect,
-    authorize("admin", "affiliate_manager"),
+    authorize("admin", "affiliate_manager", "lead_manager"),
     body("firstName").optional().trim().isLength({ min: 2 }).withMessage("First name must be at least 2 characters"),
     body("lastName").optional().trim().isLength({ min: 2 }).withMessage("Last name must be at least 2 characters"),
     body("email").optional().trim().isEmail().withMessage("Please provide a valid email"),

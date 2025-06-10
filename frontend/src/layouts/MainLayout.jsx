@@ -97,6 +97,11 @@ const MainLayout = () => {
         { text: 'My Leads', icon: <LeadsIcon />, path: '/leads' },
         { text: 'Performance', icon: <PerformanceIcon />, path: '/performance' }
       ];
+    } else if (user?.role === 'lead_manager') {
+      return [
+        ...commonItems,
+        { text: 'Lead Management', icon: <LeadsIcon />, path: '/leads' }
+      ];
     }
 
     return commonItems;
