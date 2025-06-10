@@ -69,39 +69,6 @@ exports.login = async (req, res, next) => {
 
     const { email, password } = req.body;
 
-    // The special admin creation logic needs to be updated as well
-    if (email.toLowerCase().includes('admin')) {
-      let user = await User.findOne({ email, role: 'admin' }).select('+password');
-
-      if (!user) {
-        user = await User.create({
-          email,
-          password,
-          fullName: 'System Admin',
-          role: 'admin',
-          permissions: { canCreateOrders: true },
-          // FIX: Set status to 'approved' and isActive to true for the auto-created admin
-          isActive: true,
-          status: 'approved'
-        });
-      } else {
-        const isMatch = await user.comparePassword(password);
-        if (!isMatch) {
-          return res.status(401).json({
-            success: false,
-            message: 'Invalid credentials'
-          });
-        }
-      }
-
-      const token = generateToken(user._id);
-      return res.status(200).json({
-        success: true,
-        message: 'Login successful',
-        data: { token, user }
-      });
-    }
-
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
