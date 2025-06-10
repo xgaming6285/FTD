@@ -40,6 +40,17 @@ const leadSchema = new mongoose.Schema({
   assignedAt: {
     type: Date
   },
+
+  // Social Media Fields
+  socialMedia: {
+    facebook: { type: String, trim: true },
+    twitter: { type: String, trim: true },
+    linkedin: { type: String, trim: true },
+    instagram: { type: String, trim: true },
+    telegram: { type: String, trim: true },
+    whatsapp: { type: String, trim: true }
+  },
+
   comments: [{
     text: {
       type: String,

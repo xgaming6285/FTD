@@ -35,6 +35,7 @@ import {
   Divider,
   FormControlLabel,
   Switch,
+  Link,
 } from "@mui/material";
 import {
   ExpandMore as ExpandMoreIcon,
@@ -379,56 +380,87 @@ const LeadsPage = () => {
 
       {/* Lead Statistics for Admins */}
       {isAdmin && (
-        <Card sx={{ mb: 2 }}>
+        <Card sx={{ mb: 2, background: 'linear-gradient(to right, #f5f7fa, #ffffff)' }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Lead Assignment Summary
-            </Typography>
-            <Grid container spacing={2}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+                <AssignmentIcon sx={{ mr: 1 }} />
+                Lead Assignment Summary
+              </Typography>
+              <Divider />
+            </Box>
+            <Grid container spacing={3}>
               <Grid item xs={6} sm={3}>
-                <Box textAlign="center">
-                  <Typography variant="h4" color="primary">
-                    {totalLeads}
-                  </Typography>
-                  <Typography variant="caption" color="textSecondary">
-                    Total Leads
-                  </Typography>
-                </Box>
+                <Paper elevation={0} sx={{ p: 2, textAlign: 'center', height: '100%', background: 'rgba(255, 255, 255, 0.8)' }}>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="h4" color="primary" sx={{ fontWeight: 'bold' }}>
+                      {totalLeads}
+                    </Typography>
+                    <Typography variant="subtitle2" color="textSecondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Total Leads
+                    </Typography>
+                  </Box>
+                  <Chip 
+                    label="All Time" 
+                    size="small" 
+                    sx={{ background: 'primary.light', color: 'primary.main' }} 
+                  />
+                </Paper>
               </Grid>
               <Grid item xs={6} sm={3}>
-                <Box textAlign="center">
-                  <Typography variant="h4" color="success.main">
-                    {leads.filter((lead) => lead.isAssigned).length}
-                  </Typography>
-                  <Typography variant="caption" color="textSecondary">
-                    Assigned
-                  </Typography>
-                </Box>
+                <Paper elevation={0} sx={{ p: 2, textAlign: 'center', height: '100%', background: 'rgba(255, 255, 255, 0.8)' }}>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="h4" color="success.main" sx={{ fontWeight: 'bold' }}>
+                      {leads.filter((lead) => lead.isAssigned).length}
+                    </Typography>
+                    <Typography variant="subtitle2" color="textSecondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Assigned
+                    </Typography>
+                  </Box>
+                  <Chip 
+                    label="Active" 
+                    size="small" 
+                    sx={{ background: 'success.light', color: 'success.main' }} 
+                  />
+                </Paper>
               </Grid>
               <Grid item xs={6} sm={3}>
-                <Box textAlign="center">
-                  <Typography variant="h4" color="warning.main">
-                    {leads.filter((lead) => !lead.isAssigned).length}
-                  </Typography>
-                  <Typography variant="caption" color="textSecondary">
-                    Unassigned
-                  </Typography>
-                </Box>
+                <Paper elevation={0} sx={{ p: 2, textAlign: 'center', height: '100%', background: 'rgba(255, 255, 255, 0.8)' }}>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="h4" color="warning.main" sx={{ fontWeight: 'bold' }}>
+                      {leads.filter((lead) => !lead.isAssigned).length}
+                    </Typography>
+                    <Typography variant="subtitle2" color="textSecondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Unassigned
+                    </Typography>
+                  </Box>
+                  <Chip 
+                    label="Pending" 
+                    size="small" 
+                    sx={{ background: 'warning.light', color: 'warning.main' }} 
+                  />
+                </Paper>
               </Grid>
               <Grid item xs={6} sm={3}>
-                <Box textAlign="center">
-                  <Typography variant="h4" color="info.main">
-                    {Math.round(
-                      (leads.filter((lead) => lead.isAssigned).length /
-                        (leads.length || 1)) *
-                        100
-                    )}
-                    %
-                  </Typography>
-                  <Typography variant="caption" color="textSecondary">
-                    Assignment Rate
-                  </Typography>
-                </Box>
+                <Paper elevation={0} sx={{ p: 2, textAlign: 'center', height: '100%', background: 'rgba(255, 255, 255, 0.8)' }}>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="h4" color="info.main" sx={{ fontWeight: 'bold' }}>
+                      {Math.round(
+                        (leads.filter((lead) => lead.isAssigned).length /
+                          (leads.length || 1)) *
+                          100
+                      )}%
+                    </Typography>
+                    <Typography variant="subtitle2" color="textSecondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Assignment Rate
+                    </Typography>
+                  </Box>
+                  <Chip 
+                    label="Progress" 
+                    size="small" 
+                    sx={{ background: 'info.light', color: 'info.main' }} 
+                  />
+                </Paper>
               </Grid>
             </Grid>
           </CardContent>
@@ -549,334 +581,697 @@ const LeadsPage = () => {
       </Card>
 
       {/* Leads Table */}
-      <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                {canAssignLeads && (
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      indeterminate={
-                        numSelected > 0 && numSelected < leads.length
-                      }
-                      checked={leads.length > 0 && numSelected === leads.length}
-                      onChange={handleSelectAll}
-                    />
-                  </TableCell>
-                )}
-                <TableCell>Name</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Contact</TableCell>
-                <TableCell>Country</TableCell>
-                <TableCell>Client Info</TableCell>
-                {isAdmin && <TableCell>Assigned To</TableCell>}
-                <TableCell>Status</TableCell>
-                <TableCell>Created</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
+      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+        <Paper>
+          <TableContainer>
+            <Table>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 10 : 9} align="center">
-                    <CircularProgress />
-                  </TableCell>
+                  {canAssignLeads && (
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        indeterminate={
+                          numSelected > 0 && numSelected < leads.length
+                        }
+                        checked={leads.length > 0 && numSelected === leads.length}
+                        onChange={handleSelectAll}
+                      />
+                    </TableCell>
+                  )}
+                  <TableCell>Name</TableCell>
+                  <TableCell>Type</TableCell>
+                  <TableCell sx={{ display: { md: 'none', lg: 'table-cell' } }}>Contact</TableCell>
+                  <TableCell sx={{ display: { md: 'none', lg: 'table-cell' } }}>Country</TableCell>
+                  <TableCell sx={{ display: { md: 'none', xl: 'table-cell' } }}>Client Info</TableCell>
+                  {isAdmin && <TableCell>Assigned To</TableCell>}
+                  <TableCell>Status</TableCell>
+                  <TableCell sx={{ display: { md: 'none', lg: 'table-cell' } }}>Created</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
-              ) : leads.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={isAdmin ? 10 : 9} align="center">
-                    No leads found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                leads.map((lead) => (
-                  <React.Fragment key={lead._id}>
-                    <TableRow>
-                      {canAssignLeads && (
-                        <TableCell padding="checkbox">
-                          <Checkbox
-                            checked={selectedLeads.has(lead._id)}
-                            onChange={handleSelectLead(lead._id)}
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={isAdmin ? 10 : 9} align="center">
+                      <CircularProgress />
+                    </TableCell>
+                  </TableRow>
+                ) : leads.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={isAdmin ? 10 : 9} align="center">
+                      No leads found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  leads.map((lead) => (
+                    <React.Fragment key={lead._id}>
+                      <TableRow 
+                        hover
+                        sx={{
+                          '&:hover': {
+                            backgroundColor: 'action.hover',
+                            cursor: 'pointer',
+                          },
+                          transition: 'background-color 0.2s ease',
+                          borderLeft: (theme) => `4px solid ${theme.palette[getLeadTypeColor(lead.leadType)].main}`
+                        }}
+                      >
+                        {canAssignLeads && (
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              checked={selectedLeads.has(lead._id)}
+                              onChange={handleSelectLead(lead._id)}
+                            />
+                          </TableCell>
+                        )}
+                        <TableCell>
+                          <Stack direction="row" spacing={2} alignItems="center">
+                            <Avatar 
+                              sx={{ 
+                                bgcolor: (theme) => theme.palette[getLeadTypeColor(lead.leadType)].light,
+                                color: (theme) => theme.palette[getLeadTypeColor(lead.leadType)].main
+                              }}
+                            >
+                              {(lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()).charAt(0).toUpperCase()}
+                            </Avatar>
+                            <Box>
+                              <Typography variant="subtitle2" fontWeight="bold">
+                                {lead.fullName ||
+                                  `${lead.firstName} ${lead.lastName || ""}`.trim()}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                ID: {lead._id.slice(-8)}
+                              </Typography>
+                            </Box>
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={lead.leadType.toUpperCase()}
+                            color={getLeadTypeColor(lead.leadType)}
+                            size="small"
+                            sx={{ fontWeight: 'medium' }}
                           />
                         </TableCell>
-                      )}
-                      <TableCell>
-                        <Box>
-                          <Typography variant="body2" fontWeight="medium">
-                            {lead.fullName ||
-                              `${lead.firstName} ${lead.lastName || ""}`.trim()}
+                        <TableCell>
+                          <Stack spacing={0.5}>
+                            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <span style={{ color: 'text.secondary' }}>📧</span> {lead.email}
+                            </Typography>
+                            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <span style={{ color: 'text.secondary' }}>📱</span> {lead.phone || 'N/A'}
+                            </Typography>
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={lead.country || 'Unknown'}
+                            size="small"
+                            variant="outlined"
+                            sx={{ 
+                              borderRadius: 1,
+                              backgroundColor: 'background.paper',
+                              '& .MuiChip-label': { px: 1 }
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Stack spacing={0.5}>
+                            {lead.client && (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>Client:</Typography>
+                                <Typography variant="body2">{lead.client}</Typography>
+                              </Box>
+                            )}
+                            {lead.clientBroker && (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>Broker:</Typography>
+                                <Typography variant="body2">{lead.clientBroker}</Typography>
+                              </Box>
+                            )}
+                            {lead.clientNetwork && (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>Network:</Typography>
+                                <Typography variant="body2">{lead.clientNetwork}</Typography>
+                              </Box>
+                            )}
+                            {!lead.client && !lead.clientBroker && !lead.clientNetwork && (
+                              <Typography variant="caption" color="text.secondary">
+                                No client info available
+                              </Typography>
+                            )}
+                          </Stack>
+                        </TableCell>
+                        {isAdmin && (
+                          <TableCell>
+                            {lead.assignedTo ? (
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <Avatar
+                                  sx={{
+                                    width: 24,
+                                    height: 24,
+                                    fontSize: '0.75rem',
+                                    bgcolor: 'primary.main'
+                                  }}
+                                >
+                                  {lead.assignedTo.fullName.charAt(0)}
+                                </Avatar>
+                                <Typography variant="body2">
+                                  {lead.assignedTo.fullName}
+                                </Typography>
+                              </Stack>
+                            ) : (
+                              <Chip
+                                label="Unassigned"
+                                size="small"
+                                color="default"
+                                variant="outlined"
+                              />
+                            )}
+                          </TableCell>
+                        )}
+                        <TableCell>
+                          <Chip
+                            label={lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                            color={getStatusColor(lead.status)}
+                            size="small"
+                            sx={{ 
+                              fontWeight: 'medium',
+                              minWidth: 80,
+                              justifyContent: 'center'
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(lead.createdAt).toLocaleDateString()}
                           </Typography>
-                          <Typography variant="caption" color="textSecondary">
+                        </TableCell>
+                        <TableCell>
+                          <Stack direction="row" spacing={1}>
+                            <FormControl size="small" sx={{ minWidth: 120 }}>
+                              <Select
+                                value={lead.status}
+                                onChange={(e) => updateLeadStatus(lead._id, e.target.value)}
+                                size="small"
+                              >
+                                <MenuItem value="active">Active</MenuItem>
+                                <MenuItem value="contacted">Contacted</MenuItem>
+                                <MenuItem value="converted">Converted</MenuItem>
+                                <MenuItem value="inactive">Inactive</MenuItem>
+                              </Select>
+                            </FormControl>
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                setSelectedLead(lead);
+                                setCommentDialogOpen(true);
+                              }}
+                            >
+                              <CommentIcon />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => toggleRowExpansion(lead._id)}
+                            >
+                              {expandedRows.has(lead._id) ? (
+                                <ExpandLessIcon />
+                              ) : (
+                                <ExpandMoreIcon />
+                              )}
+                            </IconButton>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                      {expandedRows.has(lead._id) && (
+                        <TableRow>
+                          <TableCell 
+                            colSpan={isAdmin ? 10 : 9}
+                            sx={{ 
+                              bgcolor: 'background.default',
+                              borderBottom: '2px solid',
+                              borderBottomColor: 'divider',
+                              py: 3
+                            }}
+                          >
+                            <Box sx={{ px: 2 }}>
+                              <Grid container spacing={3}>
+                                <Grid item xs={12} md={6}>
+                                  <Paper 
+                                    elevation={0} 
+                                    sx={{ 
+                                      p: 2, 
+                                      bgcolor: 'background.paper',
+                                      borderRadius: 1,
+                                      border: '1px solid',
+                                      borderColor: 'divider'
+                                    }}
+                                  >
+                                    <Typography 
+                                      variant="subtitle2" 
+                                      gutterBottom
+                                      sx={{ 
+                                        color: 'primary.main',
+                                        fontWeight: 'bold',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 1,
+                                        mb: 2
+                                      }}
+                                    >
+                                      <PersonAddIcon fontSize="small" />
+                                      Contact Details
+                                    </Typography>
+                                    <Stack spacing={2}>
+                                      <Box>
+                                        <Typography variant="caption" color="text.secondary" display="block">
+                                          Email Address
+                                        </Typography>
+                                        <Typography variant="body2" fontWeight="medium">
+                                          {lead.email || "N/A"}
+                                        </Typography>
+                                      </Box>
+                                      <Box>
+                                        <Typography variant="caption" color="text.secondary" display="block">
+                                          Phone Number
+                                        </Typography>
+                                        <Typography variant="body2" fontWeight="medium">
+                                          {lead.phone || "N/A"}
+                                        </Typography>
+                                      </Box>
+                                      <Box>
+                                        <Typography variant="caption" color="text.secondary" display="block">
+                                          Location
+                                        </Typography>
+                                        <Typography variant="body2" fontWeight="medium">
+                                          {lead.country || "N/A"}
+                                        </Typography>
+                                      </Box>
+                                      <Box>
+                                        <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                                          Social Media
+                                        </Typography>
+                                        <Stack spacing={1}>
+                                          {lead.socialMedia?.facebook && (
+                                            <Link href={lead.socialMedia.facebook} target="_blank" rel="noopener noreferrer" 
+                                              sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
+                                              <img src="/facebook-icon.svg" alt="Facebook" width={16} height={16} />
+                                              Facebook
+                                            </Link>
+                                          )}
+                                          {lead.socialMedia?.twitter && (
+                                            <Link href={lead.socialMedia.twitter} target="_blank" rel="noopener noreferrer"
+                                              sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
+                                              <img src="/twitter-icon.svg" alt="Twitter" width={16} height={16} />
+                                              Twitter
+                                            </Link>
+                                          )}
+                                          {lead.socialMedia?.linkedin && (
+                                            <Link href={lead.socialMedia.linkedin} target="_blank" rel="noopener noreferrer"
+                                              sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
+                                              <img src="/linkedin-icon.svg" alt="LinkedIn" width={16} height={16} />
+                                              LinkedIn
+                                            </Link>
+                                          )}
+                                          {lead.socialMedia?.instagram && (
+                                            <Link href={lead.socialMedia.instagram} target="_blank" rel="noopener noreferrer"
+                                              sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
+                                              <img src="/instagram-icon.svg" alt="Instagram" width={16} height={16} />
+                                              Instagram
+                                            </Link>
+                                          )}
+                                          {lead.socialMedia?.telegram && (
+                                            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                              <img src="/telegram-icon.svg" alt="Telegram" width={16} height={16} />
+                                              {lead.socialMedia.telegram}
+                                            </Typography>
+                                          )}
+                                          {lead.socialMedia?.whatsapp && (
+                                            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                              <img src="/whatsapp-icon.svg" alt="WhatsApp" width={16} height={16} />
+                                              {lead.socialMedia.whatsapp}
+                                            </Typography>
+                                          )}
+                                          {!lead.socialMedia || Object.values(lead.socialMedia).every(v => !v) && (
+                                            <Typography variant="body2" color="text.secondary">
+                                              No social media profiles available
+                                            </Typography>
+                                          )}
+                                        </Stack>
+                                      </Box>
+                                    </Stack>
+                                  </Paper>
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                  <Paper 
+                                    elevation={0}
+                                    sx={{ 
+                                      p: 2, 
+                                      bgcolor: 'background.paper',
+                                      borderRadius: 1,
+                                      border: '1px solid',
+                                      borderColor: 'divider'
+                                    }}
+                                  >
+                                    <Typography 
+                                      variant="subtitle2" 
+                                      gutterBottom
+                                      sx={{ 
+                                        color: 'primary.main',
+                                        fontWeight: 'bold',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 1,
+                                        mb: 2
+                                      }}
+                                    >
+                                      <CommentIcon fontSize="small" />
+                                      Comments & Activity
+                                    </Typography>
+                                    <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
+                                      {lead.comments && lead.comments.length > 0 ? (
+                                        <Stack spacing={2}>
+                                          {lead.comments.map((comment, index) => (
+                                            <Box
+                                              key={index}
+                                              sx={{
+                                                p: 1.5,
+                                                bgcolor: 'action.hover',
+                                                borderRadius: 1,
+                                                position: 'relative'
+                                              }}
+                                            >
+                                              <Typography 
+                                                variant="caption" 
+                                                color="text.secondary"
+                                                sx={{ mb: 0.5, display: 'block' }}
+                                              >
+                                                {comment.author.fullName} • {new Date(comment.createdAt).toLocaleString()}
+                                              </Typography>
+                                              <Typography variant="body2">
+                                                {comment.text}
+                                              </Typography>
+                                            </Box>
+                                          ))}
+                                        </Stack>
+                                      ) : (
+                                        <Box 
+                                          sx={{ 
+                                            textAlign: 'center',
+                                            py: 3,
+                                            color: 'text.secondary'
+                                          }}
+                                        >
+                                          <CommentIcon sx={{ fontSize: 40, opacity: 0.5, mb: 1 }} />
+                                          <Typography variant="body2">
+                                            No comments yet
+                                          </Typography>
+                                        </Box>
+                                      )}
+                                    </Box>
+                                  </Paper>
+                                </Grid>
+                              </Grid>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </React.Fragment>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25]}
+            component="div"
+            count={totalLeads}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </Paper>
+      </Box>
+
+      {/* Mobile/Tablet View */}
+      <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+        {loading ? (
+          <Box display="flex" justifyContent="center" p={3}>
+            <CircularProgress />
+          </Box>
+        ) : leads.length === 0 ? (
+          <Paper sx={{ p: 3, textAlign: 'center' }}>
+            <Typography color="text.secondary">No leads found</Typography>
+          </Paper>
+        ) : (
+          <Stack spacing={2}>
+            {leads.map((lead) => (
+              <Paper 
+                key={lead._id}
+                sx={{ 
+                  p: 2,
+                  borderLeft: (theme) => `4px solid ${theme.palette[getLeadTypeColor(lead.leadType)].main}`,
+                  '&:hover': {
+                    boxShadow: (theme) => theme.shadows[4]
+                  },
+                  transition: 'box-shadow 0.2s'
+                }}
+              >
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+                      <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Avatar 
+                          sx={{ 
+                            bgcolor: (theme) => theme.palette[getLeadTypeColor(lead.leadType)].light,
+                            color: (theme) => theme.palette[getLeadTypeColor(lead.leadType)].main
+                          }}
+                        >
+                          {(lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()).charAt(0).toUpperCase()}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="subtitle1" fontWeight="bold">
+                            {lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
                             ID: {lead._id.slice(-8)}
                           </Typography>
                         </Box>
-                      </TableCell>
-                      <TableCell>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="center">
                         <Chip
                           label={lead.leadType.toUpperCase()}
                           color={getLeadTypeColor(lead.leadType)}
                           size="small"
+                          sx={{ fontWeight: 'medium' }}
                         />
-                      </TableCell>
-                      <TableCell>
-                        <Box>
-                          <Typography variant="body2">{lead.email}</Typography>
-                          <Typography variant="caption" color="textSecondary">
-                            {lead.phone}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>{lead.country}</TableCell>
-                      <TableCell>
-                        <Box>
-                          {lead.client && (
-                            <Typography variant="caption" display="block">
-                              <strong>Client:</strong> {lead.client}
-                            </Typography>
-                          )}
-                          {lead.clientBroker && (
-                            <Typography variant="caption" display="block">
-                              <strong>Broker:</strong> {lead.clientBroker}
-                            </Typography>
-                          )}
-                          {lead.clientNetwork && (
-                            <Typography variant="caption" display="block">
-                              <strong>Network:</strong> {lead.clientNetwork}
-                            </Typography>
-                          )}
-                          {!lead.client && !lead.clientBroker && !lead.clientNetwork && (
-                            <Typography variant="caption" color="textSecondary">
-                              N/A
-                            </Typography>
-                          )}
-                        </Box>
-                      </TableCell>
-                      {isAdmin && (
-                        <TableCell>
-                          {lead.isAssigned ? (
-                            <Box display="flex" alignItems="center">
-                              <Avatar
-                                sx={{
-                                  width: 24,
-                                  height: 24,
-                                  mr: 1,
-                                  fontSize: "0.75rem",
+                        <Chip
+                          label={lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                          color={getStatusColor(lead.status)}
+                          size="small"
+                          sx={{ fontWeight: 'medium' }}
+                        />
+                      </Stack>
+                    </Stack>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Divider />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Stack spacing={1}>
+                      <Typography variant="caption" color="text.secondary">
+                        Contact Information
+                      </Typography>
+                      <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <span style={{ color: 'text.secondary' }}>📧</span> {lead.email}
+                      </Typography>
+                      <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <span style={{ color: 'text.secondary' }}>📱</span> {lead.phone || 'N/A'}
+                      </Typography>
+                      <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <span style={{ color: 'text.secondary' }}>🌍</span> {lead.country || 'Unknown'}
+                      </Typography>
+                    </Stack>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Stack spacing={1}>
+                      <Typography variant="caption" color="text.secondary">
+                        Status
+                      </Typography>
+                      <FormControl size="small" fullWidth>
+                        <Select
+                          value={lead.status}
+                          onChange={(e) => updateLeadStatus(lead._id, e.target.value)}
+                          size="small"
+                        >
+                          <MenuItem value="active">Active</MenuItem>
+                          <MenuItem value="contacted">Contacted</MenuItem>
+                          <MenuItem value="converted">Converted</MenuItem>
+                          <MenuItem value="inactive">Inactive</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Stack>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <IconButton
+                        size="small"
+                        onClick={() => toggleRowExpansion(lead._id)}
+                        sx={{ 
+                          color: expandedRows.has(lead._id) ? 'primary.main' : 'action.active',
+                          transition: 'transform 0.2s',
+                          transform: expandedRows.has(lead._id) ? 'rotate(180deg)' : 'none'
+                        }}
+                      >
+                        <ExpandMoreIcon />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setSelectedLead(lead);
+                          setCommentDialogOpen(true);
+                        }}
+                        sx={{ color: 'info.main' }}
+                      >
+                        <CommentIcon />
+                      </IconButton>
+                      {canAssignLeads && (
+                        <Checkbox
+                          checked={selectedLeads.has(lead._id)}
+                          onChange={handleSelectLead(lead._id)}
+                          size="small"
+                        />
+                      )}
+                    </Stack>
+                  </Grid>
+
+                  <Collapse in={expandedRows.has(lead._id)} sx={{ width: '100%' }}>
+                    <Grid item xs={12}>
+                      <Box sx={{ mt: 2 }}>
+                        <Grid container spacing={2}>
+                          {(lead.client || lead.clientBroker || lead.clientNetwork) && (
+                            <Grid item xs={12}>
+                              <Paper 
+                                elevation={0}
+                                sx={{ 
+                                  p: 2, 
+                                  bgcolor: 'background.default',
+                                  borderRadius: 1
                                 }}
                               >
-                                {lead.assignedTo?.fourDigitCode ||
-                                  lead.assignedTo?.fullName?.[0] ||
-                                  "A"}
-                              </Avatar>
-                              <Box>
-                                <Typography
-                                  variant="caption"
-                                  sx={{ fontWeight: "medium" }}
-                                >
-                                  {lead.assignedTo?.fullName || "Unknown Agent"}
+                                <Typography variant="subtitle2" gutterBottom color="primary">
+                                  Client Information
                                 </Typography>
-                                {lead.assignedTo?.fourDigitCode && (
-                                  <Typography
-                                    variant="caption"
-                                    color="textSecondary"
-                                    display="block"
-                                  >
-                                    #{lead.assignedTo.fourDigitCode}
-                                  </Typography>
-                                )}
-                                {lead.assignedAt && (
-                                  <Typography
-                                    variant="caption"
-                                    color="textSecondary"
-                                    display="block"
-                                  >
-                                    {new Date(
-                                      lead.assignedAt
-                                    ).toLocaleDateString()}
-                                  </Typography>
-                                )}
-                              </Box>
-                            </Box>
-                          ) : (
-                            <Chip
-                              label="Unassigned"
-                              size="small"
-                              variant="outlined"
-                              color="warning"
-                            />
-                          )}
-                        </TableCell>
-                      )}
-                      <TableCell>
-                        <FormControl size="small" sx={{ minWidth: 100 }}>
-                          <Select
-                            value={lead.status}
-                            onChange={(e) =>
-                              updateLeadStatus(lead._id, e.target.value)
-                            }
-                          >
-                            <MenuItem value="active">Active</MenuItem>
-                            <MenuItem value="contacted">Contacted</MenuItem>
-                            <MenuItem value="converted">Converted</MenuItem>
-                            <MenuItem value="inactive">Inactive</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(lead.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            setSelectedLead(lead);
-                            setCommentDialogOpen(true);
-                          }}
-                          title="Add Comment"
-                        >
-                          <CommentIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => toggleRowExpansion(lead._id)}
-                          title="View Details"
-                        >
-                          {expandedRows.has(lead._id) ? (
-                            <ExpandLessIcon />
-                          ) : (
-                            <ExpandMoreIcon />
-                          )}
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                    {expandedRows.has(lead._id) && (
-                      <TableRow>
-                        <TableCell colSpan={isAdmin ? 10 : 9}>
-                          <Box sx={{ p: 2, bgcolor: "grey.50" }}>
-                            <Grid container spacing={2}>
-                              <Grid item xs={12} md={6}>
-                                <Typography variant="subtitle2" gutterBottom>
-                                  Contact Details
-                                </Typography>
-                                <Typography variant="body2">
-                                  <strong>Email:</strong> {lead.email || "N/A"}
-                                </Typography>
-                                <Typography variant="body2">
-                                  <strong>Phone:</strong> {lead.phone || "N/A"}
-                                </Typography>
-                                <Typography variant="body2">
-                                  <strong>Country:</strong>{" "}
-                                  {lead.country || "N/A"}
-                                </Typography>
-
-                                {/* Client Information */}
-                                {(lead.client || lead.clientBroker || lead.clientNetwork) && (
-                                  <Box sx={{ mt: 2 }}>
-                                    <Typography
-                                      variant="subtitle2"
-                                      gutterBottom
-                                    >
-                                      Client Information
-                                    </Typography>
-                                    {lead.client && (
-                                      <Typography variant="body2">
-                                        <strong>Client:</strong> {lead.client}
-                                      </Typography>
-                                    )}
-                                    {lead.clientBroker && (
-                                      <Typography variant="body2">
-                                        <strong>Client Broker:</strong> {lead.clientBroker}
-                                      </Typography>
-                                    )}
-                                    {lead.clientNetwork && (
-                                      <Typography variant="body2">
-                                        <strong>Client Network:</strong> {lead.clientNetwork}
-                                      </Typography>
-                                    )}
-                                  </Box>
-                                )}
-
-                                {lead.leadType === "ftd" && lead.documents && (
-                                  <Box sx={{ mt: 2 }}>
-                                    <Typography
-                                      variant="subtitle2"
-                                      gutterBottom
-                                    >
-                                      Documents Status
-                                    </Typography>
-                                    <Chip
-                                      label={lead.documents.status}
-                                      color={
-                                        lead.documents.status === "good"
-                                          ? "success"
-                                          : lead.documents.status === "ok"
-                                          ? "warning"
-                                          : "default"
-                                      }
-                                      size="small"
-                                    />
-                                  </Box>
-                                )}
-                              </Grid>
-                              <Grid item xs={12} md={6}>
-                                <Typography variant="subtitle2" gutterBottom>
-                                  Comments ({lead.comments?.length || 0})
-                                </Typography>
-                                <Box sx={{ maxHeight: 200, overflowY: "auto" }}>
-                                  {lead.comments && lead.comments.length > 0 ? (
-                                    lead.comments.map((comment, index) => (
-                                      <Box key={index} sx={{ mb: 2 }}>
-                                        <Typography
-                                          variant="caption"
-                                          color="textSecondary"
-                                        >
-                                          {comment.author?.fullName} -{" "}
-                                          {new Date(
-                                            comment.createdAt
-                                          ).toLocaleString()}
-                                        </Typography>
-                                        <Typography
-                                          variant="body2"
-                                          sx={{ mt: 0.5 }}
-                                        >
-                                          {comment.text}
-                                        </Typography>
-                                        {index < lead.comments.length - 1 && (
-                                          <Divider sx={{ mt: 1 }} />
-                                        )}
-                                      </Box>
-                                    ))
-                                  ) : (
-                                    <Typography
-                                      variant="body2"
-                                      color="textSecondary"
-                                    >
-                                      No comments yet
-                                    </Typography>
+                                <Stack spacing={1}>
+                                  {lead.client && (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>Client:</Typography>
+                                      <Typography variant="body2">{lead.client}</Typography>
+                                    </Box>
                                   )}
-                                </Box>
-                              </Grid>
+                                  {lead.clientBroker && (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>Broker:</Typography>
+                                      <Typography variant="body2">{lead.clientBroker}</Typography>
+                                    </Box>
+                                  )}
+                                  {lead.clientNetwork && (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>Network:</Typography>
+                                      <Typography variant="body2">{lead.clientNetwork}</Typography>
+                                    </Box>
+                                  )}
+                                </Stack>
+                              </Paper>
                             </Grid>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </React.Fragment>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={totalLeads}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Paper>
+                          )}
+                          <Grid item xs={12}>
+                            <Paper 
+                              elevation={0}
+                              sx={{ 
+                                p: 2, 
+                                bgcolor: 'background.default',
+                                borderRadius: 1
+                              }}
+                            >
+                              <Typography variant="subtitle2" gutterBottom color="primary">
+                                Social Media Profiles
+                              </Typography>
+                              <Stack spacing={1}>
+                                {lead.socialMedia?.facebook && (
+                                  <Link href={lead.socialMedia.facebook} target="_blank" rel="noopener noreferrer" 
+                                    sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
+                                    <img src="/facebook-icon.svg" alt="Facebook" width={16} height={16} />
+                                    Facebook
+                                  </Link>
+                                )}
+                                {lead.socialMedia?.twitter && (
+                                  <Link href={lead.socialMedia.twitter} target="_blank" rel="noopener noreferrer"
+                                    sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
+                                    <img src="/twitter-icon.svg" alt="Twitter" width={16} height={16} />
+                                    Twitter
+                                  </Link>
+                                )}
+                                {lead.socialMedia?.linkedin && (
+                                  <Link href={lead.socialMedia.linkedin} target="_blank" rel="noopener noreferrer"
+                                    sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
+                                    <img src="/linkedin-icon.svg" alt="LinkedIn" width={16} height={16} />
+                                    LinkedIn
+                                  </Link>
+                                )}
+                                {lead.socialMedia?.instagram && (
+                                  <Link href={lead.socialMedia.instagram} target="_blank" rel="noopener noreferrer"
+                                    sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
+                                    <img src="/instagram-icon.svg" alt="Instagram" width={16} height={16} />
+                                    Instagram
+                                  </Link>
+                                )}
+                                {lead.socialMedia?.telegram && (
+                                  <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <img src="/telegram-icon.svg" alt="Telegram" width={16} height={16} />
+                                    {lead.socialMedia.telegram}
+                                  </Typography>
+                                )}
+                                {lead.socialMedia?.whatsapp && (
+                                  <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <img src="/whatsapp-icon.svg" alt="WhatsApp" width={16} height={16} />
+                                    {lead.socialMedia.whatsapp}
+                                  </Typography>
+                                )}
+                                {!lead.socialMedia || Object.values(lead.socialMedia).every(v => !v) && (
+                                  <Typography variant="body2" color="text.secondary">
+                                    No social media profiles available
+                                  </Typography>
+                                )}
+                              </Stack>
+                            </Paper>
+                          </Grid>
+                        </Grid>
+                      </Box>
+                    </Grid>
+                  </Collapse>
+                </Grid>
+              </Paper>
+            ))}
+            <Box sx={{ mt: 2 }}>
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25]}
+                component="div"
+                count={totalLeads}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+              />
+            </Box>
+          </Stack>
+        )}
+      </Box>
 
       {/* Comment Dialog */}
       <Dialog

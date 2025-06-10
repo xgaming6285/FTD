@@ -189,7 +189,13 @@ router.put(
     body("country").optional().trim().isLength({ min: 2 }).withMessage("Country must be at least 2 characters"),
     body("status").optional().isIn(["active", "contacted", "converted", "inactive"]).withMessage("Invalid status"),
     body("leadType").optional().isIn(["ftd", "filler", "cold"]).withMessage("Invalid lead type"),
-    body("documents.status").optional().isIn(["good", "ok", "pending"]).withMessage("Invalid document status")
+    body("documents.status").optional().isIn(["good", "ok", "pending"]).withMessage("Invalid document status"),
+    body("socialMedia.facebook").optional().trim().isURL().withMessage("Invalid Facebook URL"),
+    body("socialMedia.twitter").optional().trim().isURL().withMessage("Invalid Twitter URL"),
+    body("socialMedia.linkedin").optional().trim().isURL().withMessage("Invalid LinkedIn URL"),
+    body("socialMedia.instagram").optional().trim().isURL().withMessage("Invalid Instagram URL"),
+    body("socialMedia.telegram").optional().trim(),
+    body("socialMedia.whatsapp").optional().trim()
   ],
   updateLead
 );

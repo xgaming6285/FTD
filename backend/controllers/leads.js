@@ -514,6 +514,7 @@ exports.updateLead = async (req, res, next) => {
       status,
       documents,
       leadType,
+      socialMedia
     } = req.body;
 
     const lead = await Lead.findById(req.params.id);
@@ -532,6 +533,14 @@ exports.updateLead = async (req, res, next) => {
     if (country) lead.country = country;
     if (status) lead.status = status;
     if (leadType) lead.leadType = leadType;
+
+    // Update social media fields if provided
+    if (socialMedia) {
+      lead.socialMedia = {
+        ...lead.socialMedia,
+        ...socialMedia
+      };
+    }
 
     // Update documents status if provided
     if (documents && documents.status) {
