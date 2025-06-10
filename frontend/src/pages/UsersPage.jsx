@@ -33,6 +33,8 @@ import {
   Stack,
   Avatar,
   Tooltip,
+  Divider,
+  useTheme,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -42,12 +44,67 @@ import {
   AdminPanelSettings as AdminIcon,
   ManageAccounts as ManagerIcon,
   Support as AgentIcon,
+  FilterList as FilterIcon,
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { selectUser } from '../store/slices/authSlice';
+
+// Animation variants
+const pageTransition = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: "easeOut"
+    }
+  },
+  exit: { 
+    opacity: 0,
+    y: -20,
+    transition: {
+      duration: 0.3
+    }
+  }
+};
+
+const listItemVariant = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { 
+    opacity: 1, 
+    x: 0,
+    transition: {
+      duration: 0.3
+    }
+  }
+};
+
+const cardStyle = {
+  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7))',
+  backdropFilter: 'blur(10px)',
+  border: '1px solid rgba(255, 255, 255, 0.3)',
+  boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
+  transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
+  '&:hover': {
+    transform: 'translateY(-5px)',
+    boxShadow: '0 12px 40px 0 rgba(31, 38, 135, 0.25)',
+  },
+};
+
+const tableRowStyle = {
+  '&:hover': {
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    transform: 'scale(1.002)',
+    transition: 'all 0.2s ease',
+  },
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+};
 
 // Validation schema for user creation/editing
 const userSchema = yup.object({
@@ -71,8 +128,9 @@ const userSchema = yup.object({
 });
 
 const UsersPage = () => {
+  const theme = useTheme();
   const currentUser = useSelector(selectUser);
-  console.log('Current user in UsersPage:', currentUser);
+  const [showFilters, setShowFilters] = useState(false);
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -331,199 +389,348 @@ const UsersPage = () => {
   }
 
   return (
-    <Box>
+    <Box component={motion.div} 
+      variants={pageTransition}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant="h4" gutterBottom sx={{
+          background: (theme) => `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          fontWeight: 'bold'
+        }}>
           User Management
         </Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleCreateUser}
+          sx={{
+            background: (theme) => `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+            boxShadow: '0 4px 12px 0 rgba(31, 38, 135, 0.15)',
+            '&:hover': {
+              background: (theme) => `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
+              boxShadow: '0 6px 16px 0 rgba(31, 38, 135, 0.25)',
+            }
+          }}
         >
           Add User
         </Button>
       </Box>
 
-      {/* Success/Error Messages */}
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
-          {success}
-        </Alert>
-      )}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <AnimatePresence mode="wait">
+        {success && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+              {success}
+            </Alert>
+          </motion.div>
+        )}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Filters */}
-      <Card sx={{ mb: 2 }}>
+      {/* Filters Card */}
+      <Card sx={{ ...cardStyle, mb: 2 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>Filters</Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Role</InputLabel>
-                <Select
-                  value={filters.role}
-                  label="Role"
-                  onChange={handleFilterChange('role')}
-                >
-                  <MenuItem value="">All Roles</MenuItem>
-                  <MenuItem value="admin">Admin</MenuItem>
-                  <MenuItem value="affiliate_manager">Affiliate Manager</MenuItem>
-                  <MenuItem value="agent">Agent</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={filters.isActive}
-                  label="Status"
-                  onChange={handleFilterChange('isActive')}
-                >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="true">Active</MenuItem>
-                  <MenuItem value="false">Inactive</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Button onClick={clearFilters} variant="outlined">
-                Clear Filters
-              </Button>
-            </Grid>
-          </Grid>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={2}
+          >
+            <Typography variant="h6" sx={{
+              background: (theme) => `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              <FilterIcon sx={{ mr: 1 }} />
+              Filters & Search
+            </Typography>
+            <IconButton 
+              onClick={() => setShowFilters(!showFilters)}
+              sx={{
+                transition: 'transform 0.3s ease',
+                transform: showFilters ? 'rotate(180deg)' : 'rotate(0deg)'
+              }}
+            >
+              <FilterIcon />
+            </IconButton>
+          </Box>
+
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <FormControl fullWidth>
+                      <InputLabel>Role</InputLabel>
+                      <Select
+                        value={filters.role}
+                        label="Role"
+                        onChange={handleFilterChange('role')}
+                      >
+                        <MenuItem value="">All Roles</MenuItem>
+                        <MenuItem value="admin">Admin</MenuItem>
+                        <MenuItem value="affiliate_manager">Affiliate Manager</MenuItem>
+                        <MenuItem value="agent">Agent</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <FormControl fullWidth>
+                      <InputLabel>Status</InputLabel>
+                      <Select
+                        value={filters.isActive}
+                        label="Status"
+                        onChange={handleFilterChange('isActive')}
+                      >
+                        <MenuItem value="">All</MenuItem>
+                        <MenuItem value="true">Active</MenuItem>
+                        <MenuItem value="false">Inactive</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Button 
+                      onClick={clearFilters} 
+                      variant="outlined"
+                      fullWidth
+                      sx={{
+                        height: '100%',
+                        borderColor: theme.palette.primary.main,
+                        color: theme.palette.primary.main,
+                        '&:hover': {
+                          borderColor: theme.palette.primary.dark,
+                          backgroundColor: 'rgba(25, 118, 210, 0.04)'
+                        }
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  </Grid>
+                </Grid>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
 
-      {/* Users Table */}
-      <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>User</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Agent Code</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Permissions</TableCell>
-                <TableCell>Created</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    <CircularProgress />
-                  </TableCell>
-                </TableRow>
-              ) : users.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    No users found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                users.map((user) => (
-                  <TableRow key={user._id}>
-                    <TableCell>
-                      <Box display="flex" alignItems="center">
-                        <Avatar sx={{ mr: 2 }}>
-                          {getRoleIcon(user.role)}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="body2" fontWeight="medium">
-                            {user.fullName}
-                          </Typography>
-                          <Typography variant="caption" color="textSecondary">
-                            ID: {user._id.slice(-8)}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={user.role.replace('_', ' ').toUpperCase()}
-                        color={getRoleColor(user.role)}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      {user.fourDigitCode ? (
-                        <Chip
-                          label={user.fourDigitCode}
-                          variant="outlined"
-                          size="small"
-                        />
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={user.isActive ? 'Active' : 'Inactive'}
-                        color={user.isActive ? 'success' : 'error'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={1}>
-                        {user.permissions?.canCreateOrders && (
-                          <Chip
-                            label="Create Orders"
-                            size="small"
-                            variant="outlined"
-                          />
-                        )}
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <Tooltip title="Edit User">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEditUser(user)}
+      {/* Users Table with Animation */}
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}
+          >
+            <CircularProgress />
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <Paper sx={{ ...cardStyle }}>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>User</TableCell>
+                      <TableCell>Role</TableCell>
+                      <TableCell>Email</TableCell>
+                      <TableCell>Agent Code</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Permissions</TableCell>
+                      <TableCell>Created</TableCell>
+                      <TableCell>Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {users.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center">
+                          <Box py={3}>
+                            <Typography variant="body1" color="text.secondary">
+                              No users found
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      users.map((user) => (
+                        <TableRow 
+                          key={user._id}
+                          sx={tableRowStyle}
                         >
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      {user._id !== currentUser.id && (
-                        <Tooltip title="Deactivate User">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteDialog(user)}
-                            color="error"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={totalUsers}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Paper>
+                          <TableCell>
+                            <Stack direction="row" spacing={2} alignItems="center">
+                              <Avatar 
+                                sx={{ 
+                                  bgcolor: (theme) => {
+                                    const color = getRoleColor(user.role);
+                                    return theme.palette[color]?.light || theme.palette.grey.light;
+                                  },
+                                  color: (theme) => {
+                                    const color = getRoleColor(user.role);
+                                    return theme.palette[color]?.main || theme.palette.grey.main;
+                                  }
+                                }}
+                              >
+                                {user.fullName.charAt(0).toUpperCase()}
+                              </Avatar>
+                              <Box>
+                                <Typography variant="subtitle2" fontWeight="bold">
+                                  {user.fullName}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  ID: {user._id.slice(-8)}
+                                </Typography>
+                              </Box>
+                            </Stack>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              icon={getRoleIcon(user.role)}
+                              label={user.role.replace('_', ' ').toUpperCase()}
+                              sx={{
+                                background: (theme) => `linear-gradient(45deg, ${theme.palette[getRoleColor(user.role)].light}, ${theme.palette[getRoleColor(user.role)].main})`,
+                                color: 'white',
+                                fontWeight: 'bold'
+                              }}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>
+                            {user.fourDigitCode ? (
+                              <Chip
+                                label={user.fourDigitCode}
+                                variant="outlined"
+                                size="small"
+                                sx={{ 
+                                  borderColor: theme.palette.primary.main,
+                                  color: theme.palette.primary.main
+                                }}
+                              />
+                            ) : (
+                              '-'
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={user.isActive ? 'Active' : 'Inactive'}
+                              sx={{
+                                background: (theme) => `linear-gradient(45deg, ${
+                                  user.isActive 
+                                    ? `${theme.palette.success.light}, ${theme.palette.success.main}`
+                                    : `${theme.palette.error.light}, ${theme.palette.error.main}`
+                                })`,
+                                color: 'white',
+                                fontWeight: 'bold'
+                              }}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Stack direction="row" spacing={1}>
+                              {user.permissions?.canCreateOrders && (
+                                <Chip
+                                  label="Create Orders"
+                                  size="small"
+                                  sx={{
+                                    background: (theme) => `linear-gradient(45deg, ${theme.palette.info.light}, ${theme.palette.info.main})`,
+                                    color: 'white',
+                                    fontWeight: 'bold'
+                                  }}
+                                />
+                              )}
+                            </Stack>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="caption" color="text.secondary">
+                              {new Date(user.createdAt).toLocaleDateString()}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Stack direction="row" spacing={1}>
+                              <Tooltip title="Edit User">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleEditUser(user)}
+                                  sx={{
+                                    '&:hover': {
+                                      color: theme.palette.primary.main,
+                                      backgroundColor: 'rgba(25, 118, 210, 0.04)'
+                                    }
+                                  }}
+                                >
+                                  <EditIcon />
+                                </IconButton>
+                              </Tooltip>
+                              {user._id !== currentUser.id && (
+                                <Tooltip title="Deactivate User">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleDeleteDialog(user)}
+                                    sx={{
+                                      '&:hover': {
+                                        color: theme.palette.error.main,
+                                        backgroundColor: 'rgba(211, 47, 47, 0.04)'
+                                      }
+                                    }}
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25]}
+                component="div"
+                count={totalUsers}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+              />
+            </Paper>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Create/Edit User Dialog */}
       <Dialog
@@ -531,10 +738,22 @@ const UsersPage = () => {
         onClose={() => setUserDialogOpen(false)}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            ...cardStyle,
+            mt: 2
+          }
+        }}
       >
-        <DialogTitle>
+        <DialogTitle sx={{
+          background: (theme) => `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          fontWeight: 'bold'
+        }}>
           {isEditing ? 'Edit User' : 'Create New User'}
         </DialogTitle>
+        <Divider />
         <form onSubmit={handleSubmit(onSubmitUser)}>
           <DialogContent>
             <Grid container spacing={2}>
@@ -640,6 +859,7 @@ const UsersPage = () => {
                         <Switch
                           checked={field.value}
                           onChange={field.onChange}
+                          color="primary"
                         />
                       }
                       label="Active"
@@ -660,6 +880,7 @@ const UsersPage = () => {
                         <Switch
                           checked={field.value}
                           onChange={field.onChange}
+                          color="primary"
                         />
                       }
                       label="Can Create Orders"
@@ -669,12 +890,28 @@ const UsersPage = () => {
               </Grid>
             </Grid>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setUserDialogOpen(false)}>Cancel</Button>
+          <DialogActions sx={{ p: 2, bgcolor: 'background.default' }}>
+            <Button 
+              onClick={() => setUserDialogOpen(false)}
+              sx={{
+                color: theme.palette.text.secondary,
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                }
+              }}
+            >
+              Cancel
+            </Button>
             <Button
               type="submit"
               variant="contained"
               disabled={isSubmitting}
+              sx={{
+                background: (theme) => `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                '&:hover': {
+                  background: (theme) => `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`
+                }
+              }}
             >
               {isSubmitting ? (
                 <CircularProgress size={24} />
@@ -691,20 +928,47 @@ const UsersPage = () => {
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
         maxWidth="sm"
+        PaperProps={{
+          sx: {
+            ...cardStyle,
+            mt: 2
+          }
+        }}
       >
-        <DialogTitle>Confirm Deactivation</DialogTitle>
+        <DialogTitle sx={{
+          color: theme.palette.error.main,
+          fontWeight: 'bold'
+        }}>
+          Confirm Deactivation
+        </DialogTitle>
+        <Divider />
         <DialogContent>
           <Typography>
             Are you sure you want to deactivate user "{selectedUser?.fullName}"?
             This action will disable their access to the system.
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+        <DialogActions sx={{ p: 2, bgcolor: 'background.default' }}>
+          <Button 
+            onClick={() => setDeleteDialogOpen(false)}
+            sx={{
+              color: theme.palette.text.secondary,
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)'
+              }
+            }}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={handleDeleteUser}
-            color="error"
             variant="contained"
+            sx={{
+              background: (theme) => `linear-gradient(45deg, ${theme.palette.error.main}, ${theme.palette.error.dark})`,
+              '&:hover': {
+                background: (theme) => `linear-gradient(45deg, ${theme.palette.error.dark}, ${theme.palette.error.main})`
+              }
+            }}
           >
             Deactivate
           </Button>
