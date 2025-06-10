@@ -7,7 +7,8 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
-    proxy: {
+    // Only use proxy in development
+    proxy: process.env.NODE_ENV !== 'production' ? {
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
@@ -23,6 +24,19 @@ export default defineConfig({
           proxy.on('proxyRes', (proxyRes, req, _res) => {
             console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
           });
+        }
+      }
+    } : undefined
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          mui: ['@mui/material', '@mui/icons-material'],
+          redux: ['@reduxjs/toolkit', 'react-redux', 'redux-persist']
         }
       }
     }
