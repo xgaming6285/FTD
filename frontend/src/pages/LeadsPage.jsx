@@ -324,11 +324,12 @@ const LeadsPage = () => {
 
   // Lead type color mapping
   const getLeadTypeColor = (leadType) => {
-    switch (leadType) {
+    if (!leadType) return 'default';
+    switch (leadType.toLowerCase()) {
       case "ftd":
-        return "primary";
+        return "success";
       case "filler":
-        return "secondary";
+        return "warning";
       case "cold":
         return "info";
       default:
@@ -633,7 +634,10 @@ const LeadsPage = () => {
                             cursor: 'pointer',
                           },
                           transition: 'background-color 0.2s ease',
-                          borderLeft: (theme) => `4px solid ${theme.palette[getLeadTypeColor(lead.leadType)].main}`
+                          borderLeft: (theme) => {
+                            const color = getLeadTypeColor(lead.leadType);
+                            return `4px solid ${theme.palette[color]?.main || theme.palette.grey.main}`;
+                          }
                         }}
                       >
                         {canAssignLeads && (
@@ -648,8 +652,14 @@ const LeadsPage = () => {
                           <Stack direction="row" spacing={2} alignItems="center">
                             <Avatar 
                               sx={{ 
-                                bgcolor: (theme) => theme.palette[getLeadTypeColor(lead.leadType)].light,
-                                color: (theme) => theme.palette[getLeadTypeColor(lead.leadType)].main
+                                bgcolor: (theme) => {
+                                  const color = getLeadTypeColor(lead.leadType);
+                                  return theme.palette[color]?.light || theme.palette.grey.light;
+                                },
+                                color: (theme) => {
+                                  const color = getLeadTypeColor(lead.leadType);
+                                  return theme.palette[color]?.main || theme.palette.grey.main;
+                                }
                               }}
                             >
                               {(lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()).charAt(0).toUpperCase()}
@@ -667,7 +677,7 @@ const LeadsPage = () => {
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={lead.leadType.toUpperCase()}
+                            label={(lead.leadType || 'unknown').toUpperCase()}
                             color={getLeadTypeColor(lead.leadType)}
                             size="small"
                             sx={{ fontWeight: 'medium' }}
@@ -1034,7 +1044,10 @@ const LeadsPage = () => {
                 key={lead._id}
                 sx={{ 
                   p: 2,
-                  borderLeft: (theme) => `4px solid ${theme.palette[getLeadTypeColor(lead.leadType)].main}`,
+                  borderLeft: (theme) => {
+                    const color = getLeadTypeColor(lead.leadType);
+                    return `4px solid ${theme.palette[color]?.main || theme.palette.grey.main}`;
+                  },
                   '&:hover': {
                     boxShadow: (theme) => theme.shadows[4]
                   },
@@ -1047,8 +1060,14 @@ const LeadsPage = () => {
                       <Stack direction="row" spacing={1.5} alignItems="center">
                         <Avatar 
                           sx={{ 
-                            bgcolor: (theme) => theme.palette[getLeadTypeColor(lead.leadType)].light,
-                            color: (theme) => theme.palette[getLeadTypeColor(lead.leadType)].main
+                            bgcolor: (theme) => {
+                              const color = getLeadTypeColor(lead.leadType);
+                              return theme.palette[color]?.light || theme.palette.grey.light;
+                            },
+                            color: (theme) => {
+                              const color = getLeadTypeColor(lead.leadType);
+                              return theme.palette[color]?.main || theme.palette.grey.main;
+                            }
                           }}
                         >
                           {(lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()).charAt(0).toUpperCase()}
@@ -1064,7 +1083,7 @@ const LeadsPage = () => {
                       </Stack>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Chip
-                          label={lead.leadType.toUpperCase()}
+                          label={(lead.leadType || 'unknown').toUpperCase()}
                           color={getLeadTypeColor(lead.leadType)}
                           size="small"
                           sx={{ fontWeight: 'medium' }}
