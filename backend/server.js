@@ -20,7 +20,7 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 
 // Set trust proxy to fix express-rate-limit issue behind a proxy
-app.set('trust proxy', 1); // <-- FIX: THIS IS THE ONLY ADDED LINE
+app.set('trust proxy', 1);
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/lead-management', {
@@ -50,15 +50,35 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // CORS configuration
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL || true // Temporarily allow all origins for testing
-    : ['http://localhost:3000', 'http://localhost:5173'],
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = process.env.NODE_ENV === 'production' 
+      ? [
+          process.env.FRONTEND_URL,
+          'http://localhost:3000', // Allow localhost for testing
+          'https://localhost:3000' // Allow https localhost
+        ].filter(Boolean) // Remove undefined values
+      : ['http://localhost:3000', 'http://localhost:5173', 'https://localhost:3000'];
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Log the rejected origin for debugging
+    console.log('CORS blocked origin:', origin);
+    callback(new Error('Not allowed by CORS'));
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true,
-  optionsSuccessStatus: 200
-}));
+  optionsSuccessStatus: 200,
+  preflightContinue: false
+};
+
+app.use(cors(corsOptions));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
