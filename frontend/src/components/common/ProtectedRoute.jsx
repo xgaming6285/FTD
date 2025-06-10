@@ -1,13 +1,19 @@
 import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { Navigate } from 'react-router-dom';
-import { selectIsAuthenticated } from '../../store/slices/authSlice';
+import { selectAuth } from '../../store/slices/authSlice';
 
 const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const { isAuthenticated, isLoading } = useSelector(selectAuth);
+  const location = useLocation();
+
+  if (isLoading) {
+    return null; // Or a loading spinner
+  }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    // Save the attempted URL for redirecting after login
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return children;

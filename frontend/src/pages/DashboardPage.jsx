@@ -17,7 +17,11 @@ import {
   Avatar,
   Stack,
   Divider,
+  Paper,
+  useTheme,
+  alpha,
 } from '@mui/material';
+import { motion } from 'framer-motion';
 import {
   TrendingUp as TrendingUpIcon,
   People as PeopleIcon,
@@ -31,7 +35,33 @@ import {
 import { selectUser } from '../store/slices/authSlice';
 import api from '../services/api';
 
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 15
+    }
+  }
+};
+
 const DashboardPage = () => {
+  const theme = useTheme();
   const user = useSelector(selectUser);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -113,7 +143,7 @@ const DashboardPage = () => {
       } else if (user.role === 'agent') {
         data.leadsStats = { assigned: responses[0].value.data.data.length };
         data.recentActivity = responses[0].value.data.data.slice(0, 5) || [];
-        data.performance = responses[1].value.data.data;
+        data.performance = responses[1].value.data.data.data;
       }
 
       setDashboardData(data);
@@ -140,6 +170,24 @@ const DashboardPage = () => {
     }
   };
 
+  // Enhanced card styles
+  const cardStyle = {
+    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7))',
+    backdropFilter: 'blur(10px)',
+    border: '1px solid rgba(255, 255, 255, 0.3)',
+    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
+    transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
+    '&:hover': {
+      transform: 'translateY(-5px)',
+      boxShadow: '0 12px 40px 0 rgba(31, 38, 135, 0.25)',
+    },
+  };
+
+  const avatarStyle = {
+    background: (theme) => `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+    boxShadow: '0 4px 12px 0 rgba(31, 38, 135, 0.15)',
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -157,31 +205,42 @@ const DashboardPage = () => {
   }
 
   return (
-    <Box>
+    <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible">
       {/* Welcome Header */}
-      <Box mb={4}>
-        <Typography variant="h4" gutterBottom>
-          {getGreeting()}, {user?.fullName || user?.email}!
+      <motion.div variants={itemVariants}>
+        <Typography variant="h4" gutterBottom sx={{
+          background: (theme) => `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          mb: 4,
+          fontWeight: 'bold'
+        }}>
+          {`${getGreeting()}, ${user?.firstName || 'User'}!`}
         </Typography>
         <Typography variant="body1" color="text.secondary">
           Welcome to your dashboard. Here's what's happening today.
         </Typography>
-      </Box>
+      </motion.div>
 
       <Grid container spacing={3}>
         {/* Role-based Overview Cards */}
         {user?.role === 'admin' && (
           <>
             {/* Admin Overview Cards */}
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
+            <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
+              <Card sx={cardStyle}>
                 <CardContent>
                   <Box display="flex" alignItems="center">
-                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                    <Avatar sx={{ ...avatarStyle, mr: 2 }}>
                       <PeopleIcon />
                     </Avatar>
                     <Box>
-                      <Typography variant="h4">
+                      <Typography variant="h4" sx={{ 
+                        fontWeight: 'bold',
+                        background: (theme) => `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                      }}>
                         {dashboardData.usersStats.total || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -193,15 +252,20 @@ const DashboardPage = () => {
               </Card>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
+            <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
+              <Card sx={cardStyle}>
                 <CardContent>
                   <Box display="flex" alignItems="center">
-                    <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
+                    <Avatar sx={{ ...avatarStyle, mr: 2, background: (theme) => `linear-gradient(135deg, ${theme.palette.success.main}, ${theme.palette.success.dark})` }}>
                       <AssignmentIcon />
                     </Avatar>
                     <Box>
-                      <Typography variant="h4">
+                      <Typography variant="h4" sx={{ 
+                        fontWeight: 'bold',
+                        background: (theme) => `linear-gradient(45deg, ${theme.palette.success.main}, ${theme.palette.success.dark})`,
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                      }}>
                         {dashboardData.leadsStats.total || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -213,15 +277,15 @@ const DashboardPage = () => {
               </Card>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
+            <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
+              <Card sx={cardStyle}>
                 <CardContent>
                   <Box display="flex" alignItems="center">
-                    <Avatar sx={{ bgcolor: 'info.main', mr: 2 }}>
+                    <Avatar sx={{ ...avatarStyle, mr: 2 }}>
                       <TrendingUpIcon />
                     </Avatar>
                     <Box>
-                      <Typography variant="h4">
+                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
                         {dashboardData.overview.totalCalls || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -233,15 +297,15 @@ const DashboardPage = () => {
               </Card>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
+            <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
+              <Card sx={cardStyle}>
                 <CardContent>
                   <Box display="flex" alignItems="center">
-                    <Avatar sx={{ bgcolor: 'warning.main', mr: 2 }}>
+                    <Avatar sx={{ ...avatarStyle, mr: 2 }}>
                       <CheckCircleIcon />
                     </Avatar>
                     <Box>
-                      <Typography variant="h4">
+                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
                         {dashboardData.overview.activeAgents || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -254,20 +318,40 @@ const DashboardPage = () => {
             </Grid>
 
             {/* Top Performers */}
-            <Grid item xs={12} md={6}>
-              <Card>
+            <Grid item xs={12} md={6} component={motion.div} variants={itemVariants}>
+              <Card sx={cardStyle}>
                 <CardHeader title="Top Performers Today" />
                 <CardContent>
                   {dashboardData.performance.length > 0 ? (
                     <List>
                       {dashboardData.performance.slice(0, 5).map((performer, index) => (
-                        <ListItem key={performer._id} divider={index < 4}>
+                        <ListItem
+                          key={performer._id}
+                          divider={index < 4}
+                          component={motion.div}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          sx={{
+                            '&:hover': {
+                              bgcolor: alpha(theme.palette.primary.main, 0.05),
+                            }
+                          }}
+                        >
                           <Avatar sx={{ mr: 2, bgcolor: 'secondary.main' }}>
                             {index + 1}
                           </Avatar>
                           <ListItemText
-                            primary={performer.fullName}
-                            secondary={`${performer.totalCalls} calls • $${performer.totalEarnings}`}
+                            primary={
+                              <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                                {performer.fullName}
+                              </Typography>
+                            }
+                            secondary={
+                              <Typography variant="body2" color="success.main">
+                                {performer.totalCalls} calls • $${performer.totalEarnings}
+                              </Typography>
+                            }
                           />
                           <Typography variant="body2" color="success.main">
                             {performer.successRate}% success
@@ -289,15 +373,15 @@ const DashboardPage = () => {
         {/* Agent/Affiliate Manager Overview */}
         {(user?.role === 'agent' || user?.role === 'affiliate_manager') && (
           <>
-            <Grid item xs={12} sm={6} md={4}>
-              <Card>
+            <Grid item xs={12} sm={6} md={4} component={motion.div} variants={itemVariants}>
+              <Card sx={cardStyle}>
                 <CardContent>
                   <Box display="flex" alignItems="center">
-                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                    <Avatar sx={{ ...avatarStyle, mr: 2 }}>
                       <AssignmentIcon />
                     </Avatar>
                     <Box>
-                      <Typography variant="h4">
+                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
                         {dashboardData.leadsStats.assigned || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -311,15 +395,15 @@ const DashboardPage = () => {
 
             {user?.role === 'agent' && dashboardData.performance && (
               <>
-                <Grid item xs={12} sm={6} md={4}>
-                  <Card>
+                <Grid item xs={12} sm={6} md={4} component={motion.div} variants={itemVariants}>
+                  <Card sx={cardStyle}>
                     <CardContent>
                       <Box display="flex" alignItems="center">
-                        <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
+                        <Avatar sx={{ ...avatarStyle, mr: 2 }}>
                           <PhoneIcon />
                         </Avatar>
                         <Box>
-                          <Typography variant="h4">
+                          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
                             {dashboardData.performance.totalCalls || 0}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
@@ -331,15 +415,15 @@ const DashboardPage = () => {
                   </Card>
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={4}>
-                  <Card>
+                <Grid item xs={12} sm={6} md={4} component={motion.div} variants={itemVariants}>
+                  <Card sx={cardStyle}>
                     <CardContent>
                       <Box display="flex" alignItems="center">
-                        <Avatar sx={{ bgcolor: 'info.main', mr: 2 }}>
+                        <Avatar sx={{ ...avatarStyle, mr: 2 }}>
                           <MoneyIcon />
                         </Avatar>
                         <Box>
-                          <Typography variant="h4">
+                          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
                             ${dashboardData.performance.totalEarnings || 0}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
@@ -352,8 +436,8 @@ const DashboardPage = () => {
                 </Grid>
 
                 {/* Performance Progress */}
-                <Grid item xs={12}>
-                  <Card>
+                <Grid item xs={12} component={motion.div} variants={itemVariants}>
+                  <Card sx={cardStyle}>
                     <CardHeader title="Today's Performance" />
                     <CardContent>
                       <Grid container spacing={3}>
@@ -397,46 +481,77 @@ const DashboardPage = () => {
         )}
 
         {/* Recent Activity */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardHeader
+        <Grid item xs={12} md={6} component={motion.div} variants={itemVariants}>
+          <Card sx={cardStyle}>
+            <CardHeader 
               title={
-                user?.role === 'agent' ? 'Recent Assigned Leads' :
-                  user?.role === 'affiliate_manager' ? 'Recent Orders' :
-                    'Recent Orders'
+                <Typography variant="h6" sx={{ 
+                  fontWeight: 'bold',
+                  color: theme.palette.primary.main
+                }}>
+                  {user?.role === 'agent' ? 'Recent Assigned Leads' :
+                    user?.role === 'affiliate_manager' ? 'Recent Orders' :
+                      'Recent Orders'}
+                </Typography>
               }
             />
             <CardContent>
               {dashboardData.recentActivity.length > 0 ? (
                 <List>
                   {dashboardData.recentActivity.map((item, index) => (
-                    <ListItem key={item._id} divider={index < dashboardData.recentActivity.length - 1}>
+                    <ListItem
+                      key={item._id}
+                      divider={index < dashboardData.recentActivity.length - 1}
+                      component={motion.div}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      sx={{
+                        '&:hover': {
+                          bgcolor: alpha(theme.palette.primary.main, 0.05),
+                        }
+                      }}
+                    >
                       <ListItemText
                         primary={
-                          user?.role === 'agent'
-                            ? `${item.firstName} ${item.lastName}`
-                            : `Order #${item._id.slice(-6)}`
+                          <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                            {user?.role === 'agent'
+                              ? `${item.firstName} ${item.lastName}`
+                              : `Order #${item._id.slice(-6)}`}
+                          </Typography>
                         }
                         secondary={
-                          user?.role === 'agent'
-                            ? `${item.leadType} • ${item.email}`
-                            : `${item.requests?.ftd || 0} FTD, ${item.requests?.filler || 0} Filler, ${item.requests?.cold || 0} Cold`
+                          <Typography variant="body2" color="text.secondary">
+                            {user?.role === 'agent'
+                              ? `${item.leadType} • ${item.email}`
+                              : `${item.requests?.ftd || 0} FTD, ${item.requests?.filler || 0} Filler, ${item.requests?.cold || 0} Cold`}
+                          </Typography>
                         }
                       />
                       <Chip
                         label={item.status}
                         color={getStatusColor(item.status)}
                         size="small"
+                        sx={{
+                          fontWeight: 'medium',
+                          boxShadow: `0 2px 8px 0 ${alpha(theme.palette[getStatusColor(item.status)].main, 0.2)}`,
+                        }}
                       />
                     </ListItem>
                   ))}
                 </List>
               ) : (
                 <Box textAlign="center" py={4}>
-                  <ScheduleIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    No recent activity to display.
-                  </Typography>
+                  <motion.div
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 100 }}
+                  >
+                    <ScheduleIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      No recent activity to display.
+                    </Typography>
+                  </motion.div>
                 </Box>
               )}
             </CardContent>
@@ -445,35 +560,56 @@ const DashboardPage = () => {
 
         {/* Quick Stats */}
         {user?.role === 'admin' && (
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardHeader title="System Overview" />
+          <Grid item xs={12} md={6} component={motion.div} variants={itemVariants}>
+            <Card sx={cardStyle}>
+              <CardHeader 
+                title={
+                  <Typography variant="h6" sx={{ 
+                    fontWeight: 'bold',
+                    color: theme.palette.primary.main
+                  }}>
+                    System Overview
+                  </Typography>
+                }
+              />
               <CardContent>
                 <Stack spacing={2}>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
                     <Typography variant="body2">Available Leads</Typography>
-                    <Typography variant="h6" color="success.main">
+                    <Typography variant="h6" sx={{
+                      color: theme.palette.success.main,
+                      fontWeight: 'bold'
+                    }}>
                       {dashboardData.leadsStats.available || 0}
                     </Typography>
                   </Box>
                   <Divider />
                   <Box display="flex" justifyContent="space-between" alignItems="center">
                     <Typography variant="body2">Assigned Leads</Typography>
-                    <Typography variant="h6" color="info.main">
+                    <Typography variant="h6" sx={{
+                      color: theme.palette.info.main,
+                      fontWeight: 'bold'
+                    }}>
                       {dashboardData.leadsStats.assigned || 0}
                     </Typography>
                   </Box>
                   <Divider />
                   <Box display="flex" justifyContent="space-between" alignItems="center">
                     <Typography variant="body2">Pending Orders</Typography>
-                    <Typography variant="h6" color="warning.main">
+                    <Typography variant="h6" sx={{
+                      color: theme.palette.warning.main,
+                      fontWeight: 'bold'
+                    }}>
                       {dashboardData.recentActivity.filter(order => order.status === 'pending').length}
                     </Typography>
                   </Box>
                   <Divider />
                   <Box display="flex" justifyContent="space-between" alignItems="center">
                     <Typography variant="body2">Active Agents</Typography>
-                    <Typography variant="h6" color="primary.main">
+                    <Typography variant="h6" sx={{
+                      color: theme.palette.primary.main,
+                      fontWeight: 'bold'
+                    }}>
                       {dashboardData.usersStats.activeAgents || 0}
                     </Typography>
                   </Box>
