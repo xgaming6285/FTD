@@ -49,31 +49,9 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// CORS configuration
+// CORS configuration - Allow all traffic
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = process.env.NODE_ENV === 'production' 
-      ? [
-          process.env.FRONTEND_URL,
-          'http://localhost:3000', // Allow localhost for testing
-          'https://localhost:3000' // Allow https localhost
-        ].filter(Boolean) // Remove undefined values
-      : ['http://localhost:3000', 'http://localhost:5173', 'https://localhost:3000'];
-    
-    // Allow ngrok domains for development
-    const isNgrokDomain = origin && (origin.includes('.ngrok.io') || origin.includes('.ngrok-free.app'));
-    
-    if (allowedOrigins.includes(origin) || isNgrokDomain) {
-      return callback(null, true);
-    }
-    
-    // Log the rejected origin for debugging
-    console.log('CORS blocked origin:', origin);
-    callback(new Error('Not allowed by CORS'));
-  },
+  origin: true, // Allow all origins
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true,
