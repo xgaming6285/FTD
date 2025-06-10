@@ -1,5 +1,5 @@
 import React from 'react';
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -74,52 +74,6 @@ const theme = createTheme({
   },
 });
 
-// Create router configuration
-const router = createBrowserRouter([
-  {
-    path: '/login',
-    element: <PublicRoute><LoginPage /></PublicRoute>,
-  },
-  {
-    path: '/',
-    element: <ProtectedRoute><MainLayout /></ProtectedRoute>,
-    children: [
-      {
-        index: true,
-        element: <Navigate to="/dashboard" replace />,
-      },
-      {
-        path: 'dashboard',
-        element: <DashboardPage />,
-      },
-      {
-        path: 'orders',
-        element: <OrdersPage />,
-      },
-      {
-        path: 'leads',
-        element: <LeadsPage />,
-      },
-      {
-        path: 'users',
-        element: <UsersPage />,
-      },
-      {
-        path: 'performance',
-        element: <PerformancePage />,
-      },
-      {
-        path: 'profile',
-        element: <ProfilePage />,
-      },
-    ],
-  },
-  {
-    path: '*',
-    element: <NotFoundPage />,
-  },
-]);
-
 function App() {
   return (
     <Provider store={store}>
@@ -138,7 +92,42 @@ function App() {
       >
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <RouterProvider router={router} />
+          <Router>
+            <Routes>
+              {/* Public routes */}
+              <Route 
+                path="/login" 
+                element={
+                  <PublicRoute>
+                    <LoginPage />
+                  </PublicRoute>
+                } 
+              />
+
+              {/* Protected routes with layout */}
+              <Route 
+                path="/" 
+                element={
+                  <ProtectedRoute>
+                    <MainLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="orders" element={<OrdersPage />} />
+                <Route path="leads" element={<LeadsPage />} />
+                <Route path="users" element={<UsersPage />} />
+                <Route path="performance" element={<PerformancePage />} />
+                <Route path="profile" element={<ProfilePage />} />
+              </Route>
+
+              {/* 404 page */}
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Router>
+          
+          {/* Toast notifications */}
           <Toaster
             position="top-right"
             toastOptions={{

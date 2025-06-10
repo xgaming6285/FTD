@@ -24,8 +24,5 @@
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.0"
-  },
-  "dependencies": {
-    "framer-motion": "^12.16.0"
   }
 }
