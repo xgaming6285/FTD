@@ -319,6 +319,7 @@ exports.getLeadStats = async (req, res, next) => {
       ftd: { assigned: 0, available: 0, total: 0 },
       filler: { assigned: 0, available: 0, total: 0 },
       cold: { assigned: 0, available: 0, total: 0 },
+      live: { assigned: 0, available: 0, total: 0 },
       overall: { assigned: 0, available: 0, total: 0 },
     };
 

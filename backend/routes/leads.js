@@ -33,8 +33,8 @@ router.get(
       .withMessage("Limit must be between 1 and 100"),
     query("leadType")
       .optional()
-      .isIn(["ftd", "filler", "cold"])
-      .withMessage("Lead type must be ftd, filler, or cold"),
+      .isIn(["ftd", "filler", "cold", "live"])
+      .withMessage("Lead type must be ftd, filler, cold, or live"),
     query("country")
       .optional()
       .trim()
@@ -74,8 +74,8 @@ router.get(
       .withMessage("Limit must be between 1 and 100"),
     query("leadType")
       .optional()
-      .isIn(["ftd", "filler", "cold"])
-      .withMessage("Lead type must be ftd, filler, or cold"),
+      .isIn(["ftd", "filler", "cold", "live"])
+      .withMessage("Lead type must be ftd, filler, cold, or live"),
     query("status")
       .optional()
       .isIn(["active", "contacted", "converted", "inactive"])
@@ -188,7 +188,7 @@ router.put(
     body("phone").optional().trim(),
     body("country").optional().trim().isLength({ min: 2 }).withMessage("Country must be at least 2 characters"),
     body("status").optional().isIn(["active", "contacted", "converted", "inactive"]).withMessage("Invalid status"),
-    body("leadType").optional().isIn(["ftd", "filler", "cold"]).withMessage("Invalid lead type"),
+    body("leadType").optional().isIn(["ftd", "filler", "cold", "live"]).withMessage("Invalid lead type"),
     body("documents.status").optional().isIn(["good", "ok", "pending"]).withMessage("Invalid document status"),
     body("socialMedia.facebook").optional().trim().isURL().withMessage("Invalid Facebook URL"),
     body("socialMedia.twitter").optional().trim().isURL().withMessage("Invalid Twitter URL"),

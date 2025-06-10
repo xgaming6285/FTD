@@ -420,7 +420,7 @@ const DashboardPage = () => {
                         secondary={
                           user?.role === 'agent'
                             ? `${item.leadType} • ${item.email}`
-                            : `${item.requests?.ftd || 0} FTD, ${item.requests?.filler || 0} Filler, ${item.requests?.cold || 0} Cold`
+                            : `${item.requests?.ftd || 0} FTD, ${item.requests?.filler || 0} Filler, ${item.requests?.cold || 0} Cold, ${item.requests?.live || 0} Live`
                         }
                       />
                       <Chip

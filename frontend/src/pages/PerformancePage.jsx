@@ -271,23 +271,26 @@ const PerformancePage = () => {
 
   // Lead distribution chart data
   const leadDistributionData = leadStats ? {
-    labels: ['FTD', 'Filler', 'Cold'],
+    labels: ['FTD', 'Filler', 'Cold', 'Live'],
     datasets: [
       {
         data: [
           leadStats.leads.ftd.total,
           leadStats.leads.filler.total,
           leadStats.leads.cold.total,
+          leadStats.leads.live.total,
         ],
         backgroundColor: [
           '#FF6384',
           '#36A2EB',
           '#FFCE56',
+          '#9C27B0',
         ],
         hoverBackgroundColor: [
           '#FF6384',
           '#36A2EB',
           '#FFCE56',
+          '#9C27B0',
         ],
       },
     ],
@@ -804,6 +807,19 @@ const PerformancePage = () => {
                               </Typography>
                               <Typography variant="caption">
                                 {leadStats.leads.cold.assigned} assigned, {leadStats.leads.cold.available} available
+                              </Typography>
+                            </Box>
+                          </Grid>
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Box textAlign="center" p={2}>
+                              <Typography variant="h5" color="secondary.main">
+                                {leadStats.leads.live.total}
+                              </Typography>
+                              <Typography variant="body2" color="textSecondary">
+                                Total Live Leads
+                              </Typography>
+                              <Typography variant="caption">
+                                {leadStats.leads.live.assigned} assigned, {leadStats.leads.live.available} available
                               </Typography>
                             </Box>
                           </Grid>

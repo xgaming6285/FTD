@@ -63,10 +63,11 @@ const orderSchema = yup.object({
   ftd: yup.number().min(0, 'Must be 0 or greater').integer('Must be a whole number'),
   filler: yup.number().min(0, 'Must be 0 or greater').integer('Must be a whole number'),
   cold: yup.number().min(0, 'Must be 0 or greater').integer('Must be a whole number'),
+  live: yup.number().min(0, 'Must be 0 or greater').integer('Must be a whole number'),
   priority: yup.string().oneOf(['low', 'medium', 'high'], 'Invalid priority'),
   notes: yup.string(),
 }).test('at-least-one', 'At least one lead type must be requested', function (value) {
-  return (value.ftd || 0) + (value.filler || 0) + (value.cold || 0) > 0;
+  return (value.ftd || 0) + (value.filler || 0) + (value.cold || 0) + (value.live || 0) > 0;
 });
 
 const OrdersPage = () => {
@@ -107,6 +108,7 @@ const OrdersPage = () => {
       ftd: 0,
       filler: 0,
       cold: 0,
+      live: 0,
       priority: 'medium',
       notes: '',
     },
@@ -173,6 +175,7 @@ const OrdersPage = () => {
           ftd: data.ftd || 0,
           filler: data.filler || 0,
           cold: data.cold || 0,
+          live: data.live || 0,
         },
         priority: data.priority,
         notes: data.notes,
@@ -401,10 +404,10 @@ const OrdersPage = () => {
                       <TableCell>{order._id.slice(-8)}</TableCell>
                       <TableCell>{order.requester?.fullName}</TableCell>
                       <TableCell>
-                        {order.requests?.ftd || 0}/{order.requests?.filler || 0}/{order.requests?.cold || 0}
+                        {order.requests?.ftd || 0}/{order.requests?.filler || 0}/{order.requests?.cold || 0}/{order.requests?.live || 0}
                       </TableCell>
                       <TableCell>
-                        {order.fulfilled?.ftd || 0}/{order.fulfilled?.filler || 0}/{order.fulfilled?.cold || 0}
+                        {order.fulfilled?.ftd || 0}/{order.fulfilled?.filler || 0}/{order.fulfilled?.cold || 0}/{order.fulfilled?.live || 0}
                       </TableCell>
                       <TableCell>
                         <Chip
@@ -489,7 +492,7 @@ const OrdersPage = () => {
         <form onSubmit={handleSubmit(onSubmitOrder)}>
           <DialogContent>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={6} md={3}>
                 <Controller
                   name="ftd"
                   control={control}
@@ -506,7 +509,7 @@ const OrdersPage = () => {
                   )}
                 />
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={6} md={3}>
                 <Controller
                   name="filler"
                   control={control}
@@ -523,7 +526,7 @@ const OrdersPage = () => {
                   )}
                 />
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={6} md={3}>
                 <Controller
                   name="cold"
                   control={control}
@@ -535,6 +538,23 @@ const OrdersPage = () => {
                       type="number"
                       error={!!errors.cold}
                       helperText={errors.cold?.message}
+                      inputProps={{ min: 0 }}
+                    />
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Controller
+                  name="live"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Live Leads"
+                      type="number"
+                      error={!!errors.live}
+                      helperText={errors.live?.message}
                       inputProps={{ min: 0 }}
                     />
                   )}

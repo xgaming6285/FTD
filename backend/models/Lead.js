@@ -4,7 +4,7 @@ const leadSchema = new mongoose.Schema({
   // Common Fields
   leadType: { 
     type: String, 
-    enum: ['ftd', 'filler', 'cold'], 
+    enum: ['ftd', 'filler', 'cold', 'live'], 
     required: true 
   },
   firstName: { 
