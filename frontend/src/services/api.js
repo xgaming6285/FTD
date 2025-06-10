@@ -5,7 +5,7 @@ import { logout } from '../store/slices/authSlice';
 // Determine the API base URL dynamically
 const getApiBaseUrl = () => {
   // Use the environment variable if set, otherwise fall back to deployed backend
-  const apiUrl = 'https://ftd-backend.onrender.com' || '/api';
+  const apiUrl = 'https://ftd-2sqp.onrender.com/api' || '/api';
   
   console.log('API Base URL:', apiUrl);
   

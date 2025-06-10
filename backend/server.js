@@ -20,7 +20,12 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 
 // Set trust proxy to fix express-rate-limit issue behind a proxy
-app.set('trust proxy', 1);
+// Trust all proxies when in production (for platforms like Render, Heroku, etc.)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', true);
+} else {
+  app.set('trust proxy', 1);
+}
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/lead-management', {
