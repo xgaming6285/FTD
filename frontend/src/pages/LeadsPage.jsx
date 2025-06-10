@@ -600,12 +600,12 @@ const LeadsPage = () => {
                   )}
                   <TableCell>Name</TableCell>
                   <TableCell>Type</TableCell>
-                  <TableCell sx={{ display: { md: 'none', lg: 'table-cell' } }}>Contact</TableCell>
-                  <TableCell sx={{ display: { md: 'none', lg: 'table-cell' } }}>Country</TableCell>
-                  <TableCell sx={{ display: { md: 'none', xl: 'table-cell' } }}>Client Info</TableCell>
+                  <TableCell>Contact</TableCell>
+                  <TableCell>Country</TableCell>
+                  <TableCell>Client Info</TableCell>
                   {isAdmin && <TableCell>Assigned To</TableCell>}
                   <TableCell>Status</TableCell>
-                  <TableCell sx={{ display: { md: 'none', lg: 'table-cell' } }}>Created</TableCell>
+                  <TableCell>Created</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -697,6 +697,9 @@ const LeadsPage = () => {
                         </TableCell>
                         <TableCell>
                           <Stack spacing={0.5}>
+                            <Typography variant="subtitle2" color="primary" gutterBottom>
+                              Client Info
+                            </Typography>
                             {lead.client && (
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>Client:</Typography>
