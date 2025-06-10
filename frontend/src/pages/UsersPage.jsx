@@ -119,7 +119,7 @@ const UsersPage = () => {
 
   const watchedRole = watch('role');
 
-    // Fetch users
+  // Fetch users
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);

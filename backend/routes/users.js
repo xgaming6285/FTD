@@ -8,6 +8,7 @@ const {
   updateUser,
   updateUserPermissions,
   deleteUser,
+  approveUser, // NEW: Import the approveUser controller function
   getUserStats,
   getAgentPerformance,
   updateAgentPerformance,
@@ -19,9 +20,8 @@ const router = express.Router();
 
 // Basic user routes
 router.get("/", [
-  protect, 
+  protect,
   (req, res, next) => {
-    // Allow managers to fetch only agent lists
     if (req.user.role === 'affiliate_manager') {
       if (req.query.role === 'agent') {
         return next();
@@ -31,7 +31,6 @@ router.get("/", [
         message: 'Affiliate managers can only view agent lists'
       });
     }
-    // Admin can fetch all users
     if (req.user.role === 'admin') {
       return next();
     }
@@ -41,6 +40,7 @@ router.get("/", [
     });
   }
 ], getUsers);
+
 router.get("/stats", [protect, isAdmin], getUserStats);
 router.get("/team-stats", [protect, isAdmin], getDailyTeamStats);
 
@@ -99,6 +99,21 @@ router.post(
   ],
   createUser
 );
+
+// NEW: Route for an admin to approve a user
+// @route   PUT /api/users/:id/approve
+// @desc    Approve a pending user
+// @access  Private (Admin only)
+router.put(
+  '/:id/approve',
+  [
+    protect,
+    isAdmin,
+    body('role', 'A valid role is required for approval').isIn(['admin', 'affiliate_manager', 'agent'])
+  ],
+  approveUser
+);
+
 router.put(
   "/:id",
   [

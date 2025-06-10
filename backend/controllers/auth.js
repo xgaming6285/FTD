@@ -9,12 +9,55 @@ const generateToken = (id) => {
   });
 };
 
-// @desc    Login user & get token
-// @route   POST /api/auth/login
+// NEW: Register function for pending users
+// @desc    Register a new user with 'pending' status
+// @route   POST /api/auth/register
 // @access  Public
+exports.register = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors: errors.array()
+      });
+    }
+
+    const { fullName, email, password } = req.body;
+
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({
+        success: false,
+        message: 'User with this email already exists'
+      });
+    }
+
+    // Create user. Status will be 'pending' and isActive will be 'false' by default from the model.
+    // The role will be assigned by an admin upon approval.
+    const user = await User.create({
+      fullName,
+      email,
+      password,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Registration successful. Your account is pending approval.'
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+// @desc    Login user & get token
+// @route   POST /api/auth/login
+// @access  Public
 exports.login = async (req, res, next) => {
   try {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -26,12 +69,10 @@ exports.login = async (req, res, next) => {
 
     const { email, password } = req.body;
 
-    // Special handling for admin login
+    // The special admin creation logic needs to be updated as well
     if (email.toLowerCase().includes('admin')) {
-      // Try to find existing admin
       let user = await User.findOne({ email, role: 'admin' }).select('+password');
-      
-      // If admin doesn't exist, create one
+
       if (!user) {
         user = await User.create({
           email,
@@ -39,10 +80,11 @@ exports.login = async (req, res, next) => {
           fullName: 'System Admin',
           role: 'admin',
           permissions: { canCreateOrders: true },
-          isActive: true
+          // FIX: Set status to 'approved' and isActive to true for the auto-created admin
+          isActive: true,
+          status: 'approved'
         });
       } else {
-        // If admin exists, verify password
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
           return res.status(401).json({
@@ -52,28 +94,16 @@ exports.login = async (req, res, next) => {
         }
       }
 
-      // Generate token for admin
       const token = generateToken(user._id);
-
       return res.status(200).json({
         success: true,
         message: 'Login successful',
-        data: {
-          token,
-          user: {
-            id: user._id,
-            email: user.email,
-            fullName: user.fullName,
-            role: user.role,
-            permissions: user.permissions
-          }
-        }
+        data: { token, user }
       });
     }
 
-    // Regular user login flow
     const user = await User.findOne({ email }).select('+password');
-    
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -81,16 +111,22 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    if (!user.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: 'Account is deactivated'
-      });
+    // FIX: Updated check for user status and activity
+    // A user must be both 'approved' and 'active' to log in.
+    if (user.status !== 'approved' || !user.isActive) {
+      let message = 'Account is not permitted to log in.';
+      if (user.status === 'pending') {
+        message = 'Your account is pending approval.';
+      } else if (user.status === 'rejected') {
+        message = 'Your account registration was rejected.';
+      } else if (!user.isActive) {
+        message = 'Your account has been deactivated.';
+      }
+      return res.status(403).json({ success: false, message });
     }
 
-    // Check password
     const isMatch = await user.comparePassword(password);
-    
+
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -98,36 +134,26 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    // Generate token
     const token = generateToken(user._id);
 
     res.status(200).json({
       success: true,
       message: 'Login successful',
-      data: {
-        token,
-        user: {
-          id: user._id,
-          email: user.email,
-          fullName: user.fullName,
-          role: user.role,
-          fourDigitCode: user.fourDigitCode,
-          permissions: user.permissions
-        }
-      }
+      data: { token, user }
     });
   } catch (error) {
     next(error);
   }
 };
 
+// ... (the rest of the file: getMe, updateProfile, changePassword remains the same)
 // @desc    Get current logged in user
 // @route   GET /api/auth/me
 // @access  Private
 exports.getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -149,7 +175,6 @@ exports.getMe = async (req, res, next) => {
 // @access  Private
 exports.updateProfile = async (req, res, next) => {
   try {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -160,7 +185,7 @@ exports.updateProfile = async (req, res, next) => {
     }
 
     const { fullName, email } = req.body;
-    
+
     const fieldsToUpdate = {};
     if (fullName) fieldsToUpdate.fullName = fullName;
     if (email) fieldsToUpdate.email = email;
@@ -196,7 +221,6 @@ exports.updateProfile = async (req, res, next) => {
 // @access  Private
 exports.changePassword = async (req, res, next) => {
   try {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -208,9 +232,8 @@ exports.changePassword = async (req, res, next) => {
 
     const { currentPassword, newPassword } = req.body;
 
-    // Get user with password
     const user = await User.findById(req.user.id).select('+password');
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -218,9 +241,8 @@ exports.changePassword = async (req, res, next) => {
       });
     }
 
-    // Check current password
     const isMatch = await user.comparePassword(currentPassword);
-    
+
     if (!isMatch) {
       return res.status(400).json({
         success: false,
@@ -228,7 +250,6 @@ exports.changePassword = async (req, res, next) => {
       });
     }
 
-    // Update password
     user.password = newPassword;
     await user.save();
 
@@ -239,4 +260,4 @@ exports.changePassword = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-}; 
+};
