@@ -39,7 +39,7 @@ const MainLayout = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
-  
+
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
@@ -114,8 +114,8 @@ const MainLayout = () => {
       <Divider />
       <List>
         {navigationItems.map((item) => (
-          <ListItem 
-            button 
+          <ListItem
+            button
             key={item.text}
             onClick={() => handleNavigation(item.path)}
             selected={location.pathname === item.path}
@@ -144,7 +144,7 @@ const MainLayout = () => {
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      
+
       {/* App Bar */}
       <AppBar
         position="fixed"
@@ -163,11 +163,11 @@ const MainLayout = () => {
           >
             <MenuIcon />
           </IconButton>
-          
+
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {navigationItems.find(item => item.path === location.pathname)?.text || 'Dashboard'}
           </Typography>
-          
+
           {/* User Profile Menu */}
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Typography variant="body2" sx={{ mr: 1, display: { xs: 'none', sm: 'block' } }}>
@@ -241,7 +241,7 @@ const MainLayout = () => {
         >
           {drawer}
         </Drawer>
-        
+
         {/* Desktop drawer */}
         <Drawer
           variant="permanent"

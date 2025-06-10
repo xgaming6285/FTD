@@ -28,6 +28,7 @@ import {
   alpha,
   IconButton,
   Tooltip,
+  useMediaQuery,
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -107,6 +108,7 @@ const cardStyle = {
 const PerformancePage = () => {
   const theme = useTheme();
   const user = useSelector(selectUser);
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -125,7 +127,7 @@ const PerformancePage = () => {
     datasets: [],
   });
 
-  // New state for performance insights
+  // New state for performance insights (не се използва в текущия код, но е там)
   const [insights, setInsights] = useState({
     topPerformerTrend: null,
     callQualityTrend: null,
@@ -143,11 +145,9 @@ const PerformancePage = () => {
       startDate.setDate(startDate.getDate() - parseInt(selectedPeriod));
       const startDateStr = startDate.toISOString().split('T')[0];
 
-      // Fetch different data based on user role
       const promises = [];
 
       if (user?.role === 'admin') {
-        // Admin can see all data
         promises.push(
           api.get(`/users/team-stats?date=${today}`),
           api.get(`/users/top-performers?period=${selectedPeriod}&limit=10`),
@@ -155,11 +155,8 @@ const PerformancePage = () => {
           api.get(`/orders/stats?startDate=${startDateStr}&endDate=${today}`)
         );
       } else if (user?.role === 'agent') {
-        // Agent can only see their own performance
-        // Ensure user.id is available before making the call
         if (user && user.id) {
           promises.push(
-            // Use the correct endpoint that matches the backend route
             api.get(`/users/${user.id}/performance?startDate=${startDateStr}&endDate=${today}`)
           );
         }
@@ -175,7 +172,6 @@ const PerformancePage = () => {
         setAgentPerformance(results[0].data.data);
       }
 
-      // Generate chart data
       generateChartData();
 
     } catch (err) {
@@ -185,9 +181,8 @@ const PerformancePage = () => {
     }
   };
 
-  // Generate chart data for trends
+  // Generate chart data for trends (сега е с демо данни)
   const generateChartData = () => {
-    // Generate last 7 days for demo
     const labels = [];
     const data = [];
 
@@ -219,13 +214,14 @@ const PerformancePage = () => {
   // Enhanced chart options
   const chartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top',
         labels: {
           font: {
             family: theme.typography.fontFamily,
-            size: 12,
+            size: isSmallScreen ? 10 : 12,
           },
           usePointStyle: true,
         },
@@ -235,7 +231,7 @@ const PerformancePage = () => {
         text: 'Performance Trend',
         font: {
           family: theme.typography.fontFamily,
-          size: 16,
+          size: isSmallScreen ? 14 : 16,
           weight: 'bold',
         },
       },
@@ -249,6 +245,7 @@ const PerformancePage = () => {
         ticks: {
           font: {
             family: theme.typography.fontFamily,
+            size: isSmallScreen ? 10 : 12,
           },
         },
       },
@@ -259,6 +256,7 @@ const PerformancePage = () => {
         ticks: {
           font: {
             family: theme.typography.fontFamily,
+            size: isSmallScreen ? 10 : 12,
           },
         },
       },
@@ -318,7 +316,7 @@ const PerformancePage = () => {
 
   if (user?.role !== 'admin' && user?.role !== 'agent') {
     return (
-      <Box>
+      <Box sx={{ p: isSmallScreen ? 2 : 3 }}>
         <Alert severity="error">
           You don't have permission to access performance analytics.
         </Alert>
@@ -327,18 +325,37 @@ const PerformancePage = () => {
   }
 
   return (
-    <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible">
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component={motion.h4} variants={itemVariants} sx={{
-          fontWeight: 'bold',
-          background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-        }}>
+    <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible"
+      sx={{ p: isSmallScreen ? 2 : 3 }}
+    >
+      <Box
+        display="flex"
+        flexDirection={isSmallScreen ? 'column' : 'row'}
+        justifyContent="space-between"
+        alignItems={isSmallScreen ? 'flex-start' : 'center'}
+        mb={3}
+      >
+        <Typography
+          variant={isSmallScreen ? 'h5' : 'h4'}
+          component={motion.h4}
+          variants={itemVariants}
+          sx={{
+            fontWeight: 'bold',
+            background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            mb: isSmallScreen ? 2 : 0,
+          }}
+        >
           {user?.role === 'agent' ? 'My Performance' : 'Performance Analytics'}
         </Typography>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <FormControl sx={{ minWidth: 150 }} component={motion.div} variants={itemVariants}>
+        <Stack
+          direction={isSmallScreen ? 'column' : 'row'}
+          spacing={isSmallScreen ? 1 : 2}
+          alignItems={isSmallScreen ? 'stretch' : 'center'}
+          sx={{ width: isSmallScreen ? '100%' : 'auto' }}
+        >
+          <FormControl sx={{ minWidth: isSmallScreen ? '100%' : 150 }} component={motion.div} variants={itemVariants}>
             <InputLabel>Period</InputLabel>
             <Select
               value={selectedPeriod}
@@ -357,12 +374,13 @@ const PerformancePage = () => {
             </Select>
           </FormControl>
           <Tooltip title="Refresh Data">
-            <IconButton 
+            <IconButton
               onClick={fetchPerformanceData}
               component={motion.button}
               variants={itemVariants}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
+              sx={{ alignSelf: isSmallScreen ? 'flex-end' : 'center' }}
             >
               <RefreshIcon />
             </IconButton>
@@ -371,8 +389,8 @@ const PerformancePage = () => {
       </Box>
 
       {error && (
-        <Alert 
-          severity="error" 
+        <Alert
+          severity="error"
           sx={{ mb: 2 }}
           component={motion.div}
           variants={itemVariants}
@@ -383,9 +401,9 @@ const PerformancePage = () => {
 
       <AnimatePresence>
         {loading ? (
-          <Box 
-            display="flex" 
-            justifyContent="center" 
+          <Box
+            display="flex"
+            justifyContent="center"
             my={4}
             component={motion.div}
             initial={{ opacity: 0 }}
@@ -395,52 +413,56 @@ const PerformancePage = () => {
             <CircularProgress />
           </Box>
         ) : (
-          <Grid container spacing={3}>
+          <Grid container spacing={isSmallScreen ? 1 : 3}>
             {/* Admin Dashboard */}
             {user?.role === 'admin' && (
               <>
                 {/* Key Metrics Cards */}
                 <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
                   <Card sx={cardStyle}>
-                    <CardContent>
+                    <CardContent sx={{ p: isSmallScreen ? 1.5 : 2 }}>
                       <Box display="flex" alignItems="center">
-                        <Avatar 
-                          sx={{ 
+                        <Avatar
+                          sx={{
                             bgcolor: alpha(theme.palette.primary.main, 0.1),
                             color: theme.palette.primary.main,
-                            mr: 2,
+                            mr: isSmallScreen ? 1 : 2,
+                            width: isSmallScreen ? 40 : 56,
+                            height: isSmallScreen ? 40 : 56,
                           }}
                         >
                           <PeopleIcon />
                         </Avatar>
                         <Box>
-                          <Typography variant="h4" sx={{
-                            fontWeight: 'bold',
-                            background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                          }}>
+                          <Typography
+                            variant={isSmallScreen ? 'h6' : 'h4'}
+                            sx={{
+                              fontWeight: 'bold',
+                              background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                            }}>
                             {teamStats?.totalAgents || 0}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
+                          <Typography variant={isSmallScreen ? 'caption' : 'body2'} color="text.secondary">
                             Active Agents
                           </Typography>
                         </Box>
                       </Box>
-                      <Box mt={2}>
-                        <Typography variant="caption" color="text.secondary">
+                      <Box mt={isSmallScreen ? 1 : 2}>
+                        <Typography variant={isSmallScreen ? 'caption' : 'body2'} color="text.secondary">
                           vs last period
                         </Typography>
                         <Box display="flex" alignItems="center" mt={0.5}>
-                          <TrendingUpIcon 
-                            sx={{ 
+                          <TrendingUpIcon
+                            sx={{
                               color: theme.palette.success.main,
-                              fontSize: '1rem',
+                              fontSize: isSmallScreen ? '0.8rem' : '1rem',
                               mr: 0.5,
                             }}
                           />
-                          <Typography 
-                            variant="body2"
+                          <Typography
+                            variant={isSmallScreen ? 'body2' : 'body1'}
                             color="success.main"
                             fontWeight="bold"
                           >
@@ -454,45 +476,49 @@ const PerformancePage = () => {
 
                 <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
                   <Card sx={cardStyle}>
-                    <CardContent>
+                    <CardContent sx={{ p: isSmallScreen ? 1.5 : 2 }}>
                       <Box display="flex" alignItems="center">
-                        <Avatar 
-                          sx={{ 
+                        <Avatar
+                          sx={{
                             bgcolor: alpha(theme.palette.info.main, 0.1),
                             color: theme.palette.info.main,
-                            mr: 2,
+                            mr: isSmallScreen ? 1 : 2,
+                            width: isSmallScreen ? 40 : 56,
+                            height: isSmallScreen ? 40 : 56,
                           }}
                         >
                           <PhoneIcon />
                         </Avatar>
                         <Box>
-                          <Typography variant="h4" sx={{
-                            fontWeight: 'bold',
-                            background: `linear-gradient(45deg, ${theme.palette.info.main}, ${theme.palette.info.dark})`,
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                          }}>
+                          <Typography
+                            variant={isSmallScreen ? 'h6' : 'h4'}
+                            sx={{
+                              fontWeight: 'bold',
+                              background: `linear-gradient(45deg, ${theme.palette.info.main}, ${theme.palette.info.dark})`,
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                            }}>
                             {teamStats?.totalCalls || 0}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
+                          <Typography variant={isSmallScreen ? 'caption' : 'body2'} color="text.secondary">
                             Total Calls Today
                           </Typography>
                         </Box>
                       </Box>
-                      <Box mt={2}>
-                        <Typography variant="caption" color="text.secondary">
+                      <Box mt={isSmallScreen ? 1 : 2}>
+                        <Typography variant={isSmallScreen ? 'caption' : 'body2'} color="text.secondary">
                           Daily Target
                         </Typography>
                         <Box display="flex" alignItems="center" mt={0.5}>
-                          <SpeedIcon 
-                            sx={{ 
+                          <SpeedIcon
+                            sx={{
                               color: theme.palette.warning.main,
-                              fontSize: '1rem',
+                              fontSize: isSmallScreen ? '0.8rem' : '1rem',
                               mr: 0.5,
                             }}
                           />
-                          <Typography 
-                            variant="body2"
+                          <Typography
+                            variant={isSmallScreen ? 'body2' : 'body1'}
                             color="warning.main"
                             fontWeight="bold"
                           >
@@ -506,27 +532,31 @@ const PerformancePage = () => {
 
                 <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
                   <Card sx={cardStyle}>
-                    <CardContent>
+                    <CardContent sx={{ p: isSmallScreen ? 1.5 : 2 }}>
                       <Box display="flex" alignItems="center">
-                        <Avatar 
-                          sx={{ 
+                        <Avatar
+                          sx={{
                             bgcolor: alpha(theme.palette.success.main, 0.1),
                             color: theme.palette.success.main,
-                            mr: 2,
+                            mr: isSmallScreen ? 1 : 2,
+                            width: isSmallScreen ? 40 : 56,
+                            height: isSmallScreen ? 40 : 56,
                           }}
                         >
                           <MoneyIcon />
                         </Avatar>
                         <Box>
-                          <Typography variant="h4" sx={{
-                            fontWeight: 'bold',
-                            background: `linear-gradient(45deg, ${theme.palette.success.main}, ${theme.palette.success.dark})`,
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                          }}>
+                          <Typography
+                            variant={isSmallScreen ? 'h6' : 'h4'}
+                            sx={{
+                              fontWeight: 'bold',
+                              background: `linear-gradient(45deg, ${theme.palette.success.main}, ${theme.palette.success.dark})`,
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                            }}>
                             ${teamStats?.totalEarnings || 0}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
+                          <Typography variant={isSmallScreen ? 'caption' : 'body2'} color="text.secondary">
                             Total Earnings
                           </Typography>
                         </Box>
@@ -537,27 +567,31 @@ const PerformancePage = () => {
 
                 <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
                   <Card sx={cardStyle}>
-                    <CardContent>
+                    <CardContent sx={{ p: isSmallScreen ? 1.5 : 2 }}>
                       <Box display="flex" alignItems="center">
-                        <Avatar 
-                          sx={{ 
+                        <Avatar
+                          sx={{
                             bgcolor: alpha(theme.palette.warning.main, 0.1),
                             color: theme.palette.warning.main,
-                            mr: 2,
+                            mr: isSmallScreen ? 1 : 2,
+                            width: isSmallScreen ? 40 : 56,
+                            height: isSmallScreen ? 40 : 56,
                           }}
                         >
                           <TrendingUpIcon />
                         </Avatar>
                         <Box>
-                          <Typography variant="h4" sx={{
-                            fontWeight: 'bold',
-                            background: `linear-gradient(45deg, ${theme.palette.warning.main}, ${theme.palette.warning.dark})`,
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                          }}>
+                          <Typography
+                            variant={isSmallScreen ? 'h6' : 'h4'}
+                            sx={{
+                              fontWeight: 'bold',
+                              background: `linear-gradient(45deg, ${theme.palette.warning.main}, ${theme.palette.warning.dark})`,
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                            }}>
                             {teamStats?.averageCallQuality || 0}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
+                          <Typography variant={isSmallScreen ? 'caption' : 'body2'} color="text.secondary">
                             Avg Call Quality
                           </Typography>
                         </Box>
@@ -566,27 +600,28 @@ const PerformancePage = () => {
                   </Card>
                 </Grid>
 
-                {/* Lead Distribution Chart with enhanced styling */}
+                {/* Lead Distribution Chart and Performance Trend Chart */}
                 <Grid item xs={12} md={6} component={motion.div} variants={itemVariants}>
                   <Card sx={cardStyle}>
-                    <CardHeader 
+                    <CardHeader
                       title={
-                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                        <Typography variant={isSmallScreen ? 'h6' : 'h5'} sx={{ fontWeight: 'bold' }}>
                           Lead Distribution
                         </Typography>
                       }
                       action={
                         <Tooltip title="View Details">
-                          <IconButton>
+                          <IconButton size={isSmallScreen ? 'small' : 'medium'}>
                             <AssessmentIcon />
                           </IconButton>
                         </Tooltip>
                       }
+                      sx={{ p: isSmallScreen ? 1.5 : 2 }}
                     />
-                    <CardContent>
-                      {leadDistributionData ? (
-                        <Box sx={{ height: 300 }}>
-                          <Doughnut 
+                    <CardContent sx={{ p: isSmallScreen ? 1.5 : 2 }}>
+                      <Box sx={{ height: isSmallScreen ? 250 : 300 }}>
+                        {leadDistributionData ? (
+                          <Doughnut
                             data={leadDistributionData}
                             options={{
                               ...chartOptions,
@@ -596,40 +631,47 @@ const PerformancePage = () => {
                                 legend: {
                                   ...chartOptions.plugins.legend,
                                   position: 'bottom',
+                                  labels: {
+                                    font: {
+                                      family: theme.typography.fontFamily,
+                                      size: isSmallScreen ? 10 : 12,
+                                    },
+                                    usePointStyle: true,
+                                  },
                                 },
                               },
                             }}
                           />
-                        </Box>
-                      ) : (
-                        <Box display="flex" justifyContent="center" p={4}>
-                          <CircularProgress />
-                        </Box>
-                      )}
+                        ) : (
+                          <Box display="flex" justifyContent="center" p={4}>
+                            <CircularProgress />
+                          </Box>
+                        )}
+                      </Box>
                     </CardContent>
                   </Card>
                 </Grid>
 
-                {/* Performance Trend Chart with enhanced styling */}
                 <Grid item xs={12} md={6} component={motion.div} variants={itemVariants}>
                   <Card sx={cardStyle}>
-                    <CardHeader 
+                    <CardHeader
                       title={
-                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                        <Typography variant={isSmallScreen ? 'h6' : 'h5'} sx={{ fontWeight: 'bold' }}>
                           Performance Trend
                         </Typography>
                       }
                       action={
                         <Tooltip title="View Analytics">
-                          <IconButton>
+                          <IconButton size={isSmallScreen ? 'small' : 'medium'}>
                             <TimelineIcon />
                           </IconButton>
                         </Tooltip>
                       }
+                      sx={{ p: isSmallScreen ? 1.5 : 2 }}
                     />
-                    <CardContent>
-                      <Box sx={{ height: 300 }}>
-                        <Line 
+                    <CardContent sx={{ p: isSmallScreen ? 1.5 : 2 }}>
+                      <Box sx={{ height: isSmallScreen ? 250 : 300 }}>
+                        <Line
                           data={chartData}
                           options={{
                             ...chartOptions,
@@ -650,28 +692,30 @@ const PerformancePage = () => {
                   </Card>
                 </Grid>
 
-                {/* Top Performers Table with enhanced styling */}
+                {/* Top Performers Table */}
                 <Grid item xs={12} component={motion.div} variants={itemVariants}>
                   <Card sx={cardStyle}>
-                    <CardHeader 
+                    <CardHeader
                       title={
                         <Box display="flex" alignItems="center">
                           <TrophyIcon sx={{ color: theme.palette.warning.main, mr: 1 }} />
-                          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                          <Typography variant={isSmallScreen ? 'h6' : 'h5'} sx={{ fontWeight: 'bold' }}>
                             Top Performers
                           </Typography>
                         </Box>
                       }
+                      sx={{ p: isSmallScreen ? 1.5 : 2 }}
                     />
-                    <CardContent>
-                      <TableContainer>
-                        <Table>
+                    <CardContent sx={{ p: isSmallScreen ? 1.5 : 2 }}>
+                      <TableContainer component={Paper}>
+                        <Table size={isSmallScreen ? 'small' : 'medium'}>
                           <TableHead>
                             <TableRow>
                               <TableCell>Agent</TableCell>
                               <TableCell align="center">Calls</TableCell>
                               <TableCell align="center">Earnings</TableCell>
-                              <TableCell align="center">Quality Score</TableCell>
+                              {/* АДАПТИВНО: Скриване на Quality Score на мобилни, ако е твърде препълнено */}
+                              <TableCell align="center" sx={{ display: isSmallScreen ? 'none' : 'table-cell' }}>Quality Score</TableCell>
                               <TableCell align="center">Status</TableCell>
                             </TableRow>
                           </TableHead>
@@ -694,43 +738,43 @@ const PerformancePage = () => {
                                     <Avatar
                                       sx={{
                                         bgcolor: theme.palette.primary.main,
-                                        width: 32,
-                                        height: 32,
-                                        mr: 1,
+                                        width: isSmallScreen ? 24 : 32,
+                                        height: isSmallScreen ? 24 : 32,
+                                        mr: isSmallScreen ? 0.5 : 1,
                                       }}
                                     >
                                       {performer.agent.fullName.charAt(0)}
                                     </Avatar>
                                     <Box>
-                                      <Typography variant="body2" fontWeight="bold">
+                                      <Typography variant={isSmallScreen ? 'body2' : 'body1'} fontWeight="bold" sx={{ lineHeight: 1.2 }}>
                                         {performer.agent.fullName}
                                       </Typography>
-                                      <Typography variant="caption" color="text.secondary">
+                                      <Typography variant="caption" color="text.secondary" sx={{ display: isSmallScreen ? 'none' : 'block' }}>
                                         #{performer.agent.fourDigitCode}
                                       </Typography>
                                     </Box>
                                   </Box>
                                 </TableCell>
                                 <TableCell align="center">
-                                  <Typography variant="body2" fontWeight="medium">
+                                  <Typography variant={isSmallScreen ? 'body2' : 'body1'} fontWeight="medium">
                                     {performer.totalCalls}
                                   </Typography>
                                 </TableCell>
                                 <TableCell align="center">
-                                  <Typography variant="body2" fontWeight="medium" color="success.main">
+                                  <Typography variant={isSmallScreen ? 'body2' : 'body1'} fontWeight="medium" color="success.main">
                                     ${performer.totalEarnings.toFixed(2)}
                                   </Typography>
                                 </TableCell>
-                                <TableCell align="center">
+                                <TableCell align="center" sx={{ display: isSmallScreen ? 'none' : 'table-cell' }}>
                                   <Box display="flex" justifyContent="center" alignItems="center">
                                     <Typography
-                                      variant="body2"
+                                      variant={isSmallScreen ? 'body2' : 'body1'}
                                       sx={{
                                         color: performer.averageCallQuality >= 4
                                           ? 'success.main'
                                           : performer.averageCallQuality >= 3
-                                          ? 'warning.main'
-                                          : 'error.main',
+                                            ? 'warning.main'
+                                            : 'error.main',
                                       }}
                                     >
                                       {performer.averageCallQuality.toFixed(1)}
@@ -743,6 +787,11 @@ const PerformancePage = () => {
                                 <TableCell align="center">
                                   <Chip
                                     label={index < 3 ? 'Top Performer' : 'Active'}
+                                    color={
+                                      index < 3
+                                        ? 'success'
+                                        : 'primary'
+                                    }
                                     size="small"
                                     sx={{
                                       bgcolor: index < 3
@@ -766,72 +815,73 @@ const PerformancePage = () => {
 
                 {/* Lead Stats Summary */}
                 {leadStats && (
-                  <Grid item xs={12}>
+                  <Grid item xs={12} component={motion.div} variants={itemVariants}>
                     <Card>
                       <CardHeader title="Lead Statistics" />
-                      <CardContent>
-                        <Grid container spacing={2}>
-                          <Grid item xs={12} sm={6} md={3}>
-                            <Box textAlign="center" p={2}>
-                              <Typography variant="h5" color="primary">
+                      <CardContent sx={{ p: isSmallScreen ? 1.5 : 2 }}>
+                        <Grid container spacing={isSmallScreen ? 1 : 2}>
+                          {/* Променено на xs={6} за 2 колони на ред на мобилни */}
+                          <Grid item xs={6} sm={6} md={3}>
+                            <Box textAlign="center" p={isSmallScreen ? 1 : 2}>
+                              <Typography variant={isSmallScreen ? 'h6' : 'h5'} color="primary">
                                 {leadStats.leads.ftd.total}
                               </Typography>
                               <Typography variant="body2" color="textSecondary">
                                 Total FTD Leads
                               </Typography>
-                              <Typography variant="caption">
+                              <Typography variant="caption" sx={{ display: isSmallScreen ? 'none' : 'block' }}>
                                 {leadStats.leads.ftd.assigned} assigned, {leadStats.leads.ftd.available} available
                               </Typography>
                             </Box>
                           </Grid>
-                          <Grid item xs={12} sm={6} md={3}>
-                            <Box textAlign="center" p={2}>
-                              <Typography variant="h5" color="secondary">
+                          <Grid item xs={6} sm={6} md={3}>
+                            <Box textAlign="center" p={isSmallScreen ? 1 : 2}>
+                              <Typography variant={isSmallScreen ? 'h6' : 'h5'} color="secondary">
                                 {leadStats.leads.filler.total}
                               </Typography>
                               <Typography variant="body2" color="textSecondary">
                                 Total Filler Leads
                               </Typography>
-                              <Typography variant="caption">
+                              <Typography variant="caption" sx={{ display: isSmallScreen ? 'none' : 'block' }}>
                                 {leadStats.leads.filler.assigned} assigned, {leadStats.leads.filler.available} available
                               </Typography>
                             </Box>
                           </Grid>
-                          <Grid item xs={12} sm={6} md={3}>
-                            <Box textAlign="center" p={2}>
-                              <Typography variant="h5" color="info.main">
+                          <Grid item xs={6} sm={6} md={3}>
+                            <Box textAlign="center" p={isSmallScreen ? 1 : 2}>
+                              <Typography variant={isSmallScreen ? 'h6' : 'h5'} color="info.main">
                                 {leadStats.leads.cold.total}
                               </Typography>
                               <Typography variant="body2" color="textSecondary">
                                 Total Cold Leads
                               </Typography>
-                              <Typography variant="caption">
+                              <Typography variant="caption" sx={{ display: isSmallScreen ? 'none' : 'block' }}>
                                 {leadStats.leads.cold.assigned} assigned, {leadStats.leads.cold.available} available
                               </Typography>
                             </Box>
                           </Grid>
-                          <Grid item xs={12} sm={6} md={3}>
-                            <Box textAlign="center" p={2}>
-                              <Typography variant="h5" color="secondary.main">
+                          <Grid item xs={6} sm={6} md={3}>
+                            <Box textAlign="center" p={isSmallScreen ? 1 : 2}>
+                              <Typography variant={isSmallScreen ? 'h6' : 'h5'} color="secondary.main">
                                 {leadStats.leads.live.total}
                               </Typography>
                               <Typography variant="body2" color="textSecondary">
                                 Total Live Leads
                               </Typography>
-                              <Typography variant="caption">
+                              <Typography variant="caption" sx={{ display: isSmallScreen ? 'none' : 'block' }}>
                                 {leadStats.leads.live.assigned} assigned, {leadStats.leads.live.available} available
                               </Typography>
                             </Box>
                           </Grid>
-                          <Grid item xs={12} sm={6} md={3}>
-                            <Box textAlign="center" p={2}>
-                              <Typography variant="h5" color="text.primary">
+                          <Grid item xs={12}> {/* Overall Leads ще е на цял ред на мобилни */}
+                            <Box textAlign="center" p={isSmallScreen ? 1 : 2}>
+                              <Typography variant={isSmallScreen ? 'h6' : 'h5'} color="text.primary">
                                 {leadStats.leads.overall.total}
                               </Typography>
                               <Typography variant="body2" color="textSecondary">
                                 Total Leads
                               </Typography>
-                              <Typography variant="caption">
+                              <Typography variant="caption" sx={{ display: isSmallScreen ? 'none' : 'block' }}>
                                 {leadStats.leads.overall.assigned} assigned, {leadStats.leads.overall.available} available
                               </Typography>
                             </Box>
@@ -850,27 +900,31 @@ const PerformancePage = () => {
                 {/* Agent Metrics Cards */}
                 <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
                   <Card sx={cardStyle}>
-                    <CardContent>
+                    <CardContent sx={{ p: isSmallScreen ? 1.5 : 2 }}>
                       <Box display="flex" alignItems="center">
-                        <Avatar 
-                          sx={{ 
+                        <Avatar
+                          sx={{
                             bgcolor: alpha(theme.palette.primary.main, 0.1),
                             color: theme.palette.primary.main,
-                            mr: 2,
+                            mr: isSmallScreen ? 1 : 2,
+                            width: isSmallScreen ? 40 : 56,
+                            height: isSmallScreen ? 40 : 56,
                           }}
                         >
                           <PhoneIcon />
                         </Avatar>
                         <Box>
-                          <Typography variant="h4" sx={{
-                            fontWeight: 'bold',
-                            background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                          }}>
+                          <Typography
+                            variant={isSmallScreen ? 'h6' : 'h4'}
+                            sx={{
+                              fontWeight: 'bold',
+                              background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                            }}>
                             {agentMetrics.totalCalls}
                           </Typography>
-                          <Typography color="textSecondary">
+                          <Typography variant={isSmallScreen ? 'caption' : 'body2'} color="textSecondary">
                             Total Calls
                           </Typography>
                         </Box>
@@ -881,27 +935,31 @@ const PerformancePage = () => {
 
                 <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
                   <Card sx={cardStyle}>
-                    <CardContent>
+                    <CardContent sx={{ p: isSmallScreen ? 1.5 : 2 }}>
                       <Box display="flex" alignItems="center">
-                        <Avatar 
-                          sx={{ 
+                        <Avatar
+                          sx={{
                             bgcolor: alpha(theme.palette.success.main, 0.1),
                             color: theme.palette.success.main,
-                            mr: 2,
+                            mr: isSmallScreen ? 1 : 2,
+                            width: isSmallScreen ? 40 : 56,
+                            height: isSmallScreen ? 40 : 56,
                           }}
                         >
                           <MoneyIcon />
                         </Avatar>
                         <Box>
-                          <Typography variant="h4" sx={{
-                            fontWeight: 'bold',
-                            background: `linear-gradient(45deg, ${theme.palette.success.main}, ${theme.palette.success.dark})`,
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                          }}>
+                          <Typography
+                            variant={isSmallScreen ? 'h6' : 'h4'}
+                            sx={{
+                              fontWeight: 'bold',
+                              background: `linear-gradient(45deg, ${theme.palette.success.main}, ${theme.palette.success.dark})`,
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                            }}>
                             ${agentMetrics.totalEarnings}
                           </Typography>
-                          <Typography color="textSecondary">
+                          <Typography variant={isSmallScreen ? 'caption' : 'body2'} color="text.secondary">
                             Total Earnings
                           </Typography>
                         </Box>
@@ -912,27 +970,31 @@ const PerformancePage = () => {
 
                 <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
                   <Card sx={cardStyle}>
-                    <CardContent>
+                    <CardContent sx={{ p: isSmallScreen ? 1.5 : 2 }}>
                       <Box display="flex" alignItems="center">
-                        <Avatar 
-                          sx={{ 
+                        <Avatar
+                          sx={{
                             bgcolor: alpha(theme.palette.warning.main, 0.1),
                             color: theme.palette.warning.main,
-                            mr: 2,
+                            mr: isSmallScreen ? 1 : 2,
+                            width: isSmallScreen ? 40 : 56,
+                            height: isSmallScreen ? 40 : 56,
                           }}
                         >
                           <TrendingUpIcon />
                         </Avatar>
                         <Box>
-                          <Typography variant="h4" sx={{
-                            fontWeight: 'bold',
-                            background: `linear-gradient(45deg, ${theme.palette.warning.main}, ${theme.palette.warning.dark})`,
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                          }}>
+                          <Typography
+                            variant={isSmallScreen ? 'h6' : 'h4'}
+                            sx={{
+                              fontWeight: 'bold',
+                              background: `linear-gradient(45deg, ${theme.palette.warning.main}, ${theme.palette.warning.dark})`,
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                            }}>
                             {agentMetrics.totalFTDs}
                           </Typography>
-                          <Typography color="textSecondary">
+                          <Typography variant={isSmallScreen ? 'caption' : 'body2'} color="text.secondary">
                             FTD Conversions
                           </Typography>
                         </Box>
@@ -943,27 +1005,31 @@ const PerformancePage = () => {
 
                 <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
                   <Card sx={cardStyle}>
-                    <CardContent>
+                    <CardContent sx={{ p: isSmallScreen ? 1.5 : 2 }}>
                       <Box display="flex" alignItems="center">
-                        <Avatar 
-                          sx={{ 
+                        <Avatar
+                          sx={{
                             bgcolor: alpha(theme.palette.warning.main, 0.1),
                             color: theme.palette.warning.main,
-                            mr: 2,
+                            mr: isSmallScreen ? 1 : 2,
+                            width: isSmallScreen ? 40 : 56,
+                            height: isSmallScreen ? 40 : 56,
                           }}
                         >
                           <TrendingUpIcon />
                         </Avatar>
                         <Box>
-                          <Typography variant="h4" sx={{
-                            fontWeight: 'bold',
-                            background: `linear-gradient(45deg, ${theme.palette.warning.main}, ${theme.palette.warning.dark})`,
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                          }}>
+                          <Typography
+                            variant={isSmallScreen ? 'h6' : 'h4'}
+                            sx={{
+                              fontWeight: 'bold',
+                              background: `linear-gradient(45deg, ${theme.palette.warning.main}, ${theme.palette.warning.dark})`,
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                            }}>
                             {agentMetrics.averageQuality}
                           </Typography>
-                          <Typography color="textSecondary">
+                          <Typography variant={isSmallScreen ? 'caption' : 'body2'} color="text.secondary">
                             Avg Quality Score
                           </Typography>
                         </Box>
@@ -975,10 +1041,14 @@ const PerformancePage = () => {
                 {/* Agent Performance Chart */}
                 <Grid item xs={12} component={motion.div} variants={itemVariants}>
                   <Card sx={cardStyle}>
-                    <CardHeader title="My Performance Trend" />
-                    <CardContent>
-                      <Box sx={{ height: 400 }}>
-                        <Line 
+                    <CardHeader
+                      title="My Performance Trend"
+                      titleTypographyProps={{ variant: isSmallScreen ? 'h6' : 'h5', fontWeight: 'bold' }}
+                      sx={{ p: isSmallScreen ? 1.5 : 2 }}
+                    />
+                    <CardContent sx={{ p: isSmallScreen ? 1.5 : 2 }}>
+                      <Box sx={{ height: isSmallScreen ? 250 : 400 }}>
+                        <Line
                           data={chartData}
                           options={{
                             ...chartOptions,
@@ -1003,9 +1073,9 @@ const PerformancePage = () => {
                 <Grid item xs={12} component={motion.div} variants={itemVariants}>
                   <Card sx={cardStyle}>
                     <CardHeader title="Daily Performance Records" />
-                    <CardContent>
-                      <TableContainer>
-                        <Table>
+                    <CardContent sx={{ p: isSmallScreen ? 1.5 : 2 }}>
+                      <TableContainer component={Paper}>
+                        <Table size={isSmallScreen ? 'small' : 'medium'}>
                           <TableHead>
                             <TableRow>
                               <TableCell>Date</TableCell>
@@ -1017,7 +1087,7 @@ const PerformancePage = () => {
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {agentPerformance.map((record) => (
+                            {agentPerformance.map((record, index) => (
                               <TableRow
                                 key={record._id}
                                 component={motion.tr}
@@ -1031,12 +1101,30 @@ const PerformancePage = () => {
                                 }}
                               >
                                 <TableCell>
-                                  {new Date(record.date).toLocaleDateString()}
+                                  <Typography variant={isSmallScreen ? 'body2' : 'body1'}>
+                                    {new Date(record.date).toLocaleDateString()}
+                                  </Typography>
                                 </TableCell>
-                                <TableCell>{record.metrics?.callsMade || 0}</TableCell>
-                                <TableCell>${record.metrics?.earnings || 0}</TableCell>
-                                <TableCell>{record.metrics?.ftdCount || 0}</TableCell>
-                                <TableCell>{record.metrics?.fillerCount || 0}</TableCell>
+                                <TableCell>
+                                  <Typography variant={isSmallScreen ? 'body2' : 'body1'}>
+                                    {record.metrics?.callsMade || 0}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell>
+                                  <Typography variant={isSmallScreen ? 'body2' : 'body1'}>
+                                    ${record.metrics?.earnings || 0}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell>
+                                  <Typography variant={isSmallScreen ? 'body2' : 'body1'}>
+                                    {record.metrics?.ftdCount || 0}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell>
+                                  <Typography variant={isSmallScreen ? 'body2' : 'body1'}>
+                                    {record.metrics?.fillerCount || 0}
+                                  </Typography>
+                                </TableCell>
                                 <TableCell>
                                   <Chip
                                     label={record.metrics?.averageCallQuality || 0}
@@ -1064,4 +1152,4 @@ const PerformancePage = () => {
   );
 };
 
-export default PerformancePage; 
+export default PerformancePage;
