@@ -63,7 +63,10 @@ const corsOptions = {
         ].filter(Boolean) // Remove undefined values
       : ['http://localhost:3000', 'http://localhost:5173', 'https://localhost:3000'];
     
-    if (allowedOrigins.includes(origin)) {
+    // Allow ngrok domains for development
+    const isNgrokDomain = origin && (origin.includes('.ngrok.io') || origin.includes('.ngrok-free.app'));
+    
+    if (allowedOrigins.includes(origin) || isNgrokDomain) {
       return callback(null, true);
     }
     
