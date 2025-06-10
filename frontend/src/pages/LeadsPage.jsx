@@ -832,16 +832,17 @@ const LeadsPage = () => {
                             }}
                           >
                             <Box sx={{ px: 2 }}>
-                              <Grid container spacing={3}>
+                              <Grid container spacing={2}>
                                 <Grid item xs={12} md={4}>
                                   <Paper 
-                                    elevation={0} 
+                                    elevation={0}
                                     sx={{ 
                                       p: 2, 
                                       bgcolor: 'background.paper',
                                       borderRadius: 1,
                                       border: '1px solid',
-                                      borderColor: 'divider'
+                                      borderColor: 'divider',
+                                      height: '100%'
                                     }}
                                   >
                                     <Typography 
@@ -859,41 +860,23 @@ const LeadsPage = () => {
                                       <PersonAddIcon fontSize="small" />
                                       Contact Details
                                     </Typography>
-                                    <Stack spacing={2}>
-                                      <Box>
-                                        <Typography variant="caption" color="text.secondary" display="block">
-                                          Email Address
+                                    <Stack spacing={1}>
+                                      <Stack spacing={1}>
+                                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <span style={{ color: 'text.secondary' }}>📧</span> {lead.email}
                                         </Typography>
-                                        <Typography variant="body2" fontWeight="medium">
-                                          {lead.email || "N/A"}
+                                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <span style={{ color: 'text.secondary' }}>📱</span> {lead.phone || 'N/A'}
                                         </Typography>
-                                      </Box>
-                                      <Box>
-                                        <Typography variant="caption" color="text.secondary" display="block">
-                                          Phone Number
+                                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <span style={{ color: 'text.secondary' }}>🌍</span> {lead.country || 'Unknown'}
                                         </Typography>
-                                        <Typography variant="body2" fontWeight="medium">
-                                          {lead.phone || "N/A"}
-                                        </Typography>
-                                      </Box>
-                                      <Box>
-                                        <Typography variant="caption" color="text.secondary" display="block">
-                                          Location
-                                        </Typography>
-                                        <Typography variant="body2" fontWeight="medium">
-                                          {lead.country || "N/A"}
-                                        </Typography>
-                                      </Box>
-                                      {lead.leadType === 'ftd' && (
-                                        <Box>
-                                          <Typography variant="caption" color="text.secondary" display="block">
-                                            SIN
+                                        {lead.leadType === 'ftd' && (
+                                          <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <span style={{ color: 'text.secondary' }}>🆔</span> SIN: {lead.sin || 'N/A'}
                                           </Typography>
-                                          <Typography variant="body2" fontWeight="medium">
-                                            {lead.sin || "N/A"}
-                                          </Typography>
-                                        </Box>
-                                      )}
+                                        )}
+                                      </Stack>
                                     </Stack>
                                   </Paper>
                                 </Grid>
@@ -927,20 +910,6 @@ const LeadsPage = () => {
                                         Documents
                                       </Typography>
                                       <Stack spacing={2}>
-                                        <Box>
-                                          <Typography variant="caption" color="text.secondary" display="block">
-                                            Document Status
-                                          </Typography>
-                                          <Chip
-                                            label={lead.documents?.status || 'pending'}
-                                            color={
-                                              lead.documents?.status === 'good' ? 'success' :
-                                              lead.documents?.status === 'ok' ? 'warning' : 'default'
-                                            }
-                                            size="small"
-                                            sx={{ mt: 0.5 }}
-                                          />
-                                        </Box>
                                         <Grid container spacing={1}>
                                           {lead.documents?.idFrontUrl && (
                                             <Grid item xs={6}>
@@ -1326,44 +1295,9 @@ const LeadsPage = () => {
 
                   <Collapse in={expandedRows.has(lead._id)} sx={{ width: '100%' }}>
                     <Grid item xs={12}>
-                      <Box sx={{ mt: 2 }}>
+                      <Box sx={{ mt: 2, pb: 2, overflowX: 'hidden' }}>
                         <Grid container spacing={2}>
-                          {(lead.client || lead.clientBroker || lead.clientNetwork) && (
-                            <Grid item xs={12}>
-                              <Paper 
-                                elevation={0}
-                                sx={{ 
-                                  p: 2, 
-                                  bgcolor: 'background.default',
-                                  borderRadius: 1
-                                }}
-                              >
-                                <Typography variant="subtitle2" gutterBottom color="primary">
-                                  Client Information
-                                </Typography>
-                                <Stack spacing={1}>
-                                  {lead.client && (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>Client:</Typography>
-                                      <Typography variant="body2">{lead.client}</Typography>
-                                    </Box>
-                                  )}
-                                  {lead.clientBroker && (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>Broker:</Typography>
-                                      <Typography variant="body2">{lead.clientBroker}</Typography>
-                                    </Box>
-                                  )}
-                                  {lead.clientNetwork && (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>Network:</Typography>
-                                      <Typography variant="body2">{lead.clientNetwork}</Typography>
-                                    </Box>
-                                  )}
-                                </Stack>
-                              </Paper>
-                            </Grid>
-                          )}
+                          {/* Contact Details Section */}
                           <Grid item xs={12}>
                             <Paper 
                               elevation={0}
@@ -1373,49 +1307,202 @@ const LeadsPage = () => {
                                 borderRadius: 1
                               }}
                             >
-                              <Typography variant="subtitle2" gutterBottom color="primary">
-                                Social Media Profiles
+                              <Typography variant="subtitle2" gutterBottom color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <PersonAddIcon fontSize="small" />
+                                Contact Details
                               </Typography>
                               <Stack spacing={1}>
-                                {lead.socialMedia?.facebook && (
-                                  <Link href={lead.socialMedia.facebook} target="_blank" rel="noopener noreferrer" 
-                                    sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
-                                    <img src="/facebook-icon.svg" alt="Facebook" width={16} height={16} />
-                                    Facebook
-                                  </Link>
-                                )}
-                                {lead.socialMedia?.twitter && (
-                                  <Link href={lead.socialMedia.twitter} target="_blank" rel="noopener noreferrer"
-                                    sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
-                                    <img src="/twitter-icon.svg" alt="Twitter" width={16} height={16} />
-                                    Twitter
-                                  </Link>
-                                )}
-                                {lead.socialMedia?.linkedin && (
-                                  <Link href={lead.socialMedia.linkedin} target="_blank" rel="noopener noreferrer"
-                                    sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
-                                    <img src="/linkedin-icon.svg" alt="LinkedIn" width={16} height={16} />
-                                    LinkedIn
-                                  </Link>
-                                )}
-                                {lead.socialMedia?.instagram && (
-                                  <Link href={lead.socialMedia.instagram} target="_blank" rel="noopener noreferrer"
-                                    sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
-                                    <img src="/instagram-icon.svg" alt="Instagram" width={16} height={16} />
-                                    Instagram
-                                  </Link>
-                                )}
-                                {lead.socialMedia?.telegram && (
+                                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <span style={{ color: 'text.secondary' }}>📧</span> {lead.email}
+                                </Typography>
+                                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <span style={{ color: 'text.secondary' }}>📱</span> {lead.phone || 'N/A'}
+                                </Typography>
+                                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <span style={{ color: 'text.secondary' }}>🌍</span> {lead.country || 'Unknown'}
+                                </Typography>
+                                {lead.leadType === 'ftd' && (
                                   <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <img src="/telegram-icon.svg" alt="Telegram" width={16} height={16} />
-                                    {lead.socialMedia.telegram}
+                                    <span style={{ color: 'text.secondary' }}>🆔</span> SIN: {lead.sin || 'N/A'}
                                   </Typography>
                                 )}
-                                {lead.socialMedia?.whatsapp && (
-                                  <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <img src="/whatsapp-icon.svg" alt="WhatsApp" width={16} height={16} />
-                                    {lead.socialMedia.whatsapp}
+                              </Stack>
+                            </Paper>
+                          </Grid>
+
+                          {/* Documents Section - Only for FTD leads */}
+                          {lead.leadType === 'ftd' && (
+                            <Grid item xs={12}>
+                              <Paper 
+                                elevation={0}
+                                sx={{ 
+                                  p: 2, 
+                                  bgcolor: 'background.default',
+                                  borderRadius: 1
+                                }}
+                              >
+                                <Typography variant="subtitle2" gutterBottom color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <DescriptionIcon fontSize="small" />
+                                  Documents
+                                </Typography>
+                                <Grid container spacing={1}>
+                                  {lead.documents?.idFrontUrl && (
+                                    <Grid item xs={6}>
+                                      <Typography variant="caption" color="text.secondary" display="block">
+                                        ID Front
+                                      </Typography>
+                                      <DocumentPreview url={lead.documents.idFrontUrl} type="ID Front">
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
+                                          <DescriptionIcon fontSize="small" />
+                                          View
+                                        </Box>
+                                      </DocumentPreview>
+                                    </Grid>
+                                  )}
+                                  {lead.documents?.idBackUrl && (
+                                    <Grid item xs={6}>
+                                      <Typography variant="caption" color="text.secondary" display="block">
+                                        ID Back
+                                      </Typography>
+                                      <DocumentPreview url={lead.documents.idBackUrl} type="ID Back">
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
+                                          <DescriptionIcon fontSize="small" />
+                                          View
+                                        </Box>
+                                      </DocumentPreview>
+                                    </Grid>
+                                  )}
+                                  {lead.documents?.selfieUrl && (
+                                    <Grid item xs={6}>
+                                      <Typography variant="caption" color="text.secondary" display="block">
+                                        Selfie
+                                      </Typography>
+                                      <DocumentPreview url={lead.documents.selfieUrl} type="Selfie">
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
+                                          <DescriptionIcon fontSize="small" />
+                                          View
+                                        </Box>
+                                      </DocumentPreview>
+                                    </Grid>
+                                  )}
+                                  {lead.documents?.residenceProofUrl && (
+                                    <Grid item xs={6}>
+                                      <Typography variant="caption" color="text.secondary" display="block">
+                                        Residence Proof
+                                      </Typography>
+                                      <DocumentPreview url={lead.documents.residenceProofUrl} type="Residence Proof">
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
+                                          <DescriptionIcon fontSize="small" />
+                                          View
+                                        </Box>
+                                      </DocumentPreview>
+                                    </Grid>
+                                  )}
+                                </Grid>
+                                {(!lead.documents || (!lead.documents.idFrontUrl && !lead.documents.idBackUrl && 
+                                  !lead.documents.selfieUrl && !lead.documents.residenceProofUrl)) && (
+                                  <Typography variant="body2" color="text.secondary">
+                                    No documents uploaded
                                   </Typography>
+                                )}
+                              </Paper>
+                            </Grid>
+                          )}
+
+                          {/* Comments Section */}
+                          <Grid item xs={12}>
+                            <Paper 
+                              elevation={0}
+                              sx={{ 
+                                p: 2, 
+                                bgcolor: 'background.default',
+                                borderRadius: 1
+                              }}
+                            >
+                              <Typography variant="subtitle2" gutterBottom color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <CommentIcon fontSize="small" />
+                                Comments & Activity
+                              </Typography>
+                              <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
+                                {lead.comments && lead.comments.length > 0 ? (
+                                  <Stack spacing={2}>
+                                    {lead.comments.map((comment, index) => (
+                                      <Box
+                                        key={index}
+                                        sx={{
+                                          p: 1.5,
+                                          bgcolor: 'action.hover',
+                                          borderRadius: 1,
+                                          position: 'relative'
+                                        }}
+                                      >
+                                        <Typography 
+                                          variant="caption" 
+                                          color="text.secondary"
+                                          sx={{ mb: 0.5, display: 'block' }}
+                                        >
+                                          {comment.author?.fullName || 'Unknown User'} • {new Date(comment.createdAt).toLocaleString()}
+                                        </Typography>
+                                        <Typography variant="body2">
+                                          {comment.text}
+                                        </Typography>
+                                      </Box>
+                                    ))}
+                                  </Stack>
+                                ) : (
+                                  <Box 
+                                    sx={{ 
+                                      textAlign: 'center',
+                                      py: 3,
+                                      color: 'text.secondary'
+                                    }}
+                                  >
+                                    <CommentIcon sx={{ fontSize: 40, opacity: 0.5, mb: 1 }} />
+                                    <Typography variant="body2">
+                                      No comments yet
+                                    </Typography>
+                                  </Box>
+                                )}
+                              </Box>
+                            </Paper>
+                          </Grid>
+
+                          {/* Social Media Profiles Section */}
+                          <Grid item xs={12}>
+                            <Paper 
+                              elevation={0}
+                              sx={{ 
+                                p: 2, 
+                                bgcolor: 'background.default',
+                                borderRadius: 1
+                              }}
+                            >
+                              <Typography variant="subtitle2" gutterBottom color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                Social Media Profiles
+                              </Typography>
+                              <Stack spacing={2} sx={{ width: '100%' }}>
+                                {lead.socialMedia && Object.entries(lead.socialMedia).map(([platform, value]) => 
+                                  value && (
+                                    <Box key={platform} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                      <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+                                        {platform}:
+                                      </Typography>
+                                      <Typography 
+                                        variant="body2" 
+                                        component={Link} 
+                                        href={value} 
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        sx={{ 
+                                          wordBreak: 'break-word',
+                                          color: 'primary.main',
+                                          '&:hover': { textDecoration: 'underline' }
+                                        }}
+                                      >
+                                        {value}
+                                      </Typography>
+                                    </Box>
+                                  )
                                 )}
                                 {(!lead.socialMedia || !Object.values(lead.socialMedia || {}).some(Boolean)) && (
                                   <Typography variant="body2" color="text.secondary">
