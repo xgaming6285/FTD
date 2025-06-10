@@ -2,18 +2,25 @@ const { validationResult } = require("express-validator");
 const User = require("../models/User");
 const AgentPerformance = require("../models/AgentPerformance");
 
-// @desc    Get all users with optional filtering
-// @route   GET /api/users
-// @access  Private (Admin only)
+// @desc    Get all users with optional filtering
+// @route   GET /api/users
+// @access  Private (Admin only)
 exports.getUsers = async (req, res, next) => {
   try {
-    const { role, isActive, page = 1, limit = 10 } = req.query;
+    // NEW: Added 'status' to the destructured query params
+    const { role, isActive, status, page = 1, limit = 10 } = req.query;
 
 
     // Build filter object
     const filter = {};
     if (role) filter.role = role;
-    if (isActive !== undefined) filter.isActive = isActive === 'true';
+
+    // FIX: This logic now supports filtering by status OR isActive, prioritizing status
+    if (status) {
+      filter.status = status;
+    } else if (isActive !== undefined) {
+      filter.isActive = isActive === 'true';
+    }
 
     // Calculate pagination
     const skip = (page - 1) * limit;
@@ -47,9 +54,75 @@ exports.getUsers = async (req, res, next) => {
   }
 };
 
-// @desc    Get user by ID
-// @route   GET /api/users/:id
+// NEW: Controller function to approve a user
+// @desc    Approve a pending user, set their role, and activate them
+// @route   PUT /api/users/:id/approve
 // @access  Private (Admin only)
+exports.approveUser = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation error",
+        errors: errors.array(),
+      });
+    }
+
+    const { role } = req.body;
+    const userId = req.params.id;
+
+    // Find the user who is pending
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (user.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `User is not pending approval. Current status: ${user.status}`,
+      });
+    }
+
+    // Update the user
+    user.status = 'approved';
+    user.isActive = true;
+    user.role = role;
+
+    // If the new role is 'agent', ensure fourDigitCode is set or generate one
+    if (role === 'agent' && !user.fourDigitCode) {
+      // Simple random 4-digit code generation
+      let code;
+      let codeExists = true;
+      while (codeExists) {
+        code = Math.floor(1000 + Math.random() * 9000).toString();
+        codeExists = await User.findOne({ fourDigitCode: code });
+      }
+      user.fourDigitCode = code;
+    }
+
+    const updatedUser = await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'User approved and activated successfully',
+      data: updatedUser
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+// @desc    Get user by ID
+// @route   GET /api/users/:id
+// @access  Private (Admin only)
 exports.getUserById = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
@@ -71,9 +144,9 @@ exports.getUserById = async (req, res, next) => {
   }
 };
 
-// @desc    Create new user
-// @route   POST /api/users
-// @access  Private (Admin only)
+// @desc    Create new user
+// @route   POST /api/users
+// @access  Private (Admin only)
 exports.createUser = async (req, res, next) => {
   try {
     // Check for validation errors
@@ -135,9 +208,11 @@ exports.createUser = async (req, res, next) => {
   }
 };
 
-// @desc    Update user
-// @route   PUT /api/users/:id
-// @access  Private (Admin only)
+// ... (The rest of the file remains unchanged: updateUser, updateUserPermissions, etc.)
+// ... (The rest of the file remains unchanged: updateUser, updateUserPermissions, etc.)
+// @desc    Update user
+// @route   PUT /api/users/:id
+// @access  Private (Admin only)
 exports.updateUser = async (req, res, next) => {
   try {
     // Check for validation errors
@@ -210,9 +285,9 @@ exports.updateUser = async (req, res, next) => {
   }
 };
 
-// @desc    Update user permissions
-// @route   PUT /api/users/:id/permissions
-// @access  Private (Admin only)
+// @desc    Update user permissions
+// @route   PUT /api/users/:id/permissions
+// @access  Private (Admin only)
 exports.updateUserPermissions = async (req, res, next) => {
   try {
     const { permissions } = req.body;
@@ -250,9 +325,9 @@ exports.updateUserPermissions = async (req, res, next) => {
   }
 };
 
-// @desc    Delete user (soft delete - deactivate)
-// @route   DELETE /api/users/:id
-// @access  Private (Admin only)
+// @desc    Delete user (soft delete - deactivate)
+// @route   DELETE /api/users/:id
+// @access  Private (Admin only)
 exports.deleteUser = async (req, res, next) => {
   try {
     const user = await User.findByIdAndUpdate(
@@ -280,9 +355,9 @@ exports.deleteUser = async (req, res, next) => {
   }
 };
 
-// @desc    Get user statistics
-// @route   GET /api/users/stats
-// @access  Private (Admin only)
+// @desc    Get user statistics
+// @route   GET /api/users/stats
+// @access  Private (Admin only)
 exports.getUserStats = async (req, res, next) => {
   try {
     // Get total user counts by role
@@ -336,9 +411,9 @@ exports.getUserStats = async (req, res, next) => {
   }
 };
 
-// @desc    Get agent performance
-// @route   GET /api/users/:id/performance
-// @access  Private (Admin/Agent themselves)
+// @desc    Get agent performance
+// @route   GET /api/users/:id/performance
+// @access  Private (Admin/Agent themselves)
 exports.getAgentPerformance = async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
@@ -376,9 +451,9 @@ exports.getAgentPerformance = async (req, res, next) => {
   }
 };
 
-// @desc    Update agent performance
-// @route   PUT /api/users/:id/performance
-// @access  Private (Admin only)
+// @desc    Update agent performance
+// @route   PUT /api/users/:id/performance
+// @access  Private (Admin only)
 exports.updateAgentPerformance = async (req, res, next) => {
   try {
     const { date, metrics } = req.body;
@@ -420,9 +495,9 @@ exports.updateAgentPerformance = async (req, res, next) => {
   }
 };
 
-// @desc    Get top performers
-// @route   GET /api/users/performance/top
-// @access  Private (Admin only)
+// @desc    Get top performers
+// @route   GET /api/users/performance/top
+// @access  Private (Admin only)
 exports.getTopPerformers = async (req, res, next) => {
   try {
     const { period = '30', limit = 10 } = req.query;
@@ -497,9 +572,9 @@ exports.getTopPerformers = async (req, res, next) => {
   }
 };
 
-// @desc    Get daily team stats
-// @route   GET /api/users/performance/team-stats
-// @access  Private (Admin only)
+// @desc    Get daily team stats
+// @route   GET /api/users/performance/team-stats
+// @access  Private (Admin only)
 exports.getDailyTeamStats = async (req, res, next) => {
   try {
     const { date = new Date().toISOString().split('T')[0] } = req.query;

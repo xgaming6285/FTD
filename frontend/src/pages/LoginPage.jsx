@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import {
   Container,
   Paper,
@@ -12,6 +12,7 @@ import {
   CircularProgress,
   InputAdornment,
   IconButton,
+  Link,
 } from '@mui/material';
 import {
   Visibility,
@@ -40,11 +41,11 @@ const LoginPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const { isLoading, error, isAuthenticated } = useSelector(selectAuth);
-  
+
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const {
     register,
     handleSubmit,
@@ -69,12 +70,12 @@ const LoginPage = () => {
   const onSubmit = async (data) => {
     try {
       const result = await dispatch(login(data)).unwrap();
-      
+
       // Store token in localStorage
       if (result.token) {
         localStorage.setItem('token', result.token);
       }
-      
+
       // Navigate to dashboard or intended page
       const from = location.state?.from?.pathname || '/dashboard';
       navigate(from, { replace: true });
@@ -192,9 +193,9 @@ const LoginPage = () => {
             </Box>
 
             <Box sx={{ mt: 2, textAlign: 'center' }}>
-              <Typography variant="body2" color="textSecondary">
-                Need access? Contact your system administrator.
-              </Typography>
+              <Link component={RouterLink} to="/register" variant="body2">
+                {"Don't have an account? Sign Up"}
+              </Link>
             </Box>
           </Box>
         </Paper>
@@ -203,4 +204,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage; 
+export default LoginPage;

@@ -1,80 +1,100 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcryptjs'); // За хеширане на пароли
 
 const userSchema = new mongoose.Schema({
-  email: { 
-    type: String, 
-    required: true, 
+  email: {
+    type: String,
+    required: true,
     unique: true,
     lowercase: true,
+    trim: true,
+    // Можеш да добавиш по-сложна валидация на имейл тук, ако не е в контролера
+    // match: [
+    //   /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
+    //   'Please add a valid email',
+    // ],
+  },
+  password: {
+    type: String,
+    required: true,
+    minlength: 6,
+    select: false // Не връщай паролата по подразбиране при заявки
+  },
+  fullName: {
+    type: String,
+    required: true,
     trim: true
   },
-  password: { 
-    type: String, 
-    required: true,
-    minlength: 6
+  role: {
+    type: String,
+    enum: ['admin', 'affiliate_manager', 'agent', 'pending_approval'], // <-- КОРИГИРАНО: Добавена 'pending_approval'
+    default: 'pending_approval', // <-- КОРИГИРАНО: Добавена стойност по подразбиране
+    required: true // Остава true, тъй като вече има default стойност
   },
-  fullName: { 
-    type: String, 
-    required: true,
-    trim: true
-  },
-  role: { 
-    type: String, 
-    enum: ['admin', 'affiliate_manager', 'agent'], 
-    required: true 
-  },
-  fourDigitCode: { 
+  fourDigitCode: {
     type: String,
     validate: {
-      validator: function(v) {
-        // Only required for agents
+      validator: function (v) {
+        // Изисква се само за агенти
         if (this.role === 'agent') {
           return v && v.length === 4 && /^\d{4}$/.test(v);
         }
-        return true;
+        return true; // Не е задължително за други роли
       },
       message: 'Agents must have a 4-digit code'
-    }
+    },
+    // Можеш да добавиш unique: true, ако четирицифреният код трябва да е уникален за всеки агент
+    // unique: true, // Внимавай с това, ако агентите могат да имат същия код или е временно
   },
   permissions: {
     canCreateOrders: { type: Boolean, default: true }
   },
-  isActive: { type: Boolean, default: true }
-}, { 
-  timestamps: true,
+  isActive: {
+    type: Boolean,
+    default: false // <-- КОРИГИРАНО: По подразбиране неактивен, докато не бъде одобрен
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending' // <-- КОРИГИРАНО: По подразбиране статус 'pending'
+  }
+}, {
+  timestamps: true, // Автоматично добавя createdAt и updatedAt
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
 
-// Index for performance
+// Индекси за производителност на заявки
 userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
+userSchema.index({ status: 1 });
 userSchema.index({ fourDigitCode: 1 });
 
-// Hash password before saving
-userSchema.pre('save', async function(next) {
+// Middleware за хеширане на паролата преди запазване на потребителя
+userSchema.pre('save', async function (next) {
+  // Хеширай паролата само ако е променена (или е нов потребител)
   if (!this.isModified('password')) return next();
-  
+
   try {
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
+    const salt = await bcrypt.genSalt(12); // Генерирай salt
+    this.password = await bcrypt.hash(this.password, salt); // Хеширай паролата
     next();
   } catch (error) {
-    next(error);
+    next(error); // Предай грешката на следващия middleware
   }
 });
 
-// Compare password method
-userSchema.methods.comparePassword = async function(candidatePassword) {
+// Метод за сравняване на въведена парола с хешираната в базата
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  // Сравнява въведената парола с хешираната
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Remove password from JSON output
-userSchema.methods.toJSON = function() {
+// Метод за премахване на паролата от JSON изхода
+userSchema.methods.toJSON = function () {
   const userObject = this.toObject();
-  delete userObject.password;
+  delete userObject.password; // Изтрий полето password
   return userObject;
 };
 
-module.exports = mongoose.model('User', userSchema); 
+module.exports = mongoose.model('User', userSchema);

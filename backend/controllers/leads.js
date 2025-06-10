@@ -389,6 +389,9 @@ exports.getLeadStats = async (req, res, next) => {
 // @desc    Assign leads to agent
 // @route   PUT /api/leads/assign
 // @access  Private (Admin/Affiliate Manager only)
+// @desc    Assign leads to agent
+// @route   PUT /api/leads/assign
+// @access  Private (Admin/Affiliate Manager only)
 exports.assignLeads = async (req, res, next) => {
   try {
     // Check for validation errors
@@ -405,10 +408,12 @@ exports.assignLeads = async (req, res, next) => {
 
     // Validate agent exists and is active
     const agent = await User.findById(agentId);
-    if (!agent || agent.role !== "agent" || !agent.isActive) {
+
+    // FIX: The check now ensures the agent is not only active but also approved
+    if (!agent || agent.role !== "agent" || !agent.isActive || agent.status !== 'approved') {
       return res.status(400).json({
         success: false,
-        message: "Invalid agent selected",
+        message: "Invalid or inactive/unapproved agent selected.",
       });
     }
 

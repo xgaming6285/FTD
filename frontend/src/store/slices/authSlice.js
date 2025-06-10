@@ -16,6 +16,10 @@ export const login = createAsyncThunk(
   async ({ email, password }, { rejectWithValue }) => {
     try {
       const response = await api.post('/auth/login', { email, password });
+      // On successful login, save the token to localStorage
+      if (response.data.data.token) {
+        localStorage.setItem('token', response.data.data.token);
+      }
       return response.data.data;
     } catch (error) {
       return rejectWithValue(
@@ -24,6 +28,22 @@ export const login = createAsyncThunk(
     }
   }
 );
+
+// NEW: Async thunk for public user registration
+export const register = createAsyncThunk(
+  'auth/register',
+  async (userData, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/auth/register', userData);
+      return response.data; // Return the whole response with the success message
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Registration failed'
+      );
+    }
+  }
+);
+
 
 export const getMe = createAsyncThunk(
   'auth/getMe',
@@ -77,7 +97,6 @@ const authSlice = createSlice({
       state.token = null;
       state.isAuthenticated = false;
       state.error = null;
-      // Clear token from localStorage
       localStorage.removeItem('token');
     },
     clearError: (state) => {
@@ -109,6 +128,19 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload;
         state.isAuthenticated = false;
+      })
+      // NEW: Handle registration lifecycle
+      .addCase(register.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(register.fulfilled, (state) => {
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase(register.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
       })
       // Get Me
       .addCase(getMe.pending, (state) => {
@@ -167,4 +199,4 @@ export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
 export const selectAuthLoading = (state) => state.auth.isLoading;
 export const selectAuthError = (state) => state.auth.error;
 
-export default authSlice.reducer; 
+export default authSlice.reducer;

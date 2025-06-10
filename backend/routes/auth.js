@@ -2,6 +2,7 @@ const express = require('express');
 const { body } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const {
+  register, // <-- ДОБАВЕНО ТУК
   login,
   getMe,
   updateProfile,
@@ -9,6 +10,23 @@ const {
 } = require('../controllers/auth');
 
 const router = express.Router();
+
+// NEW: Register route for pending users
+// @route   POST /api/auth/register
+// @desc    Register a new user with 'pending' status
+// @access  Public
+router.post('/register', [
+  body('fullName')
+    .notEmpty().withMessage('Full name is required')
+    .isLength({ min: 2 }).withMessage('Full name must be at least 2 characters'),
+  body('email')
+    .isEmail().withMessage('Invalid email format')
+    .normalizeEmail()
+    .withMessage('Email is required'),
+  body('password')
+    .isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+    .exists().withMessage('Password is required')
+], register); // <-- Използваме импортираната функция 'register'
 
 // @route   POST /api/auth/login
 // @desc    Login user & get token
@@ -58,4 +76,4 @@ router.put('/password', [
     .withMessage('New password must be at least 6 characters')
 ], changePassword);
 
-module.exports = router; 
+module.exports = router;

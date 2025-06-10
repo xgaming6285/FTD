@@ -14,6 +14,7 @@ import MainLayout from './layouts/MainLayout.jsx';
 
 // Import pages
 import LoginPage from './pages/LoginPage.jsx';
+import RegisterPage from './pages/RegisterPage.jsx'; // NEW: Import the RegisterPage
 import DashboardPage from './pages/DashboardPage.jsx';
 import OrdersPage from './pages/OrdersPage.jsx';
 import LeadsPage from './pages/LeadsPage.jsx';
@@ -77,17 +78,17 @@ const theme = createTheme({
 function App() {
   return (
     <Provider store={store}>
-      <PersistGate 
+      <PersistGate
         loading={
-          <Box 
-            display="flex" 
-            justifyContent="center" 
-            alignItems="center" 
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
             minHeight="100vh"
           >
             <CircularProgress />
           </Box>
-        } 
+        }
         persistor={persistor}
       >
         <ThemeProvider theme={theme}>
@@ -95,18 +96,13 @@ function App() {
           <Router>
             <Routes>
               {/* Public routes */}
-              <Route 
-                path="/login" 
-                element={
-                  <PublicRoute>
-                    <LoginPage />
-                  </PublicRoute>
-                } 
-              />
+              <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+              {/* NEW: Added route for the registration page */}
+              <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
 
               {/* Protected routes with layout */}
-              <Route 
-                path="/" 
+              <Route
+                path="/"
                 element={
                   <ProtectedRoute>
                     <MainLayout />
@@ -126,7 +122,7 @@ function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Router>
-          
+
           {/* Toast notifications */}
           <Toaster
             position="top-right"
@@ -151,4 +147,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;
