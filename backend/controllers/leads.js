@@ -1,4 +1,5 @@
 const { validationResult } = require("express-validator");
+const mongoose = require("mongoose");
 const Lead = require("../models/Lead");
 const User = require("../models/User");
 
@@ -17,6 +18,8 @@ exports.getLeads = async (req, res, next) => {
       limit = 10,
       search,
       includeConverted = "true", // New parameter to control visibility of converted leads
+      order = "newest", // Add order parameter with default value
+      orderId, // Add orderId parameter
     } = req.query;
 
     // Build filter object
@@ -24,6 +27,23 @@ exports.getLeads = async (req, res, next) => {
     if (leadType) filter.leadType = leadType;
     if (isAssigned !== undefined) filter.isAssigned = isAssigned === "true";
     if (country) filter.country = new RegExp(country, "i");
+    if (orderId) filter.orderId = new mongoose.Types.ObjectId(orderId); // Convert to ObjectId
+
+    // Determine sort order based on order parameter
+    let sortOrder = { createdAt: -1 }; // Default sort
+    switch (order) {
+      case "oldest":
+        sortOrder = { createdAt: 1 };
+        break;
+      case "name_asc":
+        sortOrder = { firstName: 1, lastName: 1 };
+        break;
+      case "name_desc":
+        sortOrder = { firstName: -1, lastName: -1 };
+        break;
+      default: // "newest" or any other value
+        sortOrder = { createdAt: -1 };
+    }
 
     // Role-based filtering
     if (req.user.role === "affiliate_manager") {
@@ -62,7 +82,8 @@ exports.getLeads = async (req, res, next) => {
     const leads = await Lead.find(filter)
       .populate("assignedTo", "fullName fourDigitCode")
       .populate("comments.author", "fullName")
-      .sort({ createdAt: -1 })
+      .populate("orderId", "status priority createdAt") // Add order population
+      .sort(sortOrder)
       .skip(skip)
       .limit(parseInt(limit));
 
@@ -92,7 +113,7 @@ exports.getLeads = async (req, res, next) => {
 // @access  Private (Agent)
 exports.getAssignedLeads = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, status } = req.query;
+    const { page = 1, limit = 10, status, orderId } = req.query;
 
     // Build filter object
     const filter = {
@@ -101,6 +122,7 @@ exports.getAssignedLeads = async (req, res, next) => {
     };
 
     if (status) filter.status = status;
+    if (orderId) filter.orderId = new mongoose.Types.ObjectId(orderId);
 
     // Calculate pagination
     const skip = (page - 1) * limit;
@@ -108,6 +130,7 @@ exports.getAssignedLeads = async (req, res, next) => {
     // Get assigned leads
     const leads = await Lead.find(filter)
       .populate("comments.author", "fullName")
+      .populate("orderId", "status priority createdAt") // Add order population
       .sort({ assignedAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));

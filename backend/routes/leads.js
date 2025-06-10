@@ -52,6 +52,14 @@ router.get(
       .optional()
       .isIn(["active", "contacted", "converted", "inactive"])
       .withMessage("Status must be active, contacted, converted, or inactive"),
+    query("order")
+      .optional()
+      .isIn(["newest", "oldest", "name_asc", "name_desc"])
+      .withMessage("Order must be newest, oldest, name_asc, or name_desc"),
+    query("orderId")
+      .optional()
+      .isMongoId()
+      .withMessage("Invalid order ID format"),
   ],
   getLeads
 );

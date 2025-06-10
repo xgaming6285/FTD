@@ -2,55 +2,64 @@ const mongoose = require('mongoose');
 
 const leadSchema = new mongoose.Schema({
   // Common Fields
-  leadType: { 
-    type: String, 
-    enum: ['ftd', 'filler', 'cold', 'live'], 
-    required: true 
+  leadType: {
+    type: String,
+    enum: ['ftd', 'filler', 'cold', 'live'],
+    required: [true, 'Lead type is required']
   },
-  firstName: { 
-    type: String, 
-    required: true,
+  firstName: {
+    type: String,
+    required: [true, 'First name is required'],
     trim: true
   },
-  lastName: { 
+  lastName: {
+    type: String,
+    required: [true, 'Last name is required'],
+    trim: true
+  },
+  email: {
+    type: String,
+    required: [true, 'Email is required'],
+    unique: true,
+    trim: true,
+    lowercase: true
+  },
+  phone: {
     type: String,
     trim: true
   },
-  email: { 
+  country: {
     type: String,
-    lowercase: true,
+    required: [true, 'Country is required'],
     trim: true
   },
-  phone: { 
-    type: String,
-    trim: true
+  isAssigned: {
+    type: Boolean,
+    default: false
   },
-  country: { 
-    type: String,
-    trim: true
-  },
-  isAssigned: { 
-    type: Boolean, 
-    default: false 
-  },
-  assignedTo: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User' 
+  assignedTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
   assignedAt: {
     type: Date
   },
-  client: { 
+  client: {
     type: String,
     trim: true
   },
-  clientBroker: { 
+  clientBroker: {
     type: String,
     trim: true
   },
-  clientNetwork: { 
+  clientNetwork: {
     type: String,
     trim: true
+  },
+  orderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Order',
+    index: true // Add index for better query performance
   },
 
   // Social Media Fields
@@ -68,23 +77,23 @@ const leadSchema = new mongoose.Schema({
       type: String,
       required: true
     },
-    author: { 
-      type: mongoose.Schema.Types.ObjectId, 
+    author: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true
     },
-    createdAt: { 
-      type: Date, 
-      default: Date.now 
+    createdAt: {
+      type: Date,
+      default: Date.now
     }
-  }], 
+  }],
 
   // FTD & Filler Specific Fields
   dob: { type: Date },
-  address: { 
-    street: String, 
-    city: String, 
-    postalCode: String 
+  address: {
+    street: String,
+    city: String,
+    postalCode: String
   },
 
   // FTD Only Fields
@@ -93,8 +102,8 @@ const leadSchema = new mongoose.Schema({
     idBackUrl: String,
     selfieUrl: String,
     residenceProofUrl: String,
-    status: { 
-      type: String, 
+    status: {
+      type: String,
       enum: ['good', 'ok', 'pending'],
       default: 'pending'
     }
@@ -104,7 +113,7 @@ const leadSchema = new mongoose.Schema({
     trim: true,
     sparse: true,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         // Only validate if the lead type is ftd
         if (this.leadType === 'ftd') {
           return v && v.length > 0;
@@ -127,7 +136,7 @@ const leadSchema = new mongoose.Schema({
     enum: ['active', 'contacted', 'converted', 'inactive'],
     default: 'active'
   }
-}, { 
+}, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
@@ -144,42 +153,42 @@ leadSchema.index({ clientBroker: 1 }, { sparse: true });
 leadSchema.index({ clientNetwork: 1 }, { sparse: true });
 
 // Virtual for full name
-leadSchema.virtual('fullName').get(function() {
+leadSchema.virtual('fullName').get(function () {
   return this.lastName ? `${this.firstName} ${this.lastName}` : this.firstName;
 });
 
 // Pre-save middleware
-leadSchema.pre('save', function(next) {
+leadSchema.pre('save', function (next) {
   // Set assignedAt when lead is assigned
   if (this.isModified('isAssigned') && this.isAssigned && !this.assignedAt) {
     this.assignedAt = new Date();
   }
-  
+
   // Clear assignedAt when lead is unassigned
   if (this.isModified('isAssigned') && !this.isAssigned) {
     this.assignedAt = undefined;
     this.assignedTo = undefined;
   }
-  
+
   next();
 });
 
 // Static methods for lead queries
-leadSchema.statics.findAvailableLeads = function(leadType, count, documentStatus = ['good', 'ok']) {
-  const query = { 
-    leadType, 
-    isAssigned: false 
+leadSchema.statics.findAvailableLeads = function (leadType, count, documentStatus = ['good', 'ok']) {
+  const query = {
+    leadType,
+    isAssigned: false
   };
-  
+
   // Add document status filter for FTD leads
   if (leadType === 'ftd') {
     query['documents.status'] = { $in: documentStatus };
   }
-  
+
   return this.find(query).limit(count);
 };
 
-leadSchema.statics.getLeadStats = function() {
+leadSchema.statics.getLeadStats = function () {
   return this.aggregate([
     {
       $group: {

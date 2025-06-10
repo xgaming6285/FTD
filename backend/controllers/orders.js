@@ -44,17 +44,6 @@ exports.createOrder = async (req, res, next) => {
           .session(session);
 
         if (ftdLeads.length > 0) {
-          await Lead.updateMany(
-            { _id: { $in: ftdLeads.map((l) => l._id) } },
-            {
-              $set: {
-                isAssigned: true,
-                assignedTo: req.user._id,
-                assignedAt: new Date(),
-              },
-            },
-            { session }
-          );
           pulledLeads.push(...ftdLeads);
           fulfilled.ftd = ftdLeads.length;
         }
@@ -70,18 +59,6 @@ exports.createOrder = async (req, res, next) => {
           .session(session);
 
         if (fillerLeads.length > 0) {
-          await Lead.updateMany(
-            { _id: { $in: fillerLeads.map((l) => l._id) } },
-            {
-              $set: {
-                isAssigned: true,
-                assignedTo: req.user._id,
-                assignedAt: new Date(),
-              },
-            },
-            { session }
-          );
-
           pulledLeads.push(...fillerLeads);
           fulfilled.filler = fillerLeads.length;
         }
@@ -97,18 +74,6 @@ exports.createOrder = async (req, res, next) => {
           .session(session);
 
         if (coldLeads.length > 0) {
-          await Lead.updateMany(
-            { _id: { $in: coldLeads.map((l) => l._id) } },
-            {
-              $set: {
-                isAssigned: true,
-                assignedTo: req.user._id,
-                assignedAt: new Date(),
-              },
-            },
-            { session }
-          );
-
           pulledLeads.push(...coldLeads);
           fulfilled.cold = coldLeads.length;
         }
@@ -124,24 +89,12 @@ exports.createOrder = async (req, res, next) => {
           .session(session);
 
         if (liveLeads.length > 0) {
-          await Lead.updateMany(
-            { _id: { $in: liveLeads.map((l) => l._id) } },
-            {
-              $set: {
-                isAssigned: true,
-                assignedTo: req.user._id,
-                assignedAt: new Date(),
-              },
-            },
-            { session }
-          );
-
           pulledLeads.push(...liveLeads);
           fulfilled.live = liveLeads.length;
         }
       }
 
-      // Create the order
+      // Create the order first
       const order = new Order({
         requester: req.user._id,
         requests: { ftd, filler, cold, live },
@@ -154,14 +107,48 @@ exports.createOrder = async (req, res, next) => {
 
       await order.save({ session });
 
+      // Then update leads with the order ID
+      if (pulledLeads.length > 0) {
+        await Lead.updateMany(
+          { _id: { $in: pulledLeads.map((l) => l._id) } },
+          {
+            $set: {
+              isAssigned: true,
+              assignedTo: req.user._id,
+              assignedAt: new Date(),
+              orderId: order._id,
+            },
+          },
+          { session }
+        );
+
+        // Verify the update was successful
+        const updatedLeads = await Lead.find(
+          { _id: { $in: pulledLeads.map((l) => l._id) } },
+          null,
+          { session }
+        );
+
+        // Check if any leads weren't properly updated
+        const notUpdated = updatedLeads.filter(
+          (lead) => !lead.orderId || lead.orderId.toString() !== order._id.toString()
+        );
+
+        if (notUpdated.length > 0) {
+          throw new Error(`Failed to update orderId for ${notUpdated.length} leads`);
+        }
+      }
+
       // Populate the order for response
       await order.populate([
         { path: "requester", select: "fullName email role" },
         {
           path: "leads",
-          select: "leadType firstName lastName country email phone",
+          select: "leadType firstName lastName country email phone orderId",
         },
       ]);
+
+      await session.commitTransaction();
 
       res.status(201).json({
         success: true,
@@ -170,6 +157,7 @@ exports.createOrder = async (req, res, next) => {
       });
     });
   } catch (error) {
+    await session.abortTransaction();
     next(error);
   } finally {
     session.endSession();

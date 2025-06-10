@@ -93,9 +93,12 @@ const LeadsPage = () => {
     documentStatus: "",
     search: "",
     includeConverted: true,
+    order: "newest",
+    orderId: "",
   });
   const [showFilters, setShowFilters] = useState(false);
   const [expandedRows, setExpandedRows] = useState(new Set());
+  const [orders, setOrders] = useState([]);
 
   const {
     control: commentControl,
@@ -186,10 +189,21 @@ const LeadsPage = () => {
     }
   };
 
+  // Add function to fetch orders for the dropdown
+  const fetchOrders = async () => {
+    try {
+      const response = await api.get('/orders');
+      setOrders(response.data.data);
+    } catch (err) {
+      console.error('Failed to fetch orders:', err);
+    }
+  };
+
   useEffect(() => {
     fetchLeads();
     if (user?.role === "admin" || user?.role === "affiliate_manager") {
       fetchAgents();
+      fetchOrders();
     }
   }, [page, rowsPerPage, filters, user]);
 
@@ -272,6 +286,8 @@ const LeadsPage = () => {
       documentStatus: "",
       search: "",
       includeConverted: true,
+      order: "newest",
+      orderId: "",
     });
     setPage(0);
   };
@@ -404,10 +420,10 @@ const LeadsPage = () => {
                       Total Leads
                     </Typography>
                   </Box>
-                  <Chip 
-                    label="All Time" 
-                    size="small" 
-                    sx={{ background: 'primary.light', color: 'primary.main' }} 
+                  <Chip
+                    label="All Time"
+                    size="small"
+                    sx={{ background: 'primary.light', color: 'primary.main' }}
                   />
                 </Paper>
               </Grid>
@@ -421,10 +437,10 @@ const LeadsPage = () => {
                       Assigned
                     </Typography>
                   </Box>
-                  <Chip 
-                    label="Active" 
-                    size="small" 
-                    sx={{ background: 'success.light', color: 'success.main' }} 
+                  <Chip
+                    label="Active"
+                    size="small"
+                    sx={{ background: 'success.light', color: 'success.main' }}
                   />
                 </Paper>
               </Grid>
@@ -438,10 +454,10 @@ const LeadsPage = () => {
                       Unassigned
                     </Typography>
                   </Box>
-                  <Chip 
-                    label="Pending" 
-                    size="small" 
-                    sx={{ background: 'warning.light', color: 'warning.main' }} 
+                  <Chip
+                    label="Pending"
+                    size="small"
+                    sx={{ background: 'warning.light', color: 'warning.main' }}
                   />
                 </Paper>
               </Grid>
@@ -452,17 +468,17 @@ const LeadsPage = () => {
                       {Math.round(
                         (leads.filter((lead) => lead.isAssigned).length /
                           (leads.length || 1)) *
-                          100
+                        100
                       )}%
                     </Typography>
                     <Typography variant="subtitle2" color="textSecondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       Assignment Rate
                     </Typography>
                   </Box>
-                  <Chip 
-                    label="Progress" 
-                    size="small" 
-                    sx={{ background: 'info.light', color: 'info.main' }} 
+                  <Chip
+                    label="Progress"
+                    size="small"
+                    sx={{ background: 'info.light', color: 'info.main' }}
                   />
                 </Paper>
               </Grid>
@@ -575,6 +591,55 @@ const LeadsPage = () => {
                   onChange={handleFilterChange("country")}
                 />
               </Grid>
+              {isAdmin && (
+                <Grid item xs={12} sm={6} md={2}>
+                  <FormControl fullWidth>
+                    <InputLabel>Order Filter</InputLabel>
+                    <Select
+                      value={filters.orderId}
+                      label="Order Filter"
+                      onChange={handleFilterChange("orderId")}
+                    >
+                      <MenuItem value="">All Orders</MenuItem>
+                      {orders.map((order) => {
+                        const totalLeads = order.fulfilled.ftd + order.fulfilled.filler + order.fulfilled.cold + order.fulfilled.live;
+                        const orderDate = new Date(order.createdAt).toLocaleDateString();
+                        const statusColor = order.status === 'fulfilled' ? 'success' : 'default';
+
+                        return (
+                          <MenuItem key={order._id} value={order._id}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Chip
+                                label={`#${order._id.slice(-6)}`}
+                                size="small"
+                                color={statusColor}
+                              />
+                              <Typography variant="body2">
+                                {totalLeads} leads - {orderDate}
+                              </Typography>
+                            </Box>
+                          </MenuItem>
+                        );
+                      })}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              )}
+              <Grid item xs={12} sm={6} md={2}>
+                <FormControl fullWidth>
+                  <InputLabel>Order By</InputLabel>
+                  <Select
+                    value={filters.order}
+                    label="Order By"
+                    onChange={handleFilterChange("order")}
+                  >
+                    <MenuItem value="newest">Newest First</MenuItem>
+                    <MenuItem value="oldest">Oldest First</MenuItem>
+                    <MenuItem value="name_asc">Name (A-Z)</MenuItem>
+                    <MenuItem value="name_desc">Name (Z-A)</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
               <Grid item xs={12}>
                 <Button onClick={clearFilters} variant="outlined">
                   Clear Filters
@@ -610,6 +675,7 @@ const LeadsPage = () => {
                   <TableCell>Client Info</TableCell>
                   {isAdmin && <TableCell>Assigned To</TableCell>}
                   <TableCell>Status</TableCell>
+                  <TableCell>Order</TableCell>
                   <TableCell>Created</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
@@ -617,20 +683,20 @@ const LeadsPage = () => {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={isAdmin ? 10 : 9} align="center">
+                    <TableCell colSpan={isAdmin ? 11 : 10} align="center">
                       <CircularProgress />
                     </TableCell>
                   </TableRow>
                 ) : leads.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={isAdmin ? 10 : 9} align="center">
+                    <TableCell colSpan={isAdmin ? 11 : 10} align="center">
                       No leads found
                     </TableCell>
                   </TableRow>
                 ) : (
                   leads.map((lead) => lead && (
                     <React.Fragment key={lead._id || 'temp-key'}>
-                      <TableRow 
+                      <TableRow
                         hover
                         sx={{
                           '&:hover': {
@@ -654,8 +720,8 @@ const LeadsPage = () => {
                         )}
                         <TableCell>
                           <Stack direction="row" spacing={2} alignItems="center">
-                            <Avatar 
-                              sx={{ 
+                            <Avatar
+                              sx={{
                                 bgcolor: (theme) => {
                                   const color = getLeadTypeColor(lead.leadType);
                                   return theme.palette[color]?.light || theme.palette.grey.light;
@@ -698,11 +764,11 @@ const LeadsPage = () => {
                           </Stack>
                         </TableCell>
                         <TableCell>
-                          <Chip 
+                          <Chip
                             label={lead.country || 'Unknown'}
                             size="small"
                             variant="outlined"
-                            sx={{ 
+                            sx={{
                               borderRadius: 1,
                               backgroundColor: 'background.paper',
                               '& .MuiChip-label': { px: 1 }
@@ -772,12 +838,32 @@ const LeadsPage = () => {
                             label={lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
                             color={getStatusColor(lead.status)}
                             size="small"
-                            sx={{ 
+                            sx={{
                               fontWeight: 'medium',
                               minWidth: 80,
                               justifyContent: 'center'
                             }}
                           />
+                        </TableCell>
+                        <TableCell>
+                          {lead.orderId ? (
+                            <Chip
+                              label={`Order #${lead.orderId._id.slice(-6)}`}
+                              size="small"
+                              color={lead.orderId.status === 'fulfilled' ? 'success' : 'default'}
+                              sx={{ cursor: 'pointer' }}
+                              onClick={() => {
+                                setFilters(prev => ({
+                                  ...prev,
+                                  orderId: lead.orderId._id
+                                }));
+                              }}
+                            />
+                          ) : (
+                            <Typography variant="caption" color="text.secondary">
+                              No Order
+                            </Typography>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Typography variant="caption" color="text.secondary">
@@ -822,9 +908,9 @@ const LeadsPage = () => {
                       </TableRow>
                       {expandedRows.has(lead._id) && (
                         <TableRow>
-                          <TableCell 
-                            colSpan={isAdmin ? 10 : 9}
-                            sx={{ 
+                          <TableCell
+                            colSpan={isAdmin ? 11 : 10}
+                            sx={{
                               bgcolor: 'background.default',
                               borderBottom: '2px solid',
                               borderBottomColor: 'divider',
@@ -834,10 +920,10 @@ const LeadsPage = () => {
                             <Box sx={{ px: 2 }}>
                               <Grid container spacing={2}>
                                 <Grid item xs={12} md={4}>
-                                  <Paper 
+                                  <Paper
                                     elevation={0}
-                                    sx={{ 
-                                      p: 2, 
+                                    sx={{
+                                      p: 2,
                                       bgcolor: 'background.paper',
                                       borderRadius: 1,
                                       border: '1px solid',
@@ -845,10 +931,10 @@ const LeadsPage = () => {
                                       height: '100%'
                                     }}
                                   >
-                                    <Typography 
-                                      variant="subtitle2" 
+                                    <Typography
+                                      variant="subtitle2"
                                       gutterBottom
-                                      sx={{ 
+                                      sx={{
                                         color: 'primary.main',
                                         fontWeight: 'bold',
                                         display: 'flex',
@@ -883,10 +969,10 @@ const LeadsPage = () => {
 
                                 {lead.leadType === 'ftd' && (
                                   <Grid item xs={12} md={4}>
-                                    <Paper 
+                                    <Paper
                                       elevation={0}
-                                      sx={{ 
-                                        p: 2, 
+                                      sx={{
+                                        p: 2,
                                         bgcolor: 'background.paper',
                                         borderRadius: 1,
                                         border: '1px solid',
@@ -894,10 +980,10 @@ const LeadsPage = () => {
                                         height: '100%'
                                       }}
                                     >
-                                      <Typography 
-                                        variant="subtitle2" 
+                                      <Typography
+                                        variant="subtitle2"
                                         gutterBottom
-                                        sx={{ 
+                                        sx={{
                                           color: 'primary.main',
                                           fontWeight: 'bold',
                                           display: 'flex',
@@ -964,22 +1050,22 @@ const LeadsPage = () => {
                                             </Grid>
                                           )}
                                         </Grid>
-                                        {(!lead.documents || (!lead.documents.idFrontUrl && !lead.documents.idBackUrl && 
-                                         !lead.documents.selfieUrl && !lead.documents.residenceProofUrl)) && (
-                                          <Typography variant="body2" color="text.secondary">
-                                            No documents uploaded
-                                          </Typography>
-                                        )}
+                                        {(!lead.documents || (!lead.documents.idFrontUrl && !lead.documents.idBackUrl &&
+                                          !lead.documents.selfieUrl && !lead.documents.residenceProofUrl)) && (
+                                            <Typography variant="body2" color="text.secondary">
+                                              No documents uploaded
+                                            </Typography>
+                                          )}
                                       </Stack>
                                     </Paper>
                                   </Grid>
                                 )}
 
                                 <Grid item xs={12} md={lead.leadType === 'ftd' ? 4 : 8}>
-                                  <Paper 
+                                  <Paper
                                     elevation={0}
-                                    sx={{ 
-                                      p: 2, 
+                                    sx={{
+                                      p: 2,
                                       bgcolor: 'background.paper',
                                       borderRadius: 1,
                                       border: '1px solid',
@@ -987,10 +1073,10 @@ const LeadsPage = () => {
                                       height: '100%'
                                     }}
                                   >
-                                    <Typography 
-                                      variant="subtitle2" 
+                                    <Typography
+                                      variant="subtitle2"
                                       gutterBottom
-                                      sx={{ 
+                                      sx={{
                                         color: 'primary.main',
                                         fontWeight: 'bold',
                                         display: 'flex',
@@ -1015,8 +1101,8 @@ const LeadsPage = () => {
                                                 position: 'relative'
                                               }}
                                             >
-                                              <Typography 
-                                                variant="caption" 
+                                              <Typography
+                                                variant="caption"
                                                 color="text.secondary"
                                                 sx={{ mb: 0.5, display: 'block' }}
                                               >
@@ -1029,8 +1115,8 @@ const LeadsPage = () => {
                                           ))}
                                         </Stack>
                                       ) : (
-                                        <Box 
-                                          sx={{ 
+                                        <Box
+                                          sx={{
                                             textAlign: 'center',
                                             py: 3,
                                             color: 'text.secondary'
@@ -1047,20 +1133,20 @@ const LeadsPage = () => {
                                 </Grid>
 
                                 <Grid item xs={12}>
-                                  <Paper 
+                                  <Paper
                                     elevation={0}
-                                    sx={{ 
-                                      p: 2, 
+                                    sx={{
+                                      p: 2,
                                       bgcolor: 'background.paper',
                                       borderRadius: 1,
                                       border: '1px solid',
                                       borderColor: 'divider'
                                     }}
                                   >
-                                    <Typography 
-                                      variant="subtitle2" 
+                                    <Typography
+                                      variant="subtitle2"
                                       gutterBottom
-                                      sx={{ 
+                                      sx={{
                                         color: 'primary.main',
                                         fontWeight: 'bold',
                                         display: 'flex',
@@ -1073,7 +1159,7 @@ const LeadsPage = () => {
                                     </Typography>
                                     <Stack spacing={1}>
                                       {lead.socialMedia?.facebook && (
-                                        <Link href={lead.socialMedia.facebook} target="_blank" rel="noopener noreferrer" 
+                                        <Link href={lead.socialMedia.facebook} target="_blank" rel="noopener noreferrer"
                                           sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
                                           <img src="/facebook-icon.svg" alt="Facebook" width={16} height={16} />
                                           Facebook
@@ -1156,9 +1242,9 @@ const LeadsPage = () => {
         ) : (
           <Stack spacing={2}>
             {leads.map((lead) => lead && (
-              <Paper 
+              <Paper
                 key={lead._id || 'temp-key'}
-                sx={{ 
+                sx={{
                   p: 2,
                   borderLeft: (theme) => {
                     const color = getLeadTypeColor(lead.leadType);
@@ -1174,8 +1260,8 @@ const LeadsPage = () => {
                   <Grid item xs={12}>
                     <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
                       <Stack direction="row" spacing={1.5} alignItems="center">
-                        <Avatar 
-                          sx={{ 
+                        <Avatar
+                          sx={{
                             bgcolor: (theme) => {
                               const color = getLeadTypeColor(lead.leadType);
                               return theme.palette[color]?.light || theme.palette.grey.light;
@@ -1265,7 +1351,7 @@ const LeadsPage = () => {
                       <IconButton
                         size="small"
                         onClick={() => toggleRowExpansion(lead._id)}
-                        sx={{ 
+                        sx={{
                           color: expandedRows.has(lead._id) ? 'primary.main' : 'action.active',
                           transition: 'transform 0.2s',
                           transform: expandedRows.has(lead._id) ? 'rotate(180deg)' : 'none'
@@ -1299,10 +1385,10 @@ const LeadsPage = () => {
                         <Grid container spacing={2}>
                           {/* Contact Details Section */}
                           <Grid item xs={12}>
-                            <Paper 
+                            <Paper
                               elevation={0}
-                              sx={{ 
-                                p: 2, 
+                              sx={{
+                                p: 2,
                                 bgcolor: 'background.default',
                                 borderRadius: 1
                               }}
@@ -1333,10 +1419,10 @@ const LeadsPage = () => {
                           {/* Documents Section - Only for FTD leads */}
                           {lead.leadType === 'ftd' && (
                             <Grid item xs={12}>
-                              <Paper 
+                              <Paper
                                 elevation={0}
-                                sx={{ 
-                                  p: 2, 
+                                sx={{
+                                  p: 2,
                                   bgcolor: 'background.default',
                                   borderRadius: 1
                                 }}
@@ -1399,22 +1485,22 @@ const LeadsPage = () => {
                                     </Grid>
                                   )}
                                 </Grid>
-                                {(!lead.documents || (!lead.documents.idFrontUrl && !lead.documents.idBackUrl && 
+                                {(!lead.documents || (!lead.documents.idFrontUrl && !lead.documents.idBackUrl &&
                                   !lead.documents.selfieUrl && !lead.documents.residenceProofUrl)) && (
-                                  <Typography variant="body2" color="text.secondary">
-                                    No documents uploaded
-                                  </Typography>
-                                )}
+                                    <Typography variant="body2" color="text.secondary">
+                                      No documents uploaded
+                                    </Typography>
+                                  )}
                               </Paper>
                             </Grid>
                           )}
 
                           {/* Comments Section */}
                           <Grid item xs={12}>
-                            <Paper 
+                            <Paper
                               elevation={0}
-                              sx={{ 
-                                p: 2, 
+                              sx={{
+                                p: 2,
                                 bgcolor: 'background.default',
                                 borderRadius: 1
                               }}
@@ -1436,8 +1522,8 @@ const LeadsPage = () => {
                                           position: 'relative'
                                         }}
                                       >
-                                        <Typography 
-                                          variant="caption" 
+                                        <Typography
+                                          variant="caption"
                                           color="text.secondary"
                                           sx={{ mb: 0.5, display: 'block' }}
                                         >
@@ -1450,8 +1536,8 @@ const LeadsPage = () => {
                                     ))}
                                   </Stack>
                                 ) : (
-                                  <Box 
-                                    sx={{ 
+                                  <Box
+                                    sx={{
                                       textAlign: 'center',
                                       py: 3,
                                       color: 'text.secondary'
@@ -1469,10 +1555,10 @@ const LeadsPage = () => {
 
                           {/* Social Media Profiles Section */}
                           <Grid item xs={12}>
-                            <Paper 
+                            <Paper
                               elevation={0}
-                              sx={{ 
-                                p: 2, 
+                              sx={{
+                                p: 2,
                                 bgcolor: 'background.default',
                                 borderRadius: 1
                               }}
@@ -1481,19 +1567,19 @@ const LeadsPage = () => {
                                 Social Media Profiles
                               </Typography>
                               <Stack spacing={2} sx={{ width: '100%' }}>
-                                {lead.socialMedia && Object.entries(lead.socialMedia).map(([platform, value]) => 
+                                {lead.socialMedia && Object.entries(lead.socialMedia).map(([platform, value]) =>
                                   value && (
                                     <Box key={platform} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                                       <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
                                         {platform}:
                                       </Typography>
-                                      <Typography 
-                                        variant="body2" 
-                                        component={Link} 
-                                        href={value} 
+                                      <Typography
+                                        variant="body2"
+                                        component={Link}
+                                        href={value}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        sx={{ 
+                                        sx={{
                                           wordBreak: 'break-word',
                                           color: 'primary.main',
                                           '&:hover': { textDecoration: 'underline' }
