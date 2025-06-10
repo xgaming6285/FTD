@@ -17,6 +17,7 @@ import {
   Avatar,
   Stack,
   Divider,
+  Paper,
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -27,6 +28,9 @@ import {
   Schedule as ScheduleIcon,
   CheckCircle as CheckCircleIcon,
   PendingActions as PendingIcon,
+  PersonAdd as PersonAddIcon,
+  AssignmentTurnedIn as AssignedIcon,
+  AssignmentReturn as UnassignedIcon,
 } from '@mui/icons-material';
 import { selectUser } from '../store/slices/authSlice';
 import api from '../services/api';
@@ -157,16 +161,16 @@ const DashboardPage = () => {
   }
 
   return (
-    <Box>
+    <Box sx={{ bgcolor: 'grey.50', minHeight: '100vh', p: 3 }}>
       {/* Welcome Header */}
-      <Box mb={4}>
-        <Typography variant="h4" gutterBottom>
+      <Paper elevation={1} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
           {getGreeting()}, {user?.fullName || user?.email}!
         </Typography>
         <Typography variant="body1" color="text.secondary">
           Welcome to your dashboard. Here's what's happening today.
         </Typography>
-      </Box>
+      </Paper>
 
       <Grid container spacing={3}>
         {/* Role-based Overview Cards */}
@@ -174,14 +178,14 @@ const DashboardPage = () => {
           <>
             {/* Admin Overview Cards */}
             <Grid item xs={12} sm={6} md={3}>
-              <Card>
+              <Card elevation={2} sx={{ height: '100%' }}>
                 <CardContent>
                   <Box display="flex" alignItems="center">
-                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2, width: 48, height: 48 }}>
                       <PeopleIcon />
                     </Avatar>
                     <Box>
-                      <Typography variant="h4">
+                      <Typography variant="h4" sx={{ fontWeight: 600 }}>
                         {dashboardData.usersStats.total || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -194,38 +198,21 @@ const DashboardPage = () => {
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Card>
+              <Card elevation={2} sx={{ height: '100%' }}>
                 <CardContent>
                   <Box display="flex" alignItems="center">
-                    <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
+                    <Avatar sx={{ bgcolor: 'success.main', mr: 2, width: 48, height: 48 }}>
                       <AssignmentIcon />
                     </Avatar>
                     <Box>
-                      <Typography variant="h4">
-                        {dashboardData.leadsStats.total || 0}
+                      <Typography variant="h4" sx={{ fontWeight: 600 }}>
+                        {dashboardData.leadsStats?.leads?.overall?.total || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Total Leads
                       </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Box display="flex" alignItems="center">
-                    <Avatar sx={{ bgcolor: 'info.main', mr: 2 }}>
-                      <TrendingUpIcon />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="h4">
-                        {dashboardData.overview.totalCalls || 0}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Calls Today
+                      <Typography variant="caption" color="text.secondary">
+                        {dashboardData.leadsStats?.leads?.overall?.assigned || 0} assigned
                       </Typography>
                     </Box>
                   </Box>
@@ -234,15 +221,15 @@ const DashboardPage = () => {
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Card>
+              <Card elevation={2} sx={{ height: '100%' }}>
                 <CardContent>
                   <Box display="flex" alignItems="center">
-                    <Avatar sx={{ bgcolor: 'warning.main', mr: 2 }}>
-                      <CheckCircleIcon />
+                    <Avatar sx={{ bgcolor: 'info.main', mr: 2, width: 48, height: 48 }}>
+                      <PersonAddIcon />
                     </Avatar>
                     <Box>
-                      <Typography variant="h4">
-                        {dashboardData.overview.activeAgents || 0}
+                      <Typography variant="h4" sx={{ fontWeight: 600 }}>
+                        {dashboardData.usersStats.activeAgents || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Active Agents
@@ -253,33 +240,171 @@ const DashboardPage = () => {
               </Card>
             </Grid>
 
+            <Grid item xs={12} sm={6} md={3}>
+              <Card elevation={2} sx={{ height: '100%' }}>
+                <CardContent>
+                  <Box display="flex" alignItems="center">
+                    <Avatar sx={{ bgcolor: 'warning.main', mr: 2, width: 48, height: 48 }}>
+                      <UnassignedIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h4" sx={{ fontWeight: 600 }}>
+                        {dashboardData.leadsStats?.leads?.overall?.available || 0}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Available Leads
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Lead Type Breakdown */}
+            <Grid item xs={12}>
+              <Card elevation={2}>
+                <CardHeader 
+                  title="Lead Distribution by Type"
+                  titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
+                />
+                <CardContent>
+                  <Grid container spacing={3}>
+                    {dashboardData.leadsStats?.leads && Object.entries(dashboardData.leadsStats.leads).map(([type, stats]) => {
+                      if (type === 'overall') return null;
+                      return (
+                        <Grid item xs={12} sm={6} md={3} key={type}>
+                          <Paper 
+                            elevation={1} 
+                            sx={{ 
+                              p: 2, 
+                              textAlign: 'center',
+                              borderRadius: 2,
+                              border: '1px solid',
+                              borderColor: 'grey.200'
+                            }}
+                          >
+                            <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
+                              {stats.total || 0}
+                            </Typography>
+                            <Typography variant="subtitle1" sx={{ mb: 2, textTransform: 'uppercase', fontWeight: 500 }}>
+                              {type} Leads
+                            </Typography>
+                            <Box display="flex" justifyContent="space-between">
+                              <Box textAlign="center">
+                                <Typography variant="body2" color="text.secondary">Assigned</Typography>
+                                <Typography variant="h6" color="success.main">{stats.assigned || 0}</Typography>
+                              </Box>
+                              <Box textAlign="center">
+                                <Typography variant="body2" color="text.secondary">Available</Typography>
+                                <Typography variant="h6" color="warning.main">{stats.available || 0}</Typography>
+                              </Box>
+                            </Box>
+                          </Paper>
+                        </Grid>
+                      );
+                    })}
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+
             {/* Top Performers */}
             <Grid item xs={12} md={6}>
-              <Card>
-                <CardHeader title="Top Performers Today" />
+              <Card elevation={2} sx={{ height: '100%' }}>
+                <CardHeader 
+                  title="Top Performers Today" 
+                  titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
+                />
                 <CardContent>
-                  {dashboardData.performance.length > 0 ? (
+                  {dashboardData.performance?.length > 0 ? (
                     <List>
                       {dashboardData.performance.slice(0, 5).map((performer, index) => (
-                        <ListItem key={performer._id} divider={index < 4}>
-                          <Avatar sx={{ mr: 2, bgcolor: 'secondary.main' }}>
+                        <ListItem 
+                          key={performer._id} 
+                          divider={index < 4}
+                          sx={{ px: 0 }}
+                        >
+                          <Avatar sx={{ mr: 2, bgcolor: 'grey.300', color: 'text.primary' }}>
                             {index + 1}
                           </Avatar>
                           <ListItemText
-                            primary={performer.fullName}
+                            primary={
+                              <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                                {performer.fullName}
+                              </Typography>
+                            }
                             secondary={`${performer.totalCalls} calls • $${performer.totalEarnings}`}
                           />
-                          <Typography variant="body2" color="success.main">
-                            {performer.successRate}% success
-                          </Typography>
+                          <Chip
+                            label={`${performer.successRate}% success`}
+                            color="success"
+                            size="small"
+                            variant="outlined"
+                          />
                         </ListItem>
                       ))}
                     </List>
                   ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      No performance data available for today.
-                    </Typography>
+                    <Box textAlign="center" py={4}>
+                      <TrendingUpIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                      <Typography variant="body2" color="text.secondary">
+                        No performance data available for today.
+                      </Typography>
+                    </Box>
                   )}
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* System Overview */}
+            <Grid item xs={12} md={6}>
+              <Card elevation={2} sx={{ height: '100%' }}>
+                <CardHeader 
+                  title="System Overview" 
+                  titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
+                />
+                <CardContent>
+                  <Stack spacing={2}>
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                      <Box display="flex" alignItems="center">
+                        <AssignedIcon sx={{ mr: 1, color: 'success.main' }} />
+                        <Typography variant="body1">Assigned Leads</Typography>
+                      </Box>
+                      <Typography variant="h6" color="success.main">
+                        {dashboardData.leadsStats?.leads?.overall?.assigned || 0}
+                      </Typography>
+                    </Box>
+                    <Divider />
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                      <Box display="flex" alignItems="center">
+                        <UnassignedIcon sx={{ mr: 1, color: 'warning.main' }} />
+                        <Typography variant="body1">Available Leads</Typography>
+                      </Box>
+                      <Typography variant="h6" color="warning.main">
+                        {dashboardData.leadsStats?.leads?.overall?.available || 0}
+                      </Typography>
+                    </Box>
+                    <Divider />
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                      <Box display="flex" alignItems="center">
+                        <PendingIcon sx={{ mr: 1, color: 'info.main' }} />
+                        <Typography variant="body1">Pending Orders</Typography>
+                      </Box>
+                      <Typography variant="h6" color="info.main">
+                        {dashboardData.recentActivity.filter(order => order.status === 'pending').length}
+                      </Typography>
+                    </Box>
+                    <Divider />
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                      <Box display="flex" alignItems="center">
+                        <CheckCircleIcon sx={{ mr: 1, color: 'primary.main' }} />
+                        <Typography variant="body1">Active Agents</Typography>
+                      </Box>
+                      <Typography variant="h6" color="primary.main">
+                        {dashboardData.usersStats.activeAgents || 0}
+                      </Typography>
+                    </Box>
+                  </Stack>
                 </CardContent>
               </Card>
             </Grid>
@@ -379,11 +504,11 @@ const DashboardPage = () => {
                           <Box display="flex" alignItems="center">
                             <LinearProgress
                               variant="determinate"
-                              value={Math.min((dashboardData.performance.totalCalls || 0) / 50 * 100, 100)}
+                              value={dashboardData.performance.goalProgress || 0}
                               sx={{ flexGrow: 1, mr: 2, height: 8, borderRadius: 4 }}
                             />
                             <Typography variant="body2">
-                              {dashboardData.performance.totalCalls || 0}/50
+                              {dashboardData.performance.goalProgress || 0}%
                             </Typography>
                           </Box>
                         </Grid>
@@ -442,46 +567,6 @@ const DashboardPage = () => {
             </CardContent>
           </Card>
         </Grid>
-
-        {/* Quick Stats */}
-        {user?.role === 'admin' && (
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardHeader title="System Overview" />
-              <CardContent>
-                <Stack spacing={2}>
-                  <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography variant="body2">Available Leads</Typography>
-                    <Typography variant="h6" color="success.main">
-                      {dashboardData.leadsStats.available || 0}
-                    </Typography>
-                  </Box>
-                  <Divider />
-                  <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography variant="body2">Assigned Leads</Typography>
-                    <Typography variant="h6" color="info.main">
-                      {dashboardData.leadsStats.assigned || 0}
-                    </Typography>
-                  </Box>
-                  <Divider />
-                  <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography variant="body2">Pending Orders</Typography>
-                    <Typography variant="h6" color="warning.main">
-                      {dashboardData.recentActivity.filter(order => order.status === 'pending').length}
-                    </Typography>
-                  </Box>
-                  <Divider />
-                  <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography variant="body2">Active Agents</Typography>
-                    <Typography variant="h6" color="primary.main">
-                      {dashboardData.usersStats.activeAgents || 0}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
-        )}
       </Grid>
     </Box>
   );
