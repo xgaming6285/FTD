@@ -30,6 +30,8 @@ import {
   Stack,
   Alert,
   CircularProgress,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -73,6 +75,8 @@ const orderSchema = yup.object({
 const OrdersPage = () => {
   const dispatch = useDispatch();
   const user = useSelector(selectUser);
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -164,7 +168,7 @@ const OrdersPage = () => {
   // Watch for changes in filters and pagination
   useEffect(() => {
     fetchOrders();
-  }, [page, rowsPerPage, filters.status, filters.priority]);  // Remove date filters if not needed immediately
+  }, [page, rowsPerPage, filters.status, filters.priority, filters.startDate, filters.endDate]); // Включени и date filters
 
   // Create order
   const onSubmitOrder = async (data) => {
@@ -268,9 +272,18 @@ const OrdersPage = () => {
   };
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" gutterBottom>
+    <Box sx={{ p: isSmallScreen ? 2 : 3, maxWidth: '100%', mx: 'auto', padding: '0px' }}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        flexDirection={isSmallScreen ? 'column' : 'row'}
+        sx={{
+          mb: isSmallScreen ? 2 : 3,
+          alignItems: isSmallScreen ? 'flex-start' : 'center',
+        }}
+      >
+        <Typography variant={isSmallScreen ? 'h5' : 'h4'} gutterBottom sx={{ mb: isSmallScreen ? 1 : 0 }}>
           Orders
         </Typography>
         {(user?.role === 'admin' || user?.role === 'affiliate_manager') && (
@@ -278,6 +291,8 @@ const OrdersPage = () => {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setCreateDialogOpen(true)}
+            size={isSmallScreen ? 'small' : 'medium'}
+            sx={{ width: isSmallScreen ? '100%' : 'auto' }}
           >
             Create Order
           </Button>
@@ -298,17 +313,18 @@ const OrdersPage = () => {
 
       {/* Filters */}
       <Card sx={{ mb: 2 }}>
-        <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6">Filters</Typography>
-            <IconButton onClick={() => setShowFilters(!showFilters)}>
+        <CardContent sx={{ p: isSmallScreen ? 1.5 : 2 }}> {/* Адаптивен padding в CardContent */}
+          <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: isSmallScreen ? 1 : 0 }}>
+            <Typography variant={isSmallScreen ? 'h6' : 'h5'}>Filters</Typography>
+            <IconButton size={isSmallScreen ? 'small' : 'medium'} onClick={() => setShowFilters(!showFilters)}>
               {showFilters ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
           </Box>
           <Collapse in={showFilters}>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid container spacing={isSmallScreen ? 1 : 2} sx={{ mt: isSmallScreen ? 1 : 1 }}>
+              {/* Filter items - all will be xs={12} for full width on mobile */}
               <Grid item xs={12} sm={6} md={3}>
-                <FormControl fullWidth>
+                <FormControl fullWidth size={isSmallScreen ? 'small' : 'medium'}>
                   <InputLabel>Status</InputLabel>
                   <Select
                     value={filters.status}
@@ -324,7 +340,7 @@ const OrdersPage = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
-                <FormControl fullWidth>
+                <FormControl fullWidth size={isSmallScreen ? 'small' : 'medium'}>
                   <InputLabel>Priority</InputLabel>
                   <Select
                     value={filters.priority}
@@ -346,6 +362,7 @@ const OrdersPage = () => {
                   value={filters.startDate}
                   onChange={handleFilterChange('startDate')}
                   InputLabelProps={{ shrink: true }}
+                  size={isSmallScreen ? 'small' : 'medium'}
                 />
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
@@ -356,10 +373,11 @@ const OrdersPage = () => {
                   value={filters.endDate}
                   onChange={handleFilterChange('endDate')}
                   InputLabelProps={{ shrink: true }}
+                  size={isSmallScreen ? 'small' : 'medium'}
                 />
               </Grid>
               <Grid item xs={12}>
-                <Button onClick={clearFilters} variant="outlined">
+                <Button onClick={clearFilters} variant="outlined" size={isSmallScreen ? 'small' : 'medium'}>
                   Clear Filters
                 </Button>
               </Grid>
@@ -371,17 +389,18 @@ const OrdersPage = () => {
       {/* Orders Table */}
       <Paper>
         <TableContainer>
-          <Table>
+          <Table size={isSmallScreen ? 'small' : 'medium'}>
             <TableHead>
               <TableRow>
-                <TableCell>Order ID</TableCell>
-                <TableCell>Requester</TableCell>
-                <TableCell>Requests (F/Fi/C)</TableCell>
-                <TableCell>Fulfilled (F/Fi/C)</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Priority</TableCell>
-                <TableCell>Created</TableCell>
-                <TableCell>Actions</TableCell>
+
+                <TableCell sx={{ fontSize: isSmallScreen ? '0.75rem' : 'inherit' }}>Order ID</TableCell>
+                <TableCell sx={{ fontSize: isSmallScreen ? '0.75rem' : 'inherit', display: isSmallScreen ? 'none' : 'table-cell' }}>Requester</TableCell> {/* Скриване на мобилни устройства */}
+                <TableCell sx={{ fontSize: isSmallScreen ? '0.75rem' : 'inherit' }}>Requests (F/Fi/C/L)</TableCell>
+                <TableCell sx={{ fontSize: isSmallScreen ? '0.75rem' : 'inherit', display: isSmallScreen ? 'none' : 'table-cell' }}>Fulfilled (F/Fi/C/L)</TableCell> {/* Скриване на мобилни устройства */}
+                <TableCell sx={{ fontSize: isSmallScreen ? '0.75rem' : 'inherit' }}>Status</TableCell>
+                <TableCell sx={{ fontSize: isSmallScreen ? '0.75rem' : 'inherit', display: isSmallScreen ? 'none' : 'table-cell' }}>Priority</TableCell> {/* Скриване на мобилни устройства */}
+                <TableCell sx={{ fontSize: isSmallScreen ? '0.75rem' : 'inherit', display: isSmallScreen ? 'none' : 'table-cell' }}>Created</TableCell> {/* Скриване на мобилни устройства */}
+                <TableCell sx={{ fontSize: isSmallScreen ? '0.75rem' : 'inherit' }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -401,12 +420,12 @@ const OrdersPage = () => {
                 orders.map((order) => (
                   <React.Fragment key={order._id}>
                     <TableRow>
-                      <TableCell>{order._id.slice(-8)}</TableCell>
-                      <TableCell>{order.requester?.fullName}</TableCell>
-                      <TableCell>
+                      <TableCell sx={{ fontSize: isSmallScreen ? '0.75rem' : 'inherit' }}>{order._id.slice(-8)}</TableCell>
+                      <TableCell sx={{ display: isSmallScreen ? 'none' : 'table-cell', fontSize: isSmallScreen ? '0.75rem' : 'inherit' }}>{order.requester?.fullName}</TableCell>
+                      <TableCell sx={{ fontSize: isSmallScreen ? '0.75rem' : 'inherit' }}>
                         {order.requests?.ftd || 0}/{order.requests?.filler || 0}/{order.requests?.cold || 0}/{order.requests?.live || 0}
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ display: isSmallScreen ? 'none' : 'table-cell', fontSize: isSmallScreen ? '0.75rem' : 'inherit' }}>
                         {order.fulfilled?.ftd || 0}/{order.fulfilled?.filler || 0}/{order.fulfilled?.cold || 0}/{order.fulfilled?.live || 0}
                       </TableCell>
                       <TableCell>
@@ -414,52 +433,115 @@ const OrdersPage = () => {
                           label={order.status}
                           color={getStatusColor(order.status)}
                           size="small"
+                          sx={{ fontSize: isSmallScreen ? '0.65rem' : 'inherit' }}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ display: isSmallScreen ? 'none' : 'table-cell' }}>
                         <Chip
                           label={order.priority}
                           color={getPriorityColor(order.priority)}
                           size="small"
+                          sx={{ fontSize: isSmallScreen ? '0.65rem' : 'inherit' }}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ display: isSmallScreen ? 'none' : 'table-cell', fontSize: isSmallScreen ? '0.75rem' : 'inherit' }}>
                         {new Date(order.createdAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         <IconButton
-                          size="small"
+                          size={isSmallScreen ? 'small' : 'medium'}
                           onClick={() => handleViewOrder(order._id)}
                         >
                           <ViewIcon />
                         </IconButton>
                         <IconButton
-                          size="small"
+                          size={isSmallScreen ? 'small' : 'medium'}
                           onClick={() => toggleRowExpansion(order._id)}
                         >
                           {expandedRows.has(order._id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                         </IconButton>
                       </TableCell>
                     </TableRow>
+                    {/* Разширен ред за детайли */}
                     {expandedRows.has(order._id) && (
                       <TableRow>
                         <TableCell colSpan={8}>
-                          <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
-                            <Typography variant="subtitle2" gutterBottom>
+                          <Box sx={{ p: isSmallScreen ? 1 : 2, bgcolor: 'grey.50' }}>
+                            <Typography variant={isSmallScreen ? 'body2' : 'subtitle2'} gutterBottom>
                               Order Details
                             </Typography>
-                            <Grid container spacing={2}>
+                            <Grid container spacing={isSmallScreen ? 1 : 2}>
                               <Grid item xs={12} md={6}>
-                                <Typography variant="body2">
+                                <Typography variant={isSmallScreen ? 'body2' : 'body1'}>
                                   <strong>Notes:</strong> {order.notes || 'No notes'}
                                 </Typography>
                               </Grid>
                               <Grid item xs={12} md={6}>
-                                <Typography variant="body2">
+                                <Typography variant={isSmallScreen ? 'body2' : 'body1'}>
                                   <strong>Leads Assigned:</strong> {order.leads?.length || 0}
                                 </Typography>
                               </Grid>
+                              {isSmallScreen && (
+                                <>
+                                  <Grid item xs={12}>
+                                    <Typography variant="body2">
+                                      <strong>Requester:</strong> {order.requester?.fullName}
+                                    </Typography>
+                                  </Grid>
+                                  <Grid item xs={12}>
+                                    <Typography variant="body2">
+                                      <strong>Fulfilled (F/Fi/C/L):</strong> {order.fulfilled?.ftd || 0}/{order.fulfilled?.filler || 0}/{order.fulfilled?.cold || 0}/{order.fulfilled?.live || 0}
+                                    </Typography>
+                                  </Grid>
+                                  <Grid item xs={12}>
+                                    <Typography variant="body2">
+                                      <strong>Priority:</strong> {order.priority}
+                                    </Typography>
+                                  </Grid>
+                                  <Grid item xs={12}>
+                                    <Typography variant="body2">
+                                      <strong>Created:</strong> {new Date(order.createdAt).toLocaleDateString()}
+                                    </Typography>
+                                  </Grid>
+                                </>
+                              )}
                             </Grid>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    )}
+
+                    {expandedRows.has(order._id) && selectedOrder && selectedOrder.leads && selectedOrder.leads.length > 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8}>
+                          <Box sx={{ p: isSmallScreen ? 1 : 2, bgcolor: 'grey.50' }}>
+                            <Typography variant={isSmallScreen ? 'body2' : 'subtitle2'} gutterBottom>
+                              Assigned Leads ({selectedOrder.leads?.length || 0})
+                            </Typography>
+                            <TableContainer component={Paper}>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell>Type</TableCell>
+                                    <TableCell>Name</TableCell>
+                                    <TableCell sx={{ display: isSmallScreen ? 'none' : 'table-cell' }}>Country</TableCell>
+                                    <TableCell sx={{ display: isSmallScreen ? 'none' : 'table-cell' }}>Email</TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {selectedOrder.leads.map((lead) => (
+                                    <TableRow key={lead._id}>
+                                      <TableCell>
+                                        <Chip label={lead.leadType.toUpperCase()} size="small" />
+                                      </TableCell>
+                                      <TableCell>{lead.firstName} {lead.lastName}</TableCell>
+                                      <TableCell sx={{ display: isSmallScreen ? 'none' : 'table-cell' }}>{lead.country}</TableCell>
+                                      <TableCell sx={{ display: isSmallScreen ? 'none' : 'table-cell' }}>{lead.email}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </TableContainer>
                           </Box>
                         </TableCell>
                       </TableRow>
@@ -491,7 +573,7 @@ const OrdersPage = () => {
         <DialogTitle>Create New Order</DialogTitle>
         <form onSubmit={handleSubmit(onSubmitOrder)}>
           <DialogContent>
-            <Grid container spacing={2}>
+            <Grid container spacing={isSmallScreen ? 1 : 2}>
               <Grid item xs={12} sm={6} md={3}>
                 <Controller
                   name="ftd"
@@ -505,6 +587,7 @@ const OrdersPage = () => {
                       error={!!errors.ftd}
                       helperText={errors.ftd?.message}
                       inputProps={{ min: 0 }}
+                      size={isSmallScreen ? 'small' : 'medium'}
                     />
                   )}
                 />
@@ -522,6 +605,7 @@ const OrdersPage = () => {
                       error={!!errors.filler}
                       helperText={errors.filler?.message}
                       inputProps={{ min: 0 }}
+                      size={isSmallScreen ? 'small' : 'medium'}
                     />
                   )}
                 />
@@ -539,6 +623,7 @@ const OrdersPage = () => {
                       error={!!errors.cold}
                       helperText={errors.cold?.message}
                       inputProps={{ min: 0 }}
+                      size={isSmallScreen ? 'small' : 'medium'}
                     />
                   )}
                 />
@@ -556,6 +641,7 @@ const OrdersPage = () => {
                       error={!!errors.live}
                       helperText={errors.live?.message}
                       inputProps={{ min: 0 }}
+                      size={isSmallScreen ? 'small' : 'medium'}
                     />
                   )}
                 />
@@ -565,7 +651,7 @@ const OrdersPage = () => {
                   name="priority"
                   control={control}
                   render={({ field }) => (
-                    <FormControl fullWidth>
+                    <FormControl fullWidth size={isSmallScreen ? 'small' : 'medium'}>
                       <InputLabel>Priority</InputLabel>
                       <Select
                         {...field}
@@ -590,9 +676,10 @@ const OrdersPage = () => {
                       fullWidth
                       label="Notes"
                       multiline
-                      rows={3}
+                      rows={isSmallScreen ? 2 : 3}
                       error={!!errors.notes}
                       helperText={errors.notes?.message}
+                      size={isSmallScreen ? 'small' : 'medium'}
                     />
                   )}
                 />
@@ -625,9 +712,9 @@ const OrdersPage = () => {
         fullWidth
       >
         <DialogTitle>Order Details</DialogTitle>
-        <DialogContent>
+        <DialogContent dividers sx={{ p: isSmallScreen ? 1.5 : 3 }}>
           {selectedOrder && (
-            <Grid container spacing={2}>
+            <Grid container spacing={isSmallScreen ? 1 : 2}>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2">Order ID</Typography>
                 <Typography variant="body2" gutterBottom>
@@ -667,6 +754,9 @@ const OrdersPage = () => {
                 <Typography variant="body2">
                   Cold: {selectedOrder.requests?.cold || 0} requested, {selectedOrder.fulfilled?.cold || 0} fulfilled
                 </Typography>
+                <Typography variant="body2">
+                  Live: {selectedOrder.requests?.live || 0} requested, {selectedOrder.fulfilled?.live || 0} fulfilled
+                </Typography>
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="subtitle2">Notes</Typography>
@@ -683,28 +773,30 @@ const OrdersPage = () => {
               <Grid item xs={12}>
                 <Typography variant="subtitle2">Assigned Leads ({selectedOrder.leads?.length || 0})</Typography>
                 {selectedOrder.leads && selectedOrder.leads.length > 0 ? (
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Type</TableCell>
-                        <TableCell>Name</TableCell>
-                        <TableCell>Country</TableCell>
-                        <TableCell>Email</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {selectedOrder.leads.map((lead) => (
-                        <TableRow key={lead._id}>
-                          <TableCell>
-                            <Chip label={lead.leadType.toUpperCase()} size="small" />
-                          </TableCell>
-                          <TableCell>{lead.firstName} {lead.lastName}</TableCell>
-                          <TableCell>{lead.country}</TableCell>
-                          <TableCell>{lead.email}</TableCell>
+                  <TableContainer component={Paper}> {/* Added TableContainer for horizontal scrolling */}
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Type</TableCell>
+                          <TableCell>Name</TableCell>
+                          <TableCell sx={{ display: isSmallScreen ? 'none' : 'table-cell' }}>Country</TableCell> {/* Hide on small screens */}
+                          <TableCell sx={{ display: isSmallScreen ? 'none' : 'table-cell' }}>Email</TableCell> {/* Hide on small screens */}
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHead>
+                      <TableBody>
+                        {selectedOrder.leads.map((lead) => (
+                          <TableRow key={lead._id}>
+                            <TableCell>
+                              <Chip label={lead.leadType.toUpperCase()} size="small" />
+                            </TableCell>
+                            <TableCell>{lead.firstName} {lead.lastName}</TableCell>
+                            <TableCell sx={{ display: isSmallScreen ? 'none' : 'table-cell' }}>{lead.country}</TableCell>
+                            <TableCell sx={{ display: isSmallScreen ? 'none' : 'table-cell' }}>{lead.email}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
                 ) : (
                   <Typography variant="body2">No leads assigned</Typography>
                 )}
@@ -720,4 +812,4 @@ const OrdersPage = () => {
   );
 };
 
-export default OrdersPage; 
+export default OrdersPage;
