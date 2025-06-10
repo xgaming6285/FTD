@@ -99,6 +99,21 @@ const leadSchema = new mongoose.Schema({
       default: 'pending'
     }
   },
+  sin: {
+    type: String,
+    trim: true,
+    sparse: true,
+    validate: {
+      validator: function(v) {
+        // Only validate if the lead type is ftd
+        if (this.leadType === 'ftd') {
+          return v && v.length > 0;
+        }
+        return true;
+      },
+      message: 'SIN is required for FTD leads'
+    }
+  },
 
   // Additional tracking fields
   source: String, // Where the lead came from

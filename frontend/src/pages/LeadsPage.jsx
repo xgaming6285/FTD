@@ -883,6 +883,16 @@ const LeadsPage = () => {
                                           {lead.country || "N/A"}
                                         </Typography>
                                       </Box>
+                                      {lead.leadType === 'ftd' && (
+                                        <Box>
+                                          <Typography variant="caption" color="text.secondary" display="block">
+                                            SIN
+                                          </Typography>
+                                          <Typography variant="body2" fontWeight="medium">
+                                            {lead.sin || "N/A"}
+                                          </Typography>
+                                        </Box>
+                                      )}
                                       <Box>
                                         <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
                                           Social Media
@@ -1119,6 +1129,11 @@ const LeadsPage = () => {
                       <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <span style={{ color: 'text.secondary' }}>🌍</span> {lead.country || 'Unknown'}
                       </Typography>
+                      {lead.leadType === 'ftd' && (
+                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <span style={{ color: 'text.secondary' }}>🆔</span> SIN: {lead.sin || 'N/A'}
+                        </Typography>
+                      )}
                     </Stack>
                   </Grid>
 

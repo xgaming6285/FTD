@@ -517,7 +517,8 @@ exports.updateLead = async (req, res, next) => {
       status,
       documents,
       leadType,
-      socialMedia
+      socialMedia,
+      sin
     } = req.body;
 
     const lead = await Lead.findById(req.params.id);
@@ -536,6 +537,7 @@ exports.updateLead = async (req, res, next) => {
     if (country) lead.country = country;
     if (status) lead.status = status;
     if (leadType) lead.leadType = leadType;
+    if (sin !== undefined && leadType === 'ftd') lead.sin = sin;
 
     // Update social media fields if provided
     if (socialMedia) {
