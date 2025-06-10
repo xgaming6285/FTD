@@ -37,10 +37,6 @@ const LoginPage = () => {
   const location = useLocation();
 
   const { isLoading, error, isAuthenticated } = useSelector(selectAuth);
-
-  const [showPassword, setShowPassword] = useState(false);
-
-  const { isLoading, error, isAuthenticated } = useSelector(selectAuth);
   const [showPassword, setShowPassword] = useState(false);
   const {
     register,
@@ -128,23 +124,6 @@ const LoginPage = () => {
                 edge="end"
                 style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)' }}
               >
-                {isLoading ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : (
-                  'Sign In'
-                )}
-              </Button>
-            </Box>
-
-            <Box sx={{ mt: 2, textAlign: 'center' }}>
-              <Link component={RouterLink} to="/register" variant="body2">
-                {"Don't have an account? Sign Up"}
-              </Link>
-            </Box>
-          </Box>
-        </Paper>
-      </Box>
-    </Container>
                 {showPassword ? <VisibilityOff /> : <Visibility />}
               </IconButton>
               {errors.password && <p className="error-message">{errors.password.message}</p>}
