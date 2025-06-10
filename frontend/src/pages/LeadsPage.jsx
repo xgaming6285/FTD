@@ -833,7 +833,7 @@ const LeadsPage = () => {
                           >
                             <Box sx={{ px: 2 }}>
                               <Grid container spacing={3}>
-                                <Grid item xs={12} md={6}>
+                                <Grid item xs={12} md={4}>
                                   <Paper 
                                     elevation={0} 
                                     sx={{ 
@@ -894,62 +894,115 @@ const LeadsPage = () => {
                                           </Typography>
                                         </Box>
                                       )}
-                                      <Box>
-                                        <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                                          Social Media
-                                        </Typography>
-                                        <Stack spacing={1}>
-                                          {lead.socialMedia?.facebook && (
-                                            <Link href={lead.socialMedia.facebook} target="_blank" rel="noopener noreferrer" 
-                                              sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
-                                              <img src="/facebook-icon.svg" alt="Facebook" width={16} height={16} />
-                                              Facebook
-                                            </Link>
-                                          )}
-                                          {lead.socialMedia?.twitter && (
-                                            <Link href={lead.socialMedia.twitter} target="_blank" rel="noopener noreferrer"
-                                              sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
-                                              <img src="/twitter-icon.svg" alt="Twitter" width={16} height={16} />
-                                              Twitter
-                                            </Link>
-                                          )}
-                                          {lead.socialMedia?.linkedin && (
-                                            <Link href={lead.socialMedia.linkedin} target="_blank" rel="noopener noreferrer"
-                                              sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
-                                              <img src="/linkedin-icon.svg" alt="LinkedIn" width={16} height={16} />
-                                              LinkedIn
-                                            </Link>
-                                          )}
-                                          {lead.socialMedia?.instagram && (
-                                            <Link href={lead.socialMedia.instagram} target="_blank" rel="noopener noreferrer"
-                                              sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
-                                              <img src="/instagram-icon.svg" alt="Instagram" width={16} height={16} />
-                                              Instagram
-                                            </Link>
-                                          )}
-                                          {lead.socialMedia?.telegram && (
-                                            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                              <img src="/telegram-icon.svg" alt="Telegram" width={16} height={16} />
-                                              {lead.socialMedia.telegram}
-                                            </Typography>
-                                          )}
-                                          {lead.socialMedia?.whatsapp && (
-                                            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                              <img src="/whatsapp-icon.svg" alt="WhatsApp" width={16} height={16} />
-                                              {lead.socialMedia.whatsapp}
-                                            </Typography>
-                                          )}
-                                          {!lead.socialMedia || Object.values(lead.socialMedia).every(v => !v) && (
-                                            <Typography variant="body2" color="text.secondary">
-                                              No social media profiles available
-                                            </Typography>
-                                          )}
-                                        </Stack>
-                                      </Box>
                                     </Stack>
                                   </Paper>
                                 </Grid>
-                                <Grid item xs={12} md={6}>
+
+                                {lead.leadType === 'ftd' && (
+                                  <Grid item xs={12} md={4}>
+                                    <Paper 
+                                      elevation={0}
+                                      sx={{ 
+                                        p: 2, 
+                                        bgcolor: 'background.paper',
+                                        borderRadius: 1,
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                        height: '100%'
+                                      }}
+                                    >
+                                      <Typography 
+                                        variant="subtitle2" 
+                                        gutterBottom
+                                        sx={{ 
+                                          color: 'primary.main',
+                                          fontWeight: 'bold',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 1,
+                                          mb: 2
+                                        }}
+                                      >
+                                        <DescriptionIcon fontSize="small" />
+                                        Documents
+                                      </Typography>
+                                      <Stack spacing={2}>
+                                        <Box>
+                                          <Typography variant="caption" color="text.secondary" display="block">
+                                            Document Status
+                                          </Typography>
+                                          <Chip
+                                            label={lead.documents?.status || 'pending'}
+                                            color={
+                                              lead.documents?.status === 'good' ? 'success' :
+                                              lead.documents?.status === 'ok' ? 'warning' : 'default'
+                                            }
+                                            size="small"
+                                            sx={{ mt: 0.5 }}
+                                          />
+                                        </Box>
+                                        <Grid container spacing={1}>
+                                          {lead.documents?.idFrontUrl && (
+                                            <Grid item xs={6}>
+                                              <Typography variant="caption" color="text.secondary" display="block">
+                                                ID Front
+                                              </Typography>
+                                              <Link href={lead.documents.idFrontUrl} target="_blank" rel="noopener noreferrer"
+                                                sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', textDecoration: 'none' }}>
+                                                <DescriptionIcon fontSize="small" />
+                                                View
+                                              </Link>
+                                            </Grid>
+                                          )}
+                                          {lead.documents?.idBackUrl && (
+                                            <Grid item xs={6}>
+                                              <Typography variant="caption" color="text.secondary" display="block">
+                                                ID Back
+                                              </Typography>
+                                              <Link href={lead.documents.idBackUrl} target="_blank" rel="noopener noreferrer"
+                                                sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', textDecoration: 'none' }}>
+                                                <DescriptionIcon fontSize="small" />
+                                                View
+                                              </Link>
+                                            </Grid>
+                                          )}
+                                          {lead.documents?.selfieUrl && (
+                                            <Grid item xs={6}>
+                                              <Typography variant="caption" color="text.secondary" display="block">
+                                                Selfie
+                                              </Typography>
+                                              <Link href={lead.documents.selfieUrl} target="_blank" rel="noopener noreferrer"
+                                                sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', textDecoration: 'none' }}>
+                                                <DescriptionIcon fontSize="small" />
+                                                View
+                                              </Link>
+                                            </Grid>
+                                          )}
+                                          {lead.documents?.residenceProofUrl && (
+                                            <Grid item xs={6}>
+                                              <Typography variant="caption" color="text.secondary" display="block">
+                                                Residence Proof
+                                              </Typography>
+                                              <Link href={lead.documents.residenceProofUrl} target="_blank" rel="noopener noreferrer"
+                                                sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', textDecoration: 'none' }}>
+                                                <DescriptionIcon fontSize="small" />
+                                                View
+                                              </Link>
+                                            </Grid>
+                                          )}
+                                        </Grid>
+                                        {!lead.documents?.idFrontUrl && !lead.documents?.idBackUrl && 
+                                         !lead.documents?.selfieUrl && !lead.documents?.residenceProofUrl && (
+                                          <Typography variant="body2" color="text.secondary">
+                                            No documents uploaded
+                                          </Typography>
+                                        )}
+                                      </Stack>
+                                    </Paper>
+                                  </Grid>
+                                )}
+
+                                <Grid item xs={12} md={lead.leadType === 'ftd' ? 4 : 8}>
                                   <Paper 
                                     elevation={0}
                                     sx={{ 
@@ -957,7 +1010,8 @@ const LeadsPage = () => {
                                       bgcolor: 'background.paper',
                                       borderRadius: 1,
                                       border: '1px solid',
-                                      borderColor: 'divider'
+                                      borderColor: 'divider',
+                                      height: '100%'
                                     }}
                                   >
                                     <Typography 
@@ -1018,92 +1072,95 @@ const LeadsPage = () => {
                                     </Box>
                                   </Paper>
                                 </Grid>
-                                {lead.leadType === 'ftd' && (
-                                  <Grid item xs={12}>
-                                    <Paper 
-                                      elevation={0}
+
+                                <Grid item xs={12}>
+                                  <Paper 
+                                    elevation={0}
+                                    sx={{ 
+                                      p: 2, 
+                                      bgcolor: 'background.paper',
+                                      borderRadius: 1,
+                                      border: '1px solid',
+                                      borderColor: 'divider'
+                                    }}
+                                  >
+                                    <Typography 
+                                      variant="subtitle2" 
+                                      gutterBottom
                                       sx={{ 
-                                        p: 2, 
-                                        bgcolor: 'background.default',
-                                        borderRadius: 1
+                                        color: 'primary.main',
+                                        fontWeight: 'bold',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 1,
+                                        mb: 2
                                       }}
                                     >
-                                      <Typography variant="subtitle2" gutterBottom color="primary">
-                                        Documents
-                                      </Typography>
-                                      <Stack spacing={2}>
-                                        <Box>
-                                          <Typography variant="caption" color="text.secondary" display="block">
-                                            Document Status
+                                      Social Media Profiles
+                                    </Typography>
+                                    <Grid container spacing={2}>
+                                      {lead.socialMedia?.facebook && (
+                                        <Grid item xs={6} sm={3}>
+                                          <Link href={lead.socialMedia.facebook} target="_blank" rel="noopener noreferrer" 
+                                            sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
+                                            <img src="/facebook-icon.svg" alt="Facebook" width={16} height={16} />
+                                            Facebook
+                                          </Link>
+                                        </Grid>
+                                      )}
+                                      {lead.socialMedia?.twitter && (
+                                        <Grid item xs={6} sm={3}>
+                                          <Link href={lead.socialMedia.twitter} target="_blank" rel="noopener noreferrer"
+                                            sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
+                                            <img src="/twitter-icon.svg" alt="Twitter" width={16} height={16} />
+                                            Twitter
+                                          </Link>
+                                        </Grid>
+                                      )}
+                                      {lead.socialMedia?.linkedin && (
+                                        <Grid item xs={6} sm={3}>
+                                          <Link href={lead.socialMedia.linkedin} target="_blank" rel="noopener noreferrer"
+                                            sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
+                                            <img src="/linkedin-icon.svg" alt="LinkedIn" width={16} height={16} />
+                                            LinkedIn
+                                          </Link>
+                                        </Grid>
+                                      )}
+                                      {lead.socialMedia?.instagram && (
+                                        <Grid item xs={6} sm={3}>
+                                          <Link href={lead.socialMedia.instagram} target="_blank" rel="noopener noreferrer"
+                                            sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
+                                            <img src="/instagram-icon.svg" alt="Instagram" width={16} height={16} />
+                                            Instagram
+                                          </Link>
+                                        </Grid>
+                                      )}
+                                      {lead.socialMedia?.telegram && (
+                                        <Grid item xs={6} sm={3}>
+                                          <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <img src="/telegram-icon.svg" alt="Telegram" width={16} height={16} />
+                                            {lead.socialMedia.telegram}
                                           </Typography>
-                                          <Chip
-                                            label={lead.documents?.status || 'pending'}
-                                            color={
-                                              lead.documents?.status === 'good' ? 'success' :
-                                              lead.documents?.status === 'ok' ? 'warning' : 'default'
-                                            }
-                                            size="small"
-                                            sx={{ mt: 0.5 }}
-                                          />
-                                        </Box>
-                                        {lead.documents?.idFrontUrl && (
-                                          <Box>
-                                            <Typography variant="caption" color="text.secondary" display="block">
-                                              ID Front
-                                            </Typography>
-                                            <Link href={lead.documents.idFrontUrl} target="_blank" rel="noopener noreferrer"
-                                              sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', textDecoration: 'none' }}>
-                                              <DescriptionIcon fontSize="small" />
-                                              View Document
-                                            </Link>
-                                          </Box>
-                                        )}
-                                        {lead.documents?.idBackUrl && (
-                                          <Box>
-                                            <Typography variant="caption" color="text.secondary" display="block">
-                                              ID Back
-                                            </Typography>
-                                            <Link href={lead.documents.idBackUrl} target="_blank" rel="noopener noreferrer"
-                                              sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', textDecoration: 'none' }}>
-                                              <DescriptionIcon fontSize="small" />
-                                              View Document
-                                            </Link>
-                                          </Box>
-                                        )}
-                                        {lead.documents?.selfieUrl && (
-                                          <Box>
-                                            <Typography variant="caption" color="text.secondary" display="block">
-                                              Selfie
-                                            </Typography>
-                                            <Link href={lead.documents.selfieUrl} target="_blank" rel="noopener noreferrer"
-                                              sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', textDecoration: 'none' }}>
-                                              <DescriptionIcon fontSize="small" />
-                                              View Document
-                                            </Link>
-                                          </Box>
-                                        )}
-                                        {lead.documents?.residenceProofUrl && (
-                                          <Box>
-                                            <Typography variant="caption" color="text.secondary" display="block">
-                                              Proof of Residence
-                                            </Typography>
-                                            <Link href={lead.documents.residenceProofUrl} target="_blank" rel="noopener noreferrer"
-                                              sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', textDecoration: 'none' }}>
-                                              <DescriptionIcon fontSize="small" />
-                                              View Document
-                                            </Link>
-                                          </Box>
-                                        )}
-                                        {!lead.documents?.idFrontUrl && !lead.documents?.idBackUrl && 
-                                         !lead.documents?.selfieUrl && !lead.documents?.residenceProofUrl && (
+                                        </Grid>
+                                      )}
+                                      {lead.socialMedia?.whatsapp && (
+                                        <Grid item xs={6} sm={3}>
+                                          <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <img src="/whatsapp-icon.svg" alt="WhatsApp" width={16} height={16} />
+                                            {lead.socialMedia.whatsapp}
+                                          </Typography>
+                                        </Grid>
+                                      )}
+                                      {!lead.socialMedia || Object.values(lead.socialMedia).every(v => !v) && (
+                                        <Grid item xs={12}>
                                           <Typography variant="body2" color="text.secondary">
-                                            No documents uploaded
+                                            No social media profiles available
                                           </Typography>
-                                        )}
-                                      </Stack>
-                                    </Paper>
-                                  </Grid>
-                                )}
+                                        </Grid>
+                                      )}
+                                    </Grid>
+                                  </Paper>
+                                </Grid>
                               </Grid>
                             </Box>
                           </TableCell>
