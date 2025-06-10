@@ -52,6 +52,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import api from "../services/api";
 import { selectUser } from "../store/slices/authSlice";
+import DocumentPreview from '../components/DocumentPreview';
 
 // Validation schema for comments
 const commentSchema = yup.object({
@@ -68,12 +69,11 @@ const assignmentSchema = yup.object({
 
 const LeadsPage = () => {
   const user = useSelector(selectUser);
-
-  const [leads, setLeads] = useState([]);
-  const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [leads, setLeads] = useState([]);
+  const [agents, setAgents] = useState([]);
 
   // Dialog states
   const [commentDialogOpen, setCommentDialogOpen] = useState(false);
@@ -628,8 +628,8 @@ const LeadsPage = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  leads.map((lead) => (
-                    <React.Fragment key={lead._id}>
+                  leads.map((lead) => lead && (
+                    <React.Fragment key={lead._id || 'temp-key'}>
                       <TableRow 
                         hover
                         sx={{
@@ -674,7 +674,7 @@ const LeadsPage = () => {
                                   `${lead.firstName} ${lead.lastName || ""}`.trim()}
                               </Typography>
                               <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                ID: {lead._id.slice(-8)}
+                                ID: {lead._id ? lead._id.slice(-8) : 'N/A'}
                               </Typography>
                             </Box>
                           </Stack>
@@ -751,10 +751,10 @@ const LeadsPage = () => {
                                     bgcolor: 'primary.main'
                                   }}
                                 >
-                                  {lead.assignedTo.fullName.charAt(0)}
+                                  {lead.assignedTo?.fullName?.charAt(0) || '?'}
                                 </Avatar>
                                 <Typography variant="body2">
-                                  {lead.assignedTo.fullName}
+                                  {lead.assignedTo?.fullName || 'Unknown Agent'}
                                 </Typography>
                               </Stack>
                             ) : (
@@ -947,11 +947,12 @@ const LeadsPage = () => {
                                               <Typography variant="caption" color="text.secondary" display="block">
                                                 ID Front
                                               </Typography>
-                                              <Link href={lead.documents.idFrontUrl} target="_blank" rel="noopener noreferrer"
-                                                sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', textDecoration: 'none' }}>
-                                                <DescriptionIcon fontSize="small" />
-                                                View
-                                              </Link>
+                                              <DocumentPreview url={lead.documents.idFrontUrl} type="ID Front">
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
+                                                  <DescriptionIcon fontSize="small" />
+                                                  View
+                                                </Box>
+                                              </DocumentPreview>
                                             </Grid>
                                           )}
                                           {lead.documents?.idBackUrl && (
@@ -959,11 +960,12 @@ const LeadsPage = () => {
                                               <Typography variant="caption" color="text.secondary" display="block">
                                                 ID Back
                                               </Typography>
-                                              <Link href={lead.documents.idBackUrl} target="_blank" rel="noopener noreferrer"
-                                                sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', textDecoration: 'none' }}>
-                                                <DescriptionIcon fontSize="small" />
-                                                View
-                                              </Link>
+                                              <DocumentPreview url={lead.documents.idBackUrl} type="ID Back">
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
+                                                  <DescriptionIcon fontSize="small" />
+                                                  View
+                                                </Box>
+                                              </DocumentPreview>
                                             </Grid>
                                           )}
                                           {lead.documents?.selfieUrl && (
@@ -971,11 +973,12 @@ const LeadsPage = () => {
                                               <Typography variant="caption" color="text.secondary" display="block">
                                                 Selfie
                                               </Typography>
-                                              <Link href={lead.documents.selfieUrl} target="_blank" rel="noopener noreferrer"
-                                                sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', textDecoration: 'none' }}>
-                                                <DescriptionIcon fontSize="small" />
-                                                View
-                                              </Link>
+                                              <DocumentPreview url={lead.documents.selfieUrl} type="Selfie">
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
+                                                  <DescriptionIcon fontSize="small" />
+                                                  View
+                                                </Box>
+                                              </DocumentPreview>
                                             </Grid>
                                           )}
                                           {lead.documents?.residenceProofUrl && (
@@ -983,16 +986,17 @@ const LeadsPage = () => {
                                               <Typography variant="caption" color="text.secondary" display="block">
                                                 Residence Proof
                                               </Typography>
-                                              <Link href={lead.documents.residenceProofUrl} target="_blank" rel="noopener noreferrer"
-                                                sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', textDecoration: 'none' }}>
-                                                <DescriptionIcon fontSize="small" />
-                                                View
-                                              </Link>
+                                              <DocumentPreview url={lead.documents.residenceProofUrl} type="Residence Proof">
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
+                                                  <DescriptionIcon fontSize="small" />
+                                                  View
+                                                </Box>
+                                              </DocumentPreview>
                                             </Grid>
                                           )}
                                         </Grid>
-                                        {!lead.documents?.idFrontUrl && !lead.documents?.idBackUrl && 
-                                         !lead.documents?.selfieUrl && !lead.documents?.residenceProofUrl && (
+                                        {(!lead.documents || (!lead.documents.idFrontUrl && !lead.documents.idBackUrl && 
+                                         !lead.documents.selfieUrl && !lead.documents.residenceProofUrl)) && (
                                           <Typography variant="body2" color="text.secondary">
                                             No documents uploaded
                                           </Typography>
@@ -1047,7 +1051,7 @@ const LeadsPage = () => {
                                                 color="text.secondary"
                                                 sx={{ mb: 0.5, display: 'block' }}
                                               >
-                                                {comment.author.fullName} • {new Date(comment.createdAt).toLocaleString()}
+                                                {comment.author?.fullName || 'Unknown User'} • {new Date(comment.createdAt).toLocaleString()}
                                               </Typography>
                                               <Typography variant="body2">
                                                 {comment.text}
@@ -1098,67 +1102,53 @@ const LeadsPage = () => {
                                     >
                                       Social Media Profiles
                                     </Typography>
-                                    <Grid container spacing={2}>
+                                    <Stack spacing={1}>
                                       {lead.socialMedia?.facebook && (
-                                        <Grid item xs={6} sm={3}>
-                                          <Link href={lead.socialMedia.facebook} target="_blank" rel="noopener noreferrer" 
-                                            sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
-                                            <img src="/facebook-icon.svg" alt="Facebook" width={16} height={16} />
-                                            Facebook
-                                          </Link>
-                                        </Grid>
+                                        <Link href={lead.socialMedia.facebook} target="_blank" rel="noopener noreferrer" 
+                                          sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
+                                          <img src="/facebook-icon.svg" alt="Facebook" width={16} height={16} />
+                                          Facebook
+                                        </Link>
                                       )}
                                       {lead.socialMedia?.twitter && (
-                                        <Grid item xs={6} sm={3}>
-                                          <Link href={lead.socialMedia.twitter} target="_blank" rel="noopener noreferrer"
-                                            sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
-                                            <img src="/twitter-icon.svg" alt="Twitter" width={16} height={16} />
-                                            Twitter
-                                          </Link>
-                                        </Grid>
+                                        <Link href={lead.socialMedia.twitter} target="_blank" rel="noopener noreferrer"
+                                          sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
+                                          <img src="/twitter-icon.svg" alt="Twitter" width={16} height={16} />
+                                          Twitter
+                                        </Link>
                                       )}
                                       {lead.socialMedia?.linkedin && (
-                                        <Grid item xs={6} sm={3}>
-                                          <Link href={lead.socialMedia.linkedin} target="_blank" rel="noopener noreferrer"
-                                            sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
-                                            <img src="/linkedin-icon.svg" alt="LinkedIn" width={16} height={16} />
-                                            LinkedIn
-                                          </Link>
-                                        </Grid>
+                                        <Link href={lead.socialMedia.linkedin} target="_blank" rel="noopener noreferrer"
+                                          sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
+                                          <img src="/linkedin-icon.svg" alt="LinkedIn" width={16} height={16} />
+                                          LinkedIn
+                                        </Link>
                                       )}
                                       {lead.socialMedia?.instagram && (
-                                        <Grid item xs={6} sm={3}>
-                                          <Link href={lead.socialMedia.instagram} target="_blank" rel="noopener noreferrer"
-                                            sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
-                                            <img src="/instagram-icon.svg" alt="Instagram" width={16} height={16} />
-                                            Instagram
-                                          </Link>
-                                        </Grid>
+                                        <Link href={lead.socialMedia.instagram} target="_blank" rel="noopener noreferrer"
+                                          sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}>
+                                          <img src="/instagram-icon.svg" alt="Instagram" width={16} height={16} />
+                                          Instagram
+                                        </Link>
                                       )}
                                       {lead.socialMedia?.telegram && (
-                                        <Grid item xs={6} sm={3}>
-                                          <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <img src="/telegram-icon.svg" alt="Telegram" width={16} height={16} />
-                                            {lead.socialMedia.telegram}
-                                          </Typography>
-                                        </Grid>
+                                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <img src="/telegram-icon.svg" alt="Telegram" width={16} height={16} />
+                                          {lead.socialMedia.telegram}
+                                        </Typography>
                                       )}
                                       {lead.socialMedia?.whatsapp && (
-                                        <Grid item xs={6} sm={3}>
-                                          <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <img src="/whatsapp-icon.svg" alt="WhatsApp" width={16} height={16} />
-                                            {lead.socialMedia.whatsapp}
-                                          </Typography>
-                                        </Grid>
+                                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <img src="/whatsapp-icon.svg" alt="WhatsApp" width={16} height={16} />
+                                          {lead.socialMedia.whatsapp}
+                                        </Typography>
                                       )}
-                                      {!lead.socialMedia || Object.values(lead.socialMedia).every(v => !v) && (
-                                        <Grid item xs={12}>
-                                          <Typography variant="body2" color="text.secondary">
-                                            No social media profiles available
-                                          </Typography>
-                                        </Grid>
+                                      {(!lead.socialMedia || !Object.values(lead.socialMedia || {}).some(Boolean)) && (
+                                        <Typography variant="body2" color="text.secondary">
+                                          No social media profiles available
+                                        </Typography>
                                       )}
-                                    </Grid>
+                                    </Stack>
                                   </Paper>
                                 </Grid>
                               </Grid>
@@ -1196,9 +1186,9 @@ const LeadsPage = () => {
           </Paper>
         ) : (
           <Stack spacing={2}>
-            {leads.map((lead) => (
+            {leads.map((lead) => lead && (
               <Paper 
-                key={lead._id}
+                key={lead._id || 'temp-key'}
                 sx={{ 
                   p: 2,
                   borderLeft: (theme) => {
@@ -1234,7 +1224,7 @@ const LeadsPage = () => {
                             {lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            ID: {lead._id.slice(-8)}
+                            ID: {lead._id ? lead._id.slice(-8) : 'N/A'}
                           </Typography>
                         </Box>
                       </Stack>
@@ -1427,7 +1417,7 @@ const LeadsPage = () => {
                                     {lead.socialMedia.whatsapp}
                                   </Typography>
                                 )}
-                                {!lead.socialMedia || Object.values(lead.socialMedia).every(v => !v) && (
+                                {(!lead.socialMedia || !Object.values(lead.socialMedia || {}).some(Boolean)) && (
                                   <Typography variant="body2" color="text.secondary">
                                     No social media profiles available
                                   </Typography>
