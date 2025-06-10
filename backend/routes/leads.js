@@ -195,7 +195,13 @@ router.put(
     body("socialMedia.linkedin").optional().trim().isURL().withMessage("Invalid LinkedIn URL"),
     body("socialMedia.instagram").optional().trim().isURL().withMessage("Invalid Instagram URL"),
     body("socialMedia.telegram").optional().trim(),
-    body("socialMedia.whatsapp").optional().trim()
+    body("socialMedia.whatsapp").optional().trim(),
+    body("sin").optional().trim().custom((value, { req }) => {
+      if (req.body.leadType === 'ftd' && !value) {
+        throw new Error('SIN is required for FTD leads');
+      }
+      return true;
+    })
   ],
   updateLead
 );
