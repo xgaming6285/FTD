@@ -5,7 +5,7 @@ import {
   Alert,
   CircularProgress,
   IconButton,
-  Link,
+
 } from '@mui/material';
 import {
   Visibility,
@@ -38,6 +38,7 @@ const LoginPage = () => {
 
   const { isLoading, error, isAuthenticated } = useSelector(selectAuth);
   const [showPassword, setShowPassword] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -135,9 +136,14 @@ const LoginPage = () => {
                 'Sign In'
               )}
             </button>
+
             <p style={{ textAlign: 'center', marginTop: '20px', color: '#777' }}>
-              Need access? Contact your system administrator.
+              Don't have an account?{' '}
+              <RouterLink to="/register" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                Sign Up
+              </RouterLink>
             </p>
+
           </form>
         </div>
       </div>
