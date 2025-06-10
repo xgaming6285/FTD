@@ -45,6 +45,7 @@ import {
   Assignment as AssignmentIcon,
   PersonAdd as PersonAddIcon,
   FilterList as FilterIcon,
+  Description as DescriptionIcon,
 } from "@mui/icons-material";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -1017,6 +1018,92 @@ const LeadsPage = () => {
                                     </Box>
                                   </Paper>
                                 </Grid>
+                                {lead.leadType === 'ftd' && (
+                                  <Grid item xs={12}>
+                                    <Paper 
+                                      elevation={0}
+                                      sx={{ 
+                                        p: 2, 
+                                        bgcolor: 'background.default',
+                                        borderRadius: 1
+                                      }}
+                                    >
+                                      <Typography variant="subtitle2" gutterBottom color="primary">
+                                        Documents
+                                      </Typography>
+                                      <Stack spacing={2}>
+                                        <Box>
+                                          <Typography variant="caption" color="text.secondary" display="block">
+                                            Document Status
+                                          </Typography>
+                                          <Chip
+                                            label={lead.documents?.status || 'pending'}
+                                            color={
+                                              lead.documents?.status === 'good' ? 'success' :
+                                              lead.documents?.status === 'ok' ? 'warning' : 'default'
+                                            }
+                                            size="small"
+                                            sx={{ mt: 0.5 }}
+                                          />
+                                        </Box>
+                                        {lead.documents?.idFrontUrl && (
+                                          <Box>
+                                            <Typography variant="caption" color="text.secondary" display="block">
+                                              ID Front
+                                            </Typography>
+                                            <Link href={lead.documents.idFrontUrl} target="_blank" rel="noopener noreferrer"
+                                              sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', textDecoration: 'none' }}>
+                                              <DescriptionIcon fontSize="small" />
+                                              View Document
+                                            </Link>
+                                          </Box>
+                                        )}
+                                        {lead.documents?.idBackUrl && (
+                                          <Box>
+                                            <Typography variant="caption" color="text.secondary" display="block">
+                                              ID Back
+                                            </Typography>
+                                            <Link href={lead.documents.idBackUrl} target="_blank" rel="noopener noreferrer"
+                                              sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', textDecoration: 'none' }}>
+                                              <DescriptionIcon fontSize="small" />
+                                              View Document
+                                            </Link>
+                                          </Box>
+                                        )}
+                                        {lead.documents?.selfieUrl && (
+                                          <Box>
+                                            <Typography variant="caption" color="text.secondary" display="block">
+                                              Selfie
+                                            </Typography>
+                                            <Link href={lead.documents.selfieUrl} target="_blank" rel="noopener noreferrer"
+                                              sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', textDecoration: 'none' }}>
+                                              <DescriptionIcon fontSize="small" />
+                                              View Document
+                                            </Link>
+                                          </Box>
+                                        )}
+                                        {lead.documents?.residenceProofUrl && (
+                                          <Box>
+                                            <Typography variant="caption" color="text.secondary" display="block">
+                                              Proof of Residence
+                                            </Typography>
+                                            <Link href={lead.documents.residenceProofUrl} target="_blank" rel="noopener noreferrer"
+                                              sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', textDecoration: 'none' }}>
+                                              <DescriptionIcon fontSize="small" />
+                                              View Document
+                                            </Link>
+                                          </Box>
+                                        )}
+                                        {!lead.documents?.idFrontUrl && !lead.documents?.idBackUrl && 
+                                         !lead.documents?.selfieUrl && !lead.documents?.residenceProofUrl && (
+                                          <Typography variant="body2" color="text.secondary">
+                                            No documents uploaded
+                                          </Typography>
+                                        )}
+                                      </Stack>
+                                    </Paper>
+                                  </Grid>
+                                )}
                               </Grid>
                             </Box>
                           </TableCell>
