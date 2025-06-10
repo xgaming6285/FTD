@@ -77,7 +77,7 @@ const leadSchema = new mongoose.Schema({
       type: Date, 
       default: Date.now 
     }
-  }],
+  }], 
 
   // FTD & Filler Specific Fields
   dob: { type: Date },

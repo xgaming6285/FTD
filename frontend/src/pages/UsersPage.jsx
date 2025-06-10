@@ -42,6 +42,9 @@ import {
   AdminPanelSettings as AdminIcon,
   ManageAccounts as ManagerIcon,
   Support as AgentIcon,
+  CheckCircle as CheckCircleIcon,
+  Pending as PendingIcon,
+  Cancel as RejectIcon,
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -82,6 +85,7 @@ const UsersPage = () => {
   // Dialog states
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -92,6 +96,7 @@ const UsersPage = () => {
   const [filters, setFilters] = useState({
     role: '',
     isActive: '',
+    status: '',
   });
 
   const {
@@ -271,6 +276,28 @@ const UsersPage = () => {
     setDeleteDialogOpen(true);
   };
 
+  // Approve user
+  const handleApproveUser = async (role) => {
+    try {
+      setError(null);
+      await api.put(`/users/${selectedUser._id}/approve`, { role });
+      setSuccess('User approved successfully!');
+      setApproveDialogOpen(false);
+      setSelectedUser(null);
+      fetchUsers();
+
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to approve user');
+    }
+  };
+
+  // Open approve dialog
+  const handleApproveDialog = (user) => {
+    setSelectedUser(user);
+    setApproveDialogOpen(true);
+  };
+
   // Pagination handlers
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -294,6 +321,7 @@ const UsersPage = () => {
     setFilters({
       role: '',
       isActive: '',
+      status: '',
     });
     setPage(0);
   };
@@ -315,6 +343,26 @@ const UsersPage = () => {
       case 'affiliate_manager': return 'secondary';
       case 'agent': return 'info';
       default: return 'default';
+    }
+  };
+
+  // Get status color
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'approved': return 'success';
+      case 'pending': return 'warning';
+      case 'rejected': return 'error';
+      default: return 'default';
+    }
+  };
+
+  // Get status icon
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'approved': return <CheckCircleIcon />;
+      case 'pending': return <PendingIcon />;
+      case 'rejected': return <RejectIcon />;
+      default: return <PendingIcon />;
     }
   };
 
@@ -374,6 +422,7 @@ const UsersPage = () => {
                   <MenuItem value="admin">Admin</MenuItem>
                   <MenuItem value="affiliate_manager">Affiliate Manager</MenuItem>
                   <MenuItem value="agent">Agent</MenuItem>
+                  <MenuItem value="pending_approval">Pending Approval</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -381,8 +430,23 @@ const UsersPage = () => {
               <FormControl fullWidth>
                 <InputLabel>Status</InputLabel>
                 <Select
-                  value={filters.isActive}
+                  value={filters.status}
                   label="Status"
+                  onChange={handleFilterChange('status')}
+                >
+                  <MenuItem value="">All Statuses</MenuItem>
+                  <MenuItem value="pending">Pending</MenuItem>
+                  <MenuItem value="approved">Approved</MenuItem>
+                  <MenuItem value="rejected">Rejected</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth>
+                <InputLabel>Activity</InputLabel>
+                <Select
+                  value={filters.isActive}
+                  label="Activity"
                   onChange={handleFilterChange('isActive')}
                 >
                   <MenuItem value="">All</MenuItem>
@@ -411,6 +475,7 @@ const UsersPage = () => {
                 <TableCell>Email</TableCell>
                 <TableCell>Agent Code</TableCell>
                 <TableCell>Status</TableCell>
+                <TableCell>Activity</TableCell>
                 <TableCell>Permissions</TableCell>
                 <TableCell>Created</TableCell>
                 <TableCell>Actions</TableCell>
@@ -419,13 +484,13 @@ const UsersPage = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
+                  <TableCell colSpan={9} align="center">
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
               ) : users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
+                  <TableCell colSpan={9} align="center">
                     No users found
                   </TableCell>
                 </TableRow>
@@ -449,7 +514,7 @@ const UsersPage = () => {
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={user.role.replace('_', ' ').toUpperCase()}
+                        label={user.role === 'pending_approval' ? 'PENDING APPROVAL' : user.role.replace('_', ' ').toUpperCase()}
                         color={getRoleColor(user.role)}
                         size="small"
                       />
@@ -465,6 +530,14 @@ const UsersPage = () => {
                       ) : (
                         '-'
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={user.status ? user.status.toUpperCase() : 'PENDING'}
+                        color={getStatusColor(user.status)}
+                        size="small"
+                        icon={getStatusIcon(user.status)}
+                      />
                     </TableCell>
                     <TableCell>
                       <Chip
@@ -488,25 +561,38 @@ const UsersPage = () => {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <Tooltip title="Edit User">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEditUser(user)}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      {user._id !== currentUser.id && (
-                        <Tooltip title="Deactivate User">
+                      <Stack direction="row" spacing={0.5}>
+                        {user.status === 'pending' && (
+                          <Tooltip title="Approve User">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleApproveDialog(user)}
+                              color="success"
+                            >
+                              <CheckCircleIcon />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        <Tooltip title="Edit User">
                           <IconButton
                             size="small"
-                            onClick={() => handleDeleteDialog(user)}
-                            color="error"
+                            onClick={() => handleEditUser(user)}
                           >
-                            <DeleteIcon />
+                            <EditIcon />
                           </IconButton>
                         </Tooltip>
-                      )}
+                        {user._id !== currentUser.id && (
+                          <Tooltip title="Deactivate User">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDeleteDialog(user)}
+                              color="error"
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 ))
@@ -708,6 +794,49 @@ const UsersPage = () => {
           >
             Deactivate
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Approve User Dialog */}
+      <Dialog
+        open={approveDialogOpen}
+        onClose={() => setApproveDialogOpen(false)}
+        maxWidth="sm"
+      >
+        <DialogTitle>Approve User</DialogTitle>
+        <DialogContent>
+          <Typography gutterBottom>
+            Approve user "{selectedUser?.fullName}" and assign them a role:
+          </Typography>
+          <Stack spacing={2} sx={{ mt: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={() => handleApproveUser('admin')}
+              startIcon={<AdminIcon />}
+              fullWidth
+            >
+              Approve as Admin
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => handleApproveUser('affiliate_manager')}
+              startIcon={<ManagerIcon />}
+              fullWidth
+            >
+              Approve as Affiliate Manager
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => handleApproveUser('agent')}
+              startIcon={<AgentIcon />}
+              fullWidth
+            >
+              Approve as Agent
+            </Button>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setApproveDialogOpen(false)}>Cancel</Button>
         </DialogActions>
       </Dialog>
     </Box>
