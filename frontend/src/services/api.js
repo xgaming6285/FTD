@@ -2,9 +2,19 @@ import axios from 'axios';
 import { store } from '../store/store';
 import { logout } from '../store/slices/authSlice';
 
+// Determine the API base URL dynamically
+const getApiBaseUrl = () => {
+  // Use the environment variable if set, otherwise fall back to deployed backend
+  const apiUrl = 'https://ftd-2sqp.onrender.com/api' || '/api';
+  
+  console.log('API Base URL:', apiUrl);
+  
+  return apiUrl;
+};
+
 // Create axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: getApiBaseUrl(),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
