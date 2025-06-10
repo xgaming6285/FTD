@@ -20,9 +20,9 @@ exports.createOrder = async (req, res, next) => {
     }
 
     const { requests, priority, notes } = req.body;
-    const { ftd = 0, filler = 0, cold = 0 } = requests || {};
+    const { ftd = 0, filler = 0, cold = 0, live = 0 } = requests || {};
 
-    if (ftd + filler + cold === 0) {
+    if (ftd + filler + cold + live === 0) {
       return res.status(400).json({
         success: false,
         message: "At least one lead type must be requested",
@@ -31,7 +31,7 @@ exports.createOrder = async (req, res, next) => {
 
     await session.withTransaction(async () => {
       const pulledLeads = [];
-      const fulfilled = { ftd: 0, filler: 0, cold: 0 };
+      const fulfilled = { ftd: 0, filler: 0, cold: 0, live: 0 };
 
       // Pull FTD leads
       if (ftd > 0) {
@@ -114,10 +114,37 @@ exports.createOrder = async (req, res, next) => {
         }
       }
 
+      // Pull Live leads
+      if (live > 0) {
+        const liveLeads = await Lead.find({
+          leadType: "live",
+          isAssigned: false,
+        })
+          .limit(live)
+          .session(session);
+
+        if (liveLeads.length > 0) {
+          await Lead.updateMany(
+            { _id: { $in: liveLeads.map((l) => l._id) } },
+            {
+              $set: {
+                isAssigned: true,
+                assignedTo: req.user._id,
+                assignedAt: new Date(),
+              },
+            },
+            { session }
+          );
+
+          pulledLeads.push(...liveLeads);
+          fulfilled.live = liveLeads.length;
+        }
+      }
+
       // Create the order
       const order = new Order({
         requester: req.user._id,
-        requests: { ftd, filler, cold },
+        requests: { ftd, filler, cold, live },
         fulfilled,
         leads: pulledLeads.map((l) => l._id),
         priority: priority || "medium",

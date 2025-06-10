@@ -332,6 +332,8 @@ const LeadsPage = () => {
         return "warning";
       case "cold":
         return "info";
+      case "live":
+        return "secondary";
       default:
         return "default";
     }
@@ -509,6 +511,7 @@ const LeadsPage = () => {
                     <MenuItem value="ftd">FTD</MenuItem>
                     <MenuItem value="filler">Filler</MenuItem>
                     <MenuItem value="cold">Cold</MenuItem>
+                    <MenuItem value="live">Live</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
