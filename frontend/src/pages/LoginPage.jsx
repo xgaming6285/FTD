@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
+import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom'; // <-- RouterLink е импортиран тук
 import {
   Alert,
   CircularProgress,
   IconButton,
-  Link,
+  // Link, // <-- Link от Material-UI е коментиран, защото не се ползва за тази цел вече
 } from '@mui/material';
 import {
   Visibility,
@@ -17,7 +17,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { login, clearError, selectAuth } from '../store/slices/authSlice';
-import './LoginPage.css';
+import './LoginPage.css'; // <-- Увери се, че този CSS файл съществува и съдържа стиловете
 
 // Validation schema
 const schema = yup.object({
@@ -38,6 +38,7 @@ const LoginPage = () => {
 
   const { isLoading, error, isAuthenticated } = useSelector(selectAuth);
   const [showPassword, setShowPassword] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -135,9 +136,17 @@ const LoginPage = () => {
                 'Sign In'
               )}
             </button>
+
+            {/* <-- ДОБАВЕН НОВ БЛОК ЗА ЛИНКА КЪМ РЕГИСТРАЦИЯТА --> */}
             <p style={{ textAlign: 'center', marginTop: '20px', color: '#777' }}>
-              Need access? Contact your system administrator.
+              Don't have an account?{' '}
+              <RouterLink to="/register" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                Sign Up
+              </RouterLink>
             </p>
+            {/* <-- КРАЙ НА НОВИЯ БЛОК --> */}
+
+            {/* Старият текст, който може да премахнеш или да запазиш по желание */}
           </form>
         </div>
       </div>
