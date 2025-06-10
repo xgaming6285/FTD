@@ -31,6 +31,20 @@ const userSchema = new mongoose.Schema({
     default: 'pending_approval',
     required: true // Remains true since it has a default value
   },
+  leadManagerStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected', 'not_applicable'],
+    default: 'not_applicable'
+  },
+  leadManagerApprovedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  leadManagerApprovedAt: {
+    type: Date,
+    default: null
+  },
   fourDigitCode: {
     type: String,
     validate: {
@@ -47,7 +61,8 @@ const userSchema = new mongoose.Schema({
     // unique: true, // Внимавай с това, ако агентите могат да имат същия код или е временно
   },
   permissions: {
-    canCreateOrders: { type: Boolean, default: true }
+    canCreateOrders: { type: Boolean, default: true },
+    canManageLeads: { type: Boolean, default: false }
   },
   isActive: {
     type: Boolean,

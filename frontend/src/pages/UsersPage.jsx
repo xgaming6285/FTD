@@ -45,6 +45,8 @@ import {
   CheckCircle as CheckCircleIcon,
   Pending as PendingIcon,
   Cancel as RejectIcon,
+  SupervisorAccount as LeadManagerIcon,
+  ManageAccounts,
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -56,7 +58,7 @@ import { selectUser } from '../store/slices/authSlice';
 const userSchema = yup.object({
   email: yup.string().email('Invalid email').required('Email is required'),
   fullName: yup.string().required('Full name is required').min(2, 'Name must be at least 2 characters'),
-  role: yup.string().oneOf(['admin', 'affiliate_manager', 'agent'], 'Invalid role').required('Role is required'),
+  role: yup.string().oneOf(['admin', 'affiliate_manager', 'agent', 'lead_manager'], 'Invalid role').required('Role is required'),
   fourDigitCode: yup.string().when('role', {
     is: 'agent',
     then: (schema) => schema.required('Four digit code is required for agents').length(4, 'Must be exactly 4 digits').matches(/^\d{4}$/, 'Must be 4 digits'),
@@ -70,6 +72,7 @@ const userSchema = yup.object({
   isActive: yup.boolean(),
   permissions: yup.object({
     canCreateOrders: yup.boolean(),
+    canManageLeads: yup.boolean(),
   }),
 });
 
@@ -88,6 +91,8 @@ const UsersPage = () => {
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [leadManagerDialogOpen, setLeadManagerDialogOpen] = useState(false);
+  const [approveLeadManagerDialogOpen, setApproveLeadManagerDialogOpen] = useState(false);
 
   // Pagination and filtering
   const [page, setPage] = useState(0);
@@ -117,6 +122,7 @@ const UsersPage = () => {
       isActive: true,
       permissions: {
         canCreateOrders: true,
+        canManageLeads: false,
       },
       isEditing: false,
     },
@@ -189,7 +195,10 @@ const UsersPage = () => {
         fullName: data.fullName,
         role: data.role,
         isActive: data.isActive,
-        permissions: data.permissions,
+        permissions: {
+          canCreateOrders: data.permissions.canCreateOrders,
+          canManageLeads: data.role === 'lead_manager' || data.permissions.canManageLeads,
+        },
       };
 
       if (data.role === 'agent' && data.fourDigitCode) {
@@ -214,6 +223,7 @@ const UsersPage = () => {
 
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
+      console.error('API Response Error:', err.response);
       setError(err.response?.data?.message || 'Failed to save user');
     }
   };
@@ -247,6 +257,7 @@ const UsersPage = () => {
       isActive: true,
       permissions: {
         canCreateOrders: true,
+        canManageLeads: false,
       },
       isEditing: false,
     });
@@ -264,7 +275,7 @@ const UsersPage = () => {
       fourDigitCode: user.fourDigitCode || '',
       password: '',
       isActive: user.isActive,
-      permissions: user.permissions || { canCreateOrders: true },
+      permissions: user.permissions || { canCreateOrders: true, canManageLeads: false },
       isEditing: true,
     });
     setUserDialogOpen(true);
@@ -298,6 +309,37 @@ const UsersPage = () => {
     setApproveDialogOpen(true);
   };
 
+  // Handle assigning lead manager
+  const handleAssignLeadManager = async (user) => {
+    try {
+      setError(null);
+      const response = await api.put(`/users/${user._id}/assign-lead-manager`, {
+        assignAsLeadManager: true,
+      });
+      setSuccess('User assigned as lead manager successfully');
+      fetchUsers();
+      setLeadManagerDialogOpen(false);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to assign lead manager');
+    }
+  };
+
+  // Handle approving/rejecting lead manager
+  const handleApproveLeadManager = async (user, approved, reason) => {
+    try {
+      setError(null);
+      const response = await api.put(`/users/${user._id}/approve-lead-manager`, {
+        approved,
+        reason,
+      });
+      setSuccess(approved ? 'Lead manager approved successfully' : 'Lead manager rejected successfully');
+      fetchUsers();
+      setApproveLeadManagerDialogOpen(false);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to process lead manager approval');
+    }
+  };
+
   // Pagination handlers
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -329,20 +371,32 @@ const UsersPage = () => {
   // Role icon mapping
   const getRoleIcon = (role) => {
     switch (role) {
-      case 'admin': return <AdminIcon color="primary" />;
-      case 'affiliate_manager': return <ManagerIcon color="secondary" />;
-      case 'agent': return <AgentIcon color="info" />;
-      default: return <PersonIcon />;
+      case 'admin':
+        return <AdminIcon />;
+      case 'affiliate_manager':
+        return <ManagerIcon />;
+      case 'lead_manager':
+        return <LeadManagerIcon />;
+      case 'agent':
+        return <AgentIcon />;
+      default:
+        return <PersonIcon />;
     }
   };
 
   // Role color mapping
   const getRoleColor = (role) => {
     switch (role) {
-      case 'admin': return 'primary';
-      case 'affiliate_manager': return 'secondary';
-      case 'agent': return 'info';
-      default: return 'default';
+      case 'admin':
+        return 'error';
+      case 'affiliate_manager':
+        return 'primary';
+      case 'lead_manager':
+        return 'secondary';
+      case 'agent':
+        return 'success';
+      default:
+        return 'default';
     }
   };
 
@@ -366,6 +420,18 @@ const UsersPage = () => {
     }
   };
 
+  // Add this function to handle opening the lead manager dialog
+  const handleLeadManagerDialog = (user) => {
+    setSelectedUser(user);
+    setLeadManagerDialogOpen(true);
+  };
+
+  // Add this function to handle opening the approve lead manager dialog
+  const handleApproveLeadManagerDialog = (user) => {
+    setSelectedUser(user);
+    setApproveLeadManagerDialogOpen(true);
+  };
+
   const canManageUsers = currentUser?.role === 'admin';
 
   if (!canManageUsers) {
@@ -377,6 +443,164 @@ const UsersPage = () => {
       </Box>
     );
   }
+
+  // Update the user dialog content
+  const renderUserDialog = () => (
+    <Dialog open={userDialogOpen} onClose={() => setUserDialogOpen(false)} maxWidth="sm" fullWidth>
+      <DialogTitle>{isEditing ? 'Edit User' : 'Create User'}</DialogTitle>
+      <form onSubmit={handleSubmit(onSubmitUser)}>
+        <DialogContent>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Controller
+                name="email"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Email"
+                    fullWidth
+                    error={!!errors.email}
+                    helperText={errors.email?.message}
+                    disabled={isEditing}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Controller
+                name="fullName"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Full Name"
+                    fullWidth
+                    error={!!errors.fullName}
+                    helperText={errors.fullName?.message}
+                  />
+                )}
+              />
+            </Grid>
+            {!isEditing && (
+              <Grid item xs={12}>
+                <Controller
+                  name="password"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      type="password"
+                      label="Password"
+                      fullWidth
+                      error={!!errors.password}
+                      helperText={errors.password?.message}
+                    />
+                  )}
+                />
+              </Grid>
+            )}
+            <Grid item xs={12}>
+              <Controller
+                name="role"
+                control={control}
+                render={({ field }) => (
+                  <FormControl fullWidth error={!!errors.role}>
+                    <InputLabel>Role</InputLabel>
+                    <Select {...field} label="Role">
+                      <MenuItem value="agent">Agent</MenuItem>
+                      <MenuItem value="affiliate_manager">Affiliate Manager</MenuItem>
+                      <MenuItem value="lead_manager">Lead Manager</MenuItem>
+                      <MenuItem value="admin">Admin</MenuItem>
+                    </Select>
+                  </FormControl>
+                )}
+              />
+            </Grid>
+            {watchedRole === 'agent' && (
+              <Grid item xs={12}>
+                <Controller
+                  name="fourDigitCode"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="Four Digit Code"
+                      fullWidth
+                      error={!!errors.fourDigitCode}
+                      helperText={errors.fourDigitCode?.message}
+                    />
+                  )}
+                />
+              </Grid>
+            )}
+            <Grid item xs={12}>
+              <Controller
+                name="isActive"
+                control={control}
+                render={({ field: { value, onChange } }) => (
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={value}
+                        onChange={(e) => onChange(e.target.checked)}
+                        color="primary"
+                      />
+                    }
+                    label="Active"
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Controller
+                name="permissions.canCreateOrders"
+                control={control}
+                render={({ field: { value, onChange } }) => (
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={value}
+                        onChange={(e) => onChange(e.target.checked)}
+                        color="primary"
+                      />
+                    }
+                    label="Can Create Orders"
+                  />
+                )}
+              />
+            </Grid>
+            {(watchedRole === 'lead_manager' || selectedUser?.leadManagerStatus === 'approved') && (
+              <Grid item xs={12}>
+                <Controller
+                  name="permissions.canManageLeads"
+                  control={control}
+                  render={({ field: { value, onChange } }) => (
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={value}
+                          onChange={(e) => onChange(e.target.checked)}
+                          color="primary"
+                        />
+                      }
+                      label="Can Manage Leads"
+                    />
+                  )}
+                />
+              </Grid>
+            )}
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUserDialogOpen(false)}>Cancel</Button>
+          <Button type="submit" variant="contained" disabled={isSubmitting}>
+            {isEditing ? 'Update' : 'Create'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
 
   return (
     <Box>
@@ -592,6 +816,28 @@ const UsersPage = () => {
                             </IconButton>
                           </Tooltip>
                         )}
+                        {user.role !== 'admin' && user.leadManagerStatus === 'not_applicable' && (
+                          <Tooltip title="Assign as Lead Manager">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleLeadManagerDialog(user)}
+                              color="secondary"
+                            >
+                              <LeadManagerIcon />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        {user.leadManagerStatus === 'pending' && (
+                          <Tooltip title="Approve Lead Manager">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleApproveLeadManagerDialog(user)}
+                              color="success"
+                            >
+                              <CheckCircleIcon />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                       </Stack>
                     </TableCell>
                   </TableRow>
@@ -612,165 +858,7 @@ const UsersPage = () => {
       </Paper>
 
       {/* Create/Edit User Dialog */}
-      <Dialog
-        open={userDialogOpen}
-        onClose={() => setUserDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          {isEditing ? 'Edit User' : 'Create New User'}
-        </DialogTitle>
-        <form onSubmit={handleSubmit(onSubmitUser)}>
-          <DialogContent>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Controller
-                  name="fullName"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Full Name"
-                      error={!!errors.fullName}
-                      helperText={errors.fullName?.message}
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Controller
-                  name="email"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Email"
-                      type="email"
-                      error={!!errors.email}
-                      helperText={errors.email?.message}
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Controller
-                  name="role"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControl fullWidth error={!!errors.role}>
-                      <InputLabel>Role</InputLabel>
-                      <Select
-                        {...field}
-                        label="Role"
-                      >
-                        <MenuItem value="admin">Admin</MenuItem>
-                        <MenuItem value="affiliate_manager">Affiliate Manager</MenuItem>
-                        <MenuItem value="agent">Agent</MenuItem>
-                      </Select>
-                      {errors.role && (
-                        <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                          {errors.role.message}
-                        </Typography>
-                      )}
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-              {watchedRole === 'agent' && (
-                <Grid item xs={12} sm={6}>
-                  <Controller
-                    name="fourDigitCode"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        fullWidth
-                        label="4-Digit Code"
-                        placeholder="1234"
-                        inputProps={{ maxLength: 4 }}
-                        error={!!errors.fourDigitCode}
-                        helperText={errors.fourDigitCode?.message}
-                      />
-                    )}
-                  />
-                </Grid>
-              )}
-              {!isEditing && (
-                <Grid item xs={12}>
-                  <Controller
-                    name="password"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        fullWidth
-                        label="Password"
-                        type="password"
-                        error={!!errors.password}
-                        helperText={errors.password?.message}
-                      />
-                    )}
-                  />
-                </Grid>
-              )}
-              <Grid item xs={12}>
-                <Controller
-                  name="isActive"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={field.value}
-                          onChange={field.onChange}
-                        />
-                      }
-                      label="Active"
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Permissions
-                </Typography>
-                <Controller
-                  name="permissions.canCreateOrders"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={field.value}
-                          onChange={field.onChange}
-                        />
-                      }
-                      label="Can Create Orders"
-                    />
-                  )}
-                />
-              </Grid>
-            </Grid>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setUserDialogOpen(false)}>Cancel</Button>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <CircularProgress size={24} />
-              ) : (
-                isEditing ? 'Update User' : 'Create User'
-              )}
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
+      {renderUserDialog()}
 
       {/* Delete Confirmation Dialog */}
       <Dialog
@@ -837,6 +925,65 @@ const UsersPage = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setApproveDialogOpen(false)}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Lead Manager Dialog */}
+      <Dialog
+        open={leadManagerDialogOpen}
+        onClose={() => setLeadManagerDialogOpen(false)}
+        maxWidth="sm"
+      >
+        <DialogTitle>Assign Lead Manager</DialogTitle>
+        <DialogContent>
+          <Typography gutterBottom>
+            Assign lead manager to user "{selectedUser?.fullName}":
+          </Typography>
+          <Stack spacing={2} sx={{ mt: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={() => handleAssignLeadManager(selectedUser)}
+              fullWidth
+            >
+              Assign Lead Manager
+            </Button>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLeadManagerDialogOpen(false)}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Approve Lead Manager Dialog */}
+      <Dialog
+        open={approveLeadManagerDialogOpen}
+        onClose={() => setApproveLeadManagerDialogOpen(false)}
+        maxWidth="sm"
+      >
+        <DialogTitle>Approve Lead Manager</DialogTitle>
+        <DialogContent>
+          <Typography gutterBottom>
+            Approve or reject lead manager "{selectedUser?.fullName}":
+          </Typography>
+          <Stack spacing={2} sx={{ mt: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={() => handleApproveLeadManager(selectedUser, true, '')}
+              fullWidth
+            >
+              Approve
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => handleApproveLeadManager(selectedUser, false, 'Rejected')}
+              fullWidth
+            >
+              Reject
+            </Button>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setApproveLeadManagerDialogOpen(false)}>Cancel</Button>
         </DialogActions>
       </Dialog>
     </Box>

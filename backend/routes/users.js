@@ -14,6 +14,8 @@ const {
   updateAgentPerformance,
   getTopPerformers,
   getDailyTeamStats,
+  assignAsLeadManager,
+  approveLeadManager,
 } = require("../controllers/users");
 
 const router = express.Router();
@@ -81,8 +83,8 @@ router.post(
       .isLength({ min: 2 })
       .withMessage("Full name must be at least 2 characters"),
     body("role")
-      .isIn(["admin", "affiliate_manager", "agent"])
-      .withMessage("Role must be admin, affiliate_manager, or agent"),
+      .isIn(["admin", "affiliate_manager", "agent", "lead_manager"])
+      .withMessage("Role must be admin, affiliate_manager, agent, or lead_manager"),
     body("fourDigitCode")
       .optional()
       .isLength({ min: 4, max: 4 })
@@ -92,6 +94,10 @@ router.post(
       .optional()
       .isBoolean()
       .withMessage("canCreateOrders must be a boolean"),
+    body("permissions.canManageLeads")
+      .optional()
+      .isBoolean()
+      .withMessage("canManageLeads must be a boolean"),
     body("isActive")
       .optional()
       .isBoolean()
@@ -131,8 +137,8 @@ router.put(
       .withMessage("Full name must be at least 2 characters"),
     body("role")
       .optional()
-      .isIn(["admin", "affiliate_manager", "agent"])
-      .withMessage("Role must be admin, affiliate_manager, or agent"),
+      .isIn(["admin", "affiliate_manager", "agent", "lead_manager"])
+      .withMessage("Role must be admin, affiliate_manager, agent, or lead_manager"),
     body("fourDigitCode")
       .optional()
       .isLength({ min: 4, max: 4 })
@@ -142,6 +148,10 @@ router.put(
       .optional()
       .isBoolean()
       .withMessage("canCreateOrders must be a boolean"),
+    body("permissions.canManageLeads")
+      .optional()
+      .isBoolean()
+      .withMessage("canManageLeads must be a boolean"),
     body("isActive")
       .optional()
       .isBoolean()
@@ -214,6 +224,37 @@ router.put(
       .withMessage("Calls completed must be a non-negative integer"),
   ],
   updateAgentPerformance
+);
+
+// Lead Manager routes
+router.put(
+  '/:id/assign-lead-manager',
+  [
+    protect,
+    isAdmin,
+    body('assignAsLeadManager')
+      .isBoolean()
+      .withMessage('assignAsLeadManager must be a boolean')
+  ],
+  assignAsLeadManager
+);
+
+router.put(
+  '/:id/approve-lead-manager',
+  [
+    protect,
+    isAdmin,
+    body('approved')
+      .isBoolean()
+      .withMessage('approved must be a boolean'),
+    body('reason')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage('If provided, reason must be a non-empty string')
+  ],
+  approveLeadManager
 );
 
 module.exports = router;
