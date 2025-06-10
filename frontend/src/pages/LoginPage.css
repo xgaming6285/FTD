@@ -131,8 +131,69 @@ code {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
-} 
+}
+
+/* --- Media Queries for Responsiveness --- */
+
+@media (max-width: 768px) {
+  .login-container {
+    flex-direction: column;
+    width: 90%;
+    max-width: 400px;
+    height: auto;
+    padding: 20px;
+  }
+
+  .login-branding {
+    width: 100%;
+    padding: 30px;
+    order: 1;
+  }
+
+  .login-branding h1 {
+    font-size: 1.8rem;
+  }
+
+  .login-branding p {
+    font-size: 0.9rem;
+  }
+
+  .login-form-container {
+    width: 100%;
+    padding: 30px;
+    order: 2;
+  }
+
+  .login-form-container h2 {
+    font-size: 1.5rem;
+  }
+
+  .form-group .MuiIconButton-root {
+    right: 5px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    width: 95%;
+    padding: 15px;
+  }
+
+  .login-branding,
+  .login-form-container {
+    padding: 20px;
+  }
+
+  .login-branding h1 {
+    font-size: 1.5rem;
+  }
+
+  .login-form-container h2 {
+    font-size: 1.3rem;
+  }
+}
