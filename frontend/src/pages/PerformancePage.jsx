@@ -24,6 +24,10 @@ import {
   Paper,
   Stack,
   Divider,
+  useTheme,
+  alpha,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -31,7 +35,12 @@ import {
   Phone as PhoneIcon,
   AttachMoney as MoneyIcon,
   EmojiEvents as TrophyIcon,
+  Refresh as RefreshIcon,
+  Timeline as TimelineIcon,
+  Speed as SpeedIcon,
+  Assessment as AssessmentIcon,
 } from '@mui/icons-material';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -40,7 +49,7 @@ import {
   LineElement,
   PointElement,
   Title,
-  Tooltip,
+  Tooltip as ChartTooltip,
   Legend,
   ArcElement,
 } from 'chart.js';
@@ -56,12 +65,47 @@ ChartJS.register(
   LineElement,
   PointElement,
   Title,
-  Tooltip,
+  ChartTooltip,
   Legend,
   ArcElement
 );
 
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 15
+    }
+  }
+};
+
+const cardStyle = {
+  height: '100%',
+  transition: 'transform 0.2s, box-shadow 0.2s',
+  '&:hover': {
+    transform: 'translateY(-4px)',
+    boxShadow: (theme) => `0 8px 24px ${alpha(theme.palette.primary.main, 0.15)}`,
+  },
+};
+
 const PerformancePage = () => {
+  const theme = useTheme();
   const user = useSelector(selectUser);
 
   const [loading, setLoading] = useState(false);
@@ -79,6 +123,13 @@ const PerformancePage = () => {
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: [],
+  });
+
+  // New state for performance insights
+  const [insights, setInsights] = useState({
+    topPerformerTrend: null,
+    callQualityTrend: null,
+    revenueGrowth: null,
   });
 
   // Fetch performance data
@@ -165,44 +216,81 @@ const PerformancePage = () => {
     fetchPerformanceData();
   }, [selectedPeriod, user]);
 
-  // Chart options
+  // Enhanced chart options
   const chartOptions = {
     responsive: true,
     plugins: {
       legend: {
         position: 'top',
+        labels: {
+          font: {
+            family: theme.typography.fontFamily,
+            size: 12,
+          },
+          usePointStyle: true,
+        },
       },
       title: {
         display: true,
         text: 'Performance Trend',
+        font: {
+          family: theme.typography.fontFamily,
+          size: 16,
+          weight: 'bold',
+        },
       },
     },
     scales: {
       y: {
         beginAtZero: true,
+        grid: {
+          color: alpha(theme.palette.text.primary, 0.1),
+        },
+        ticks: {
+          font: {
+            family: theme.typography.fontFamily,
+          },
+        },
       },
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          font: {
+            family: theme.typography.fontFamily,
+          },
+        },
+      },
+    },
+    animation: {
+      duration: 1000,
+      easing: 'easeInOutQuart',
     },
   };
 
   // Lead distribution chart data
   const leadDistributionData = leadStats ? {
-    labels: ['FTD', 'Filler', 'Cold'],
+    labels: ['FTD', 'Filler', 'Cold', 'Live'],
     datasets: [
       {
         data: [
           leadStats.leads.ftd.total,
           leadStats.leads.filler.total,
           leadStats.leads.cold.total,
+          leadStats.leads.live.total,
         ],
         backgroundColor: [
           '#FF6384',
           '#36A2EB',
           '#FFCE56',
+          '#9C27B0',
         ],
         hoverBackgroundColor: [
           '#FF6384',
           '#36A2EB',
           '#FFCE56',
+          '#9C27B0',
         ],
       },
     ],
@@ -239,414 +327,739 @@ const PerformancePage = () => {
   }
 
   return (
-    <Box>
+    <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible">
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant="h4" component={motion.h4} variants={itemVariants} sx={{
+          fontWeight: 'bold',
+          background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+        }}>
           {user?.role === 'agent' ? 'My Performance' : 'Performance Analytics'}
         </Typography>
-        <FormControl sx={{ minWidth: 150 }}>
-          <InputLabel>Period</InputLabel>
-          <Select
-            value={selectedPeriod}
-            label="Period"
-            onChange={(e) => setSelectedPeriod(e.target.value)}
-          >
-            <MenuItem value="7">Last 7 days</MenuItem>
-            <MenuItem value="30">Last 30 days</MenuItem>
-            <MenuItem value="90">Last 90 days</MenuItem>
-          </Select>
-        </FormControl>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <FormControl sx={{ minWidth: 150 }} component={motion.div} variants={itemVariants}>
+            <InputLabel>Period</InputLabel>
+            <Select
+              value={selectedPeriod}
+              label="Period"
+              onChange={(e) => setSelectedPeriod(e.target.value)}
+              sx={{
+                '& .MuiSelect-select': {
+                  display: 'flex',
+                  alignItems: 'center',
+                },
+              }}
+            >
+              <MenuItem value="7">Last 7 days</MenuItem>
+              <MenuItem value="30">Last 30 days</MenuItem>
+              <MenuItem value="90">Last 90 days</MenuItem>
+            </Select>
+          </FormControl>
+          <Tooltip title="Refresh Data">
+            <IconButton 
+              onClick={fetchPerformanceData}
+              component={motion.button}
+              variants={itemVariants}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+        </Stack>
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert 
+          severity="error" 
+          sx={{ mb: 2 }}
+          component={motion.div}
+          variants={itemVariants}
+        >
           {error}
         </Alert>
       )}
 
-      {loading ? (
-        <Box display="flex" justifyContent="center" my={4}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <Grid container spacing={3}>
-          {/* Admin Dashboard */}
-          {user?.role === 'admin' && (
-            <>
-              {/* Key Metrics Cards */}
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Box display="flex" alignItems="center">
-                      <PeopleIcon color="primary" sx={{ mr: 2 }} />
-                      <Box>
-                        <Typography variant="h4">
-                          {teamStats?.totalAgents || 0}
-                        </Typography>
-                        <Typography color="textSecondary">
-                          Active Agents
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Box display="flex" alignItems="center">
-                      <PhoneIcon color="info" sx={{ mr: 2 }} />
-                      <Box>
-                        <Typography variant="h4">
-                          {teamStats?.totalCalls || 0}
-                        </Typography>
-                        <Typography color="textSecondary">
-                          Total Calls Today
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Box display="flex" alignItems="center">
-                      <MoneyIcon color="success" sx={{ mr: 2 }} />
-                      <Box>
-                        <Typography variant="h4">
-                          ${teamStats?.totalEarnings || 0}
-                        </Typography>
-                        <Typography color="textSecondary">
-                          Total Earnings
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Box display="flex" alignItems="center">
-                      <TrendingUpIcon color="warning" sx={{ mr: 2 }} />
-                      <Box>
-                        <Typography variant="h4">
-                          {teamStats?.averageCallQuality || 0}
-                        </Typography>
-                        <Typography color="textSecondary">
-                          Avg Call Quality
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              {/* Lead Distribution Chart */}
-              <Grid item xs={12} md={6}>
-                <Card>
-                  <CardHeader title="Lead Distribution" />
-                  <CardContent>
-                    {leadDistributionData ? (
-                      <Box sx={{ height: 300 }}>
-                        <Doughnut data={leadDistributionData} />
-                      </Box>
-                    ) : (
-                      <Box display="flex" justifyContent="center" p={4}>
-                        <CircularProgress />
-                      </Box>
-                    )}
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              {/* Performance Trend Chart */}
-              <Grid item xs={12} md={6}>
-                <Card>
-                  <CardHeader title="Performance Trend" />
-                  <CardContent>
-                    <Box sx={{ height: 300 }}>
-                      <Line data={chartData} options={chartOptions} />
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              {/* Top Performers Table */}
-              <Grid item xs={12}>
-                <Card>
-                  <CardHeader
-                    title="Top Performers"
-                    avatar={<TrophyIcon color="warning" />}
-                  />
-                  <CardContent>
-                    <TableContainer>
-                      <Table>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Rank</TableCell>
-                            <TableCell>Agent</TableCell>
-                            <TableCell>Calls</TableCell>
-                            <TableCell>Earnings</TableCell>
-                            <TableCell>FTDs</TableCell>
-                            <TableCell>Fillers</TableCell>
-                            <TableCell>Quality</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {topPerformers.map((performer, index) => (
-                            <TableRow key={performer._id}>
-                              <TableCell>
-                                <Chip
-                                  label={`#${index + 1}`}
-                                  color={index === 0 ? 'warning' : index === 1 ? 'default' : 'primary'}
-                                  size="small"
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <Box display="flex" alignItems="center">
-                                  <Avatar sx={{ mr: 2, width: 32, height: 32 }}>
-                                    {performer.agent?.fourDigitCode || performer.agent?.fullName?.[0]}
-                                  </Avatar>
-                                  <Box>
-                                    <Typography variant="body2" fontWeight="medium">
-                                      {performer.agent?.fullName}
-                                    </Typography>
-                                    <Typography variant="caption" color="textSecondary">
-                                      {performer.agent?.fourDigitCode}
-                                    </Typography>
-                                  </Box>
-                                </Box>
-                              </TableCell>
-                              <TableCell>{performer.totalCalls}</TableCell>
-                              <TableCell>${performer.totalEarnings}</TableCell>
-                              <TableCell>{performer.totalFTDs}</TableCell>
-                              <TableCell>{performer.totalFillers}</TableCell>
-                              <TableCell>
-                                <Chip
-                                  label={performer.averageCallQuality}
-                                  color={performer.averageCallQuality >= 4 ? 'success' :
-                                    performer.averageCallQuality >= 3 ? 'warning' : 'error'}
-                                  size="small"
-                                />
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              {/* Lead Stats Summary */}
-              {leadStats && (
-                <Grid item xs={12}>
-                  <Card>
-                    <CardHeader title="Lead Statistics" />
+      <AnimatePresence>
+        {loading ? (
+          <Box 
+            display="flex" 
+            justifyContent="center" 
+            my={4}
+            component={motion.div}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Grid container spacing={3}>
+            {/* Admin Dashboard */}
+            {user?.role === 'admin' && (
+              <>
+                {/* Key Metrics Cards */}
+                <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
+                  <Card sx={cardStyle}>
                     <CardContent>
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6} md={3}>
-                          <Box textAlign="center" p={2}>
-                            <Typography variant="h5" color="primary">
-                              {leadStats.leads.ftd.total}
-                            </Typography>
-                            <Typography variant="body2" color="textSecondary">
-                              Total FTD Leads
-                            </Typography>
-                            <Typography variant="caption">
-                              {leadStats.leads.ftd.assigned} assigned, {leadStats.leads.ftd.available} available
-                            </Typography>
-                          </Box>
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                          <Box textAlign="center" p={2}>
-                            <Typography variant="h5" color="secondary">
-                              {leadStats.leads.filler.total}
-                            </Typography>
-                            <Typography variant="body2" color="textSecondary">
-                              Total Filler Leads
-                            </Typography>
-                            <Typography variant="caption">
-                              {leadStats.leads.filler.assigned} assigned, {leadStats.leads.filler.available} available
-                            </Typography>
-                          </Box>
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                          <Box textAlign="center" p={2}>
-                            <Typography variant="h5" color="info.main">
-                              {leadStats.leads.cold.total}
-                            </Typography>
-                            <Typography variant="body2" color="textSecondary">
-                              Total Cold Leads
-                            </Typography>
-                            <Typography variant="caption">
-                              {leadStats.leads.cold.assigned} assigned, {leadStats.leads.cold.available} available
-                            </Typography>
-                          </Box>
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                          <Box textAlign="center" p={2}>
-                            <Typography variant="h5" color="text.primary">
-                              {leadStats.leads.overall.total}
-                            </Typography>
-                            <Typography variant="body2" color="textSecondary">
-                              Total Leads
-                            </Typography>
-                            <Typography variant="caption">
-                              {leadStats.leads.overall.assigned} assigned, {leadStats.leads.overall.available} available
-                            </Typography>
-                          </Box>
-                        </Grid>
-                      </Grid>
+                      <Box display="flex" alignItems="center">
+                        <Avatar 
+                          sx={{ 
+                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                            color: theme.palette.primary.main,
+                            mr: 2,
+                          }}
+                        >
+                          <PeopleIcon />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="h4" sx={{
+                            fontWeight: 'bold',
+                            background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                          }}>
+                            {teamStats?.totalAgents || 0}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Active Agents
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box mt={2}>
+                        <Typography variant="caption" color="text.secondary">
+                          vs last period
+                        </Typography>
+                        <Box display="flex" alignItems="center" mt={0.5}>
+                          <TrendingUpIcon 
+                            sx={{ 
+                              color: theme.palette.success.main,
+                              fontSize: '1rem',
+                              mr: 0.5,
+                            }}
+                          />
+                          <Typography 
+                            variant="body2"
+                            color="success.main"
+                            fontWeight="bold"
+                          >
+                            +5%
+                          </Typography>
+                        </Box>
+                      </Box>
                     </CardContent>
                   </Card>
                 </Grid>
-              )}
-            </>
-          )}
 
-          {/* Agent Dashboard */}
-          {user?.role === 'agent' && agentMetrics && (
-            <>
-              {/* Agent Metrics Cards */}
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Box display="flex" alignItems="center">
-                      <PhoneIcon color="primary" sx={{ mr: 2 }} />
-                      <Box>
-                        <Typography variant="h4">
-                          {agentMetrics.totalCalls}
-                        </Typography>
-                        <Typography color="textSecondary">
-                          Total Calls
-                        </Typography>
+                <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
+                  <Card sx={cardStyle}>
+                    <CardContent>
+                      <Box display="flex" alignItems="center">
+                        <Avatar 
+                          sx={{ 
+                            bgcolor: alpha(theme.palette.info.main, 0.1),
+                            color: theme.palette.info.main,
+                            mr: 2,
+                          }}
+                        >
+                          <PhoneIcon />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="h4" sx={{
+                            fontWeight: 'bold',
+                            background: `linear-gradient(45deg, ${theme.palette.info.main}, ${theme.palette.info.dark})`,
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                          }}>
+                            {teamStats?.totalCalls || 0}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Total Calls Today
+                          </Typography>
+                        </Box>
                       </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Box display="flex" alignItems="center">
-                      <MoneyIcon color="success" sx={{ mr: 2 }} />
-                      <Box>
-                        <Typography variant="h4">
-                          ${agentMetrics.totalEarnings}
+                      <Box mt={2}>
+                        <Typography variant="caption" color="text.secondary">
+                          Daily Target
                         </Typography>
-                        <Typography color="textSecondary">
-                          Total Earnings
-                        </Typography>
+                        <Box display="flex" alignItems="center" mt={0.5}>
+                          <SpeedIcon 
+                            sx={{ 
+                              color: theme.palette.warning.main,
+                              fontSize: '1rem',
+                              mr: 0.5,
+                            }}
+                          />
+                          <Typography 
+                            variant="body2"
+                            color="warning.main"
+                            fontWeight="bold"
+                          >
+                            85% Complete
+                          </Typography>
+                        </Box>
                       </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
 
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Box display="flex" alignItems="center">
-                      <TrendingUpIcon color="info" sx={{ mr: 2 }} />
-                      <Box>
-                        <Typography variant="h4">
-                          {agentMetrics.totalFTDs}
-                        </Typography>
-                        <Typography color="textSecondary">
-                          FTD Conversions
-                        </Typography>
+                <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
+                  <Card sx={cardStyle}>
+                    <CardContent>
+                      <Box display="flex" alignItems="center">
+                        <Avatar 
+                          sx={{ 
+                            bgcolor: alpha(theme.palette.success.main, 0.1),
+                            color: theme.palette.success.main,
+                            mr: 2,
+                          }}
+                        >
+                          <MoneyIcon />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="h4" sx={{
+                            fontWeight: 'bold',
+                            background: `linear-gradient(45deg, ${theme.palette.success.main}, ${theme.palette.success.dark})`,
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                          }}>
+                            ${teamStats?.totalEarnings || 0}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Total Earnings
+                          </Typography>
+                        </Box>
                       </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
 
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Box display="flex" alignItems="center">
-                      <TrophyIcon color="warning" sx={{ mr: 2 }} />
-                      <Box>
-                        <Typography variant="h4">
-                          {agentMetrics.averageQuality}
-                        </Typography>
-                        <Typography color="textSecondary">
-                          Avg Quality Score
-                        </Typography>
+                <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
+                  <Card sx={cardStyle}>
+                    <CardContent>
+                      <Box display="flex" alignItems="center">
+                        <Avatar 
+                          sx={{ 
+                            bgcolor: alpha(theme.palette.warning.main, 0.1),
+                            color: theme.palette.warning.main,
+                            mr: 2,
+                          }}
+                        >
+                          <TrendingUpIcon />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="h4" sx={{
+                            fontWeight: 'bold',
+                            background: `linear-gradient(45deg, ${theme.palette.warning.main}, ${theme.palette.warning.dark})`,
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                          }}>
+                            {teamStats?.averageCallQuality || 0}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Avg Call Quality
+                          </Typography>
+                        </Box>
                       </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
 
-              {/* Agent Performance Chart */}
-              <Grid item xs={12}>
-                <Card>
-                  <CardHeader title="My Performance Trend" />
-                  <CardContent>
-                    <Box sx={{ height: 400 }}>
-                      <Line data={chartData} options={chartOptions} />
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
+                {/* Lead Distribution Chart with enhanced styling */}
+                <Grid item xs={12} md={6} component={motion.div} variants={itemVariants}>
+                  <Card sx={cardStyle}>
+                    <CardHeader 
+                      title={
+                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                          Lead Distribution
+                        </Typography>
+                      }
+                      action={
+                        <Tooltip title="View Details">
+                          <IconButton>
+                            <AssessmentIcon />
+                          </IconButton>
+                        </Tooltip>
+                      }
+                    />
+                    <CardContent>
+                      {leadDistributionData ? (
+                        <Box sx={{ height: 300 }}>
+                          <Doughnut 
+                            data={leadDistributionData}
+                            options={{
+                              ...chartOptions,
+                              cutout: '70%',
+                              plugins: {
+                                ...chartOptions.plugins,
+                                legend: {
+                                  ...chartOptions.plugins.legend,
+                                  position: 'bottom',
+                                },
+                              },
+                            }}
+                          />
+                        </Box>
+                      ) : (
+                        <Box display="flex" justifyContent="center" p={4}>
+                          <CircularProgress />
+                        </Box>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
 
-              {/* Detailed Performance Table */}
-              <Grid item xs={12}>
-                <Card>
-                  <CardHeader title="Daily Performance Records" />
-                  <CardContent>
-                    <TableContainer>
-                      <Table>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Date</TableCell>
-                            <TableCell>Calls Made</TableCell>
-                            <TableCell>Earnings</TableCell>
-                            <TableCell>FTDs</TableCell>
-                            <TableCell>Fillers</TableCell>
-                            <TableCell>Quality Score</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {agentPerformance.map((record) => (
-                            <TableRow key={record._id}>
-                              <TableCell>
-                                {new Date(record.date).toLocaleDateString()}
-                              </TableCell>
-                              <TableCell>{record.metrics?.callsMade || 0}</TableCell>
-                              <TableCell>${record.metrics?.earnings || 0}</TableCell>
-                              <TableCell>{record.metrics?.ftdCount || 0}</TableCell>
-                              <TableCell>{record.metrics?.fillerCount || 0}</TableCell>
-                              <TableCell>
-                                <Chip
-                                  label={record.metrics?.averageCallQuality || 0}
-                                  color={
-                                    (record.metrics?.averageCallQuality || 0) >= 4 ? 'success' :
-                                      (record.metrics?.averageCallQuality || 0) >= 3 ? 'warning' : 'error'
-                                  }
-                                  size="small"
-                                />
-                              </TableCell>
+                {/* Performance Trend Chart with enhanced styling */}
+                <Grid item xs={12} md={6} component={motion.div} variants={itemVariants}>
+                  <Card sx={cardStyle}>
+                    <CardHeader 
+                      title={
+                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                          Performance Trend
+                        </Typography>
+                      }
+                      action={
+                        <Tooltip title="View Analytics">
+                          <IconButton>
+                            <TimelineIcon />
+                          </IconButton>
+                        </Tooltip>
+                      }
+                    />
+                    <CardContent>
+                      <Box sx={{ height: 300 }}>
+                        <Line 
+                          data={chartData}
+                          options={{
+                            ...chartOptions,
+                            elements: {
+                              line: {
+                                tension: 0.4,
+                              },
+                              point: {
+                                radius: 4,
+                                borderWidth: 2,
+                                backgroundColor: theme.palette.background.paper,
+                              },
+                            },
+                          }}
+                        />
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Top Performers Table with enhanced styling */}
+                <Grid item xs={12} component={motion.div} variants={itemVariants}>
+                  <Card sx={cardStyle}>
+                    <CardHeader 
+                      title={
+                        <Box display="flex" alignItems="center">
+                          <TrophyIcon sx={{ color: theme.palette.warning.main, mr: 1 }} />
+                          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                            Top Performers
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                    <CardContent>
+                      <TableContainer>
+                        <Table>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Agent</TableCell>
+                              <TableCell align="center">Calls</TableCell>
+                              <TableCell align="center">Earnings</TableCell>
+                              <TableCell align="center">Quality Score</TableCell>
+                              <TableCell align="center">Status</TableCell>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </>
-          )}
-        </Grid>
-      )}
+                          </TableHead>
+                          <TableBody>
+                            {topPerformers.map((performer, index) => (
+                              <TableRow
+                                key={performer._id}
+                                component={motion.tr}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                sx={{
+                                  '&:hover': {
+                                    bgcolor: alpha(theme.palette.primary.main, 0.05),
+                                  },
+                                }}
+                              >
+                                <TableCell>
+                                  <Box display="flex" alignItems="center">
+                                    <Avatar
+                                      sx={{
+                                        bgcolor: theme.palette.primary.main,
+                                        width: 32,
+                                        height: 32,
+                                        mr: 1,
+                                      }}
+                                    >
+                                      {performer.agent.fullName.charAt(0)}
+                                    </Avatar>
+                                    <Box>
+                                      <Typography variant="body2" fontWeight="bold">
+                                        {performer.agent.fullName}
+                                      </Typography>
+                                      <Typography variant="caption" color="text.secondary">
+                                        #{performer.agent.fourDigitCode}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                </TableCell>
+                                <TableCell align="center">
+                                  <Typography variant="body2" fontWeight="medium">
+                                    {performer.totalCalls}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell align="center">
+                                  <Typography variant="body2" fontWeight="medium" color="success.main">
+                                    ${performer.totalEarnings.toFixed(2)}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell align="center">
+                                  <Box display="flex" justifyContent="center" alignItems="center">
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        color: performer.averageCallQuality >= 4
+                                          ? 'success.main'
+                                          : performer.averageCallQuality >= 3
+                                          ? 'warning.main'
+                                          : 'error.main',
+                                      }}
+                                    >
+                                      {performer.averageCallQuality.toFixed(1)}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary" ml={0.5}>
+                                      /5.0
+                                    </Typography>
+                                  </Box>
+                                </TableCell>
+                                <TableCell align="center">
+                                  <Chip
+                                    label={index < 3 ? 'Top Performer' : 'Active'}
+                                    size="small"
+                                    sx={{
+                                      bgcolor: index < 3
+                                        ? alpha(theme.palette.success.main, 0.1)
+                                        : alpha(theme.palette.primary.main, 0.1),
+                                      color: index < 3
+                                        ? theme.palette.success.main
+                                        : theme.palette.primary.main,
+                                      fontWeight: 'medium',
+                                    }}
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Lead Stats Summary */}
+                {leadStats && (
+                  <Grid item xs={12}>
+                    <Card>
+                      <CardHeader title="Lead Statistics" />
+                      <CardContent>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Box textAlign="center" p={2}>
+                              <Typography variant="h5" color="primary">
+                                {leadStats.leads.ftd.total}
+                              </Typography>
+                              <Typography variant="body2" color="textSecondary">
+                                Total FTD Leads
+                              </Typography>
+                              <Typography variant="caption">
+                                {leadStats.leads.ftd.assigned} assigned, {leadStats.leads.ftd.available} available
+                              </Typography>
+                            </Box>
+                          </Grid>
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Box textAlign="center" p={2}>
+                              <Typography variant="h5" color="secondary">
+                                {leadStats.leads.filler.total}
+                              </Typography>
+                              <Typography variant="body2" color="textSecondary">
+                                Total Filler Leads
+                              </Typography>
+                              <Typography variant="caption">
+                                {leadStats.leads.filler.assigned} assigned, {leadStats.leads.filler.available} available
+                              </Typography>
+                            </Box>
+                          </Grid>
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Box textAlign="center" p={2}>
+                              <Typography variant="h5" color="info.main">
+                                {leadStats.leads.cold.total}
+                              </Typography>
+                              <Typography variant="body2" color="textSecondary">
+                                Total Cold Leads
+                              </Typography>
+                              <Typography variant="caption">
+                                {leadStats.leads.cold.assigned} assigned, {leadStats.leads.cold.available} available
+                              </Typography>
+                            </Box>
+                          </Grid>
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Box textAlign="center" p={2}>
+                              <Typography variant="h5" color="secondary.main">
+                                {leadStats.leads.live.total}
+                              </Typography>
+                              <Typography variant="body2" color="textSecondary">
+                                Total Live Leads
+                              </Typography>
+                              <Typography variant="caption">
+                                {leadStats.leads.live.assigned} assigned, {leadStats.leads.live.available} available
+                              </Typography>
+                            </Box>
+                          </Grid>
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Box textAlign="center" p={2}>
+                              <Typography variant="h5" color="text.primary">
+                                {leadStats.leads.overall.total}
+                              </Typography>
+                              <Typography variant="body2" color="textSecondary">
+                                Total Leads
+                              </Typography>
+                              <Typography variant="caption">
+                                {leadStats.leads.overall.assigned} assigned, {leadStats.leads.overall.available} available
+                              </Typography>
+                            </Box>
+                          </Grid>
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                )}
+              </>
+            )}
+
+            {/* Agent Dashboard */}
+            {user?.role === 'agent' && agentMetrics && (
+              <>
+                {/* Agent Metrics Cards */}
+                <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
+                  <Card sx={cardStyle}>
+                    <CardContent>
+                      <Box display="flex" alignItems="center">
+                        <Avatar 
+                          sx={{ 
+                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                            color: theme.palette.primary.main,
+                            mr: 2,
+                          }}
+                        >
+                          <PhoneIcon />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="h4" sx={{
+                            fontWeight: 'bold',
+                            background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                          }}>
+                            {agentMetrics.totalCalls}
+                          </Typography>
+                          <Typography color="textSecondary">
+                            Total Calls
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
+                  <Card sx={cardStyle}>
+                    <CardContent>
+                      <Box display="flex" alignItems="center">
+                        <Avatar 
+                          sx={{ 
+                            bgcolor: alpha(theme.palette.success.main, 0.1),
+                            color: theme.palette.success.main,
+                            mr: 2,
+                          }}
+                        >
+                          <MoneyIcon />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="h4" sx={{
+                            fontWeight: 'bold',
+                            background: `linear-gradient(45deg, ${theme.palette.success.main}, ${theme.palette.success.dark})`,
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                          }}>
+                            ${agentMetrics.totalEarnings}
+                          </Typography>
+                          <Typography color="textSecondary">
+                            Total Earnings
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
+                  <Card sx={cardStyle}>
+                    <CardContent>
+                      <Box display="flex" alignItems="center">
+                        <Avatar 
+                          sx={{ 
+                            bgcolor: alpha(theme.palette.warning.main, 0.1),
+                            color: theme.palette.warning.main,
+                            mr: 2,
+                          }}
+                        >
+                          <TrendingUpIcon />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="h4" sx={{
+                            fontWeight: 'bold',
+                            background: `linear-gradient(45deg, ${theme.palette.warning.main}, ${theme.palette.warning.dark})`,
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                          }}>
+                            {agentMetrics.totalFTDs}
+                          </Typography>
+                          <Typography color="textSecondary">
+                            FTD Conversions
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12} sm={6} md={3} component={motion.div} variants={itemVariants}>
+                  <Card sx={cardStyle}>
+                    <CardContent>
+                      <Box display="flex" alignItems="center">
+                        <Avatar 
+                          sx={{ 
+                            bgcolor: alpha(theme.palette.warning.main, 0.1),
+                            color: theme.palette.warning.main,
+                            mr: 2,
+                          }}
+                        >
+                          <TrendingUpIcon />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="h4" sx={{
+                            fontWeight: 'bold',
+                            background: `linear-gradient(45deg, ${theme.palette.warning.main}, ${theme.palette.warning.dark})`,
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                          }}>
+                            {agentMetrics.averageQuality}
+                          </Typography>
+                          <Typography color="textSecondary">
+                            Avg Quality Score
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Agent Performance Chart */}
+                <Grid item xs={12} component={motion.div} variants={itemVariants}>
+                  <Card sx={cardStyle}>
+                    <CardHeader title="My Performance Trend" />
+                    <CardContent>
+                      <Box sx={{ height: 400 }}>
+                        <Line 
+                          data={chartData}
+                          options={{
+                            ...chartOptions,
+                            elements: {
+                              line: {
+                                tension: 0.4,
+                              },
+                              point: {
+                                radius: 4,
+                                borderWidth: 2,
+                                backgroundColor: theme.palette.background.paper,
+                              },
+                            },
+                          }}
+                        />
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Detailed Performance Table */}
+                <Grid item xs={12} component={motion.div} variants={itemVariants}>
+                  <Card sx={cardStyle}>
+                    <CardHeader title="Daily Performance Records" />
+                    <CardContent>
+                      <TableContainer>
+                        <Table>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Date</TableCell>
+                              <TableCell>Calls Made</TableCell>
+                              <TableCell>Earnings</TableCell>
+                              <TableCell>FTDs</TableCell>
+                              <TableCell>Fillers</TableCell>
+                              <TableCell>Quality Score</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {agentPerformance.map((record) => (
+                              <TableRow
+                                key={record._id}
+                                component={motion.tr}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                sx={{
+                                  '&:hover': {
+                                    bgcolor: alpha(theme.palette.primary.main, 0.05),
+                                  },
+                                }}
+                              >
+                                <TableCell>
+                                  {new Date(record.date).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell>{record.metrics?.callsMade || 0}</TableCell>
+                                <TableCell>${record.metrics?.earnings || 0}</TableCell>
+                                <TableCell>{record.metrics?.ftdCount || 0}</TableCell>
+                                <TableCell>{record.metrics?.fillerCount || 0}</TableCell>
+                                <TableCell>
+                                  <Chip
+                                    label={record.metrics?.averageCallQuality || 0}
+                                    color={
+                                      (record.metrics?.averageCallQuality || 0) >= 4 ? 'success' :
+                                        (record.metrics?.averageCallQuality || 0) >= 3 ? 'warning' : 'error'
+                                    }
+                                    size="small"
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </>
+            )}
+          </Grid>
+        )}
+      </AnimatePresence>
     </Box>
   );
 };

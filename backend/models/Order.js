@@ -14,7 +14,8 @@ const orderSchema = new mongoose.Schema({
   requests: {
     ftd: { type: Number, default: 0 },
     filler: { type: Number, default: 0 },
-    cold: { type: Number, default: 0 }
+    cold: { type: Number, default: 0 },
+    live: { type: Number, default: 0 }
   },
   leads: [{ 
     type: mongoose.Schema.Types.ObjectId, 
@@ -33,7 +34,8 @@ const orderSchema = new mongoose.Schema({
   fulfilled: {
     ftd: { type: Number, default: 0 },
     filler: { type: Number, default: 0 },
-    cold: { type: Number, default: 0 }
+    cold: { type: Number, default: 0 },
+    live: { type: Number, default: 0 }
   },
   
   // Completion tracking
@@ -54,12 +56,12 @@ orderSchema.index({ priority: 1 });
 
 // Virtual for total requested leads
 orderSchema.virtual('totalRequested').get(function() {
-  return this.requests.ftd + this.requests.filler + this.requests.cold;
+  return this.requests.ftd + this.requests.filler + this.requests.cold + this.requests.live;
 });
 
 // Virtual for total fulfilled leads
 orderSchema.virtual('totalFulfilled').get(function() {
-  return this.fulfilled.ftd + this.fulfilled.filler + this.fulfilled.cold;
+  return this.fulfilled.ftd + this.fulfilled.filler + this.fulfilled.cold + this.fulfilled.live;
 });
 
 // Virtual for completion percentage
@@ -95,12 +97,12 @@ orderSchema.statics.getOrderStats = function(userId = null) {
         count: { $sum: 1 },
         totalRequested: {
           $sum: {
-            $add: ['$requests.ftd', '$requests.filler', '$requests.cold']
+            $add: ['$requests.ftd', '$requests.filler', '$requests.cold', '$requests.live']
           }
         },
         totalFulfilled: {
           $sum: {
-            $add: ['$fulfilled.ftd', '$fulfilled.filler', '$fulfilled.cold']
+            $add: ['$fulfilled.ftd', '$fulfilled.filler', '$fulfilled.cold', '$fulfilled.live']
           }
         }
       }

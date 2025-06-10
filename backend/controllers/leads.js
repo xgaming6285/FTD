@@ -319,6 +319,7 @@ exports.getLeadStats = async (req, res, next) => {
       ftd: { assigned: 0, available: 0, total: 0 },
       filler: { assigned: 0, available: 0, total: 0 },
       cold: { assigned: 0, available: 0, total: 0 },
+      live: { assigned: 0, available: 0, total: 0 },
       overall: { assigned: 0, available: 0, total: 0 },
     };
 
@@ -420,14 +421,16 @@ exports.assignLeads = async (req, res, next) => {
     // Build the update condition based on role
     let updateCondition = {
       _id: { $in: leadIds },
-      isAssigned: false,
     };
 
     // Role-based filtering for affiliate managers
     if (req.user.role === "affiliate_manager") {
       // Affiliate managers can only assign leads that are assigned to them
       updateCondition.assignedTo = req.user.id;
-      updateCondition.isAssigned = true; // Override the isAssigned condition for affiliate managers
+      updateCondition.isAssigned = true;
+    } else if (req.user.role === "admin") {
+      // Admins can assign any lead (both unassigned and reassign already assigned ones)
+      // No additional filtering needed - they can assign any lead by ID
     }
 
     // Update leads
