@@ -2,15 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Container,
-  Paper,
-  Typography,
-  Box,
-  TextField,
-  Button,
   Alert,
   CircularProgress,
-  InputAdornment,
   IconButton,
 } from '@mui/material';
 import {
@@ -23,6 +16,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { login, clearError, selectAuth } from '../store/slices/authSlice';
+import './LoginPage.css';
 
 // Validation schema
 const schema = yup.object({
@@ -40,11 +34,8 @@ const LoginPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  
   const { isLoading, error, isAuthenticated } = useSelector(selectAuth);
-  
   const [showPassword, setShowPassword] = useState(false);
-  
   const {
     register,
     handleSubmit,
@@ -69,12 +60,10 @@ const LoginPage = () => {
   const onSubmit = async (data) => {
     try {
       const result = await dispatch(login(data)).unwrap();
-      
       // Store token in localStorage
       if (result.token) {
         localStorage.setItem('token', result.token);
       }
-      
       // Navigate to dashboard or intended page
       const from = location.state?.from?.pathname || '/dashboard';
       navigate(from, { replace: true });
@@ -89,117 +78,67 @@ const LoginPage = () => {
   };
 
   return (
-    <Container component="main" maxWidth="sm">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Paper elevation={3} sx={{ padding: 4, width: '100%' }}>
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-          >
-            <Typography component="h1" variant="h4" align="center" gutterBottom>
-              Lead Management Platform
-            </Typography>
-            <Typography variant="h6" align="center" color="textSecondary" gutterBottom>
-              Sign in to your account
-            </Typography>
-
+    <div className="login-page">
+      <div className="login-container">
+        <div className="login-branding">
+          <h1>Welcome to Lead Management</h1>
+          <p>Your one-stop solution for managing leads effectively.</p>
+        </div>
+        <div className="login-form-container">
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <h2>Sign In</h2>
             {error && (
               <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
                 {error}
               </Alert>
             )}
-
-            <Box
-              component="form"
-              onSubmit={handleSubmit(onSubmit)}
-              sx={{ mt: 1, width: '100%' }}
-            >
-              <TextField
+            <div className="form-group">
+              <span className="icon">
+                <Email />
+              </span>
+              <input
                 {...register('email')}
-                margin="normal"
-                required
-                fullWidth
-                id="email"
-                label="Email Address"
-                name="email"
+                type="email"
+                placeholder="Email Address"
                 autoComplete="email"
                 autoFocus
-                error={!!errors.email}
-                helperText={errors.email?.message}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Email />
-                    </InputAdornment>
-                  ),
-                }}
               />
-              <TextField
+              {errors.email && <p className="error-message">{errors.email.message}</p>}
+            </div>
+            <div className="form-group">
+              <span className="icon">
+                <Lock />
+              </span>
+              <input
                 {...register('password')}
-                margin="normal"
-                required
-                fullWidth
-                name="password"
-                label="Password"
                 type={showPassword ? 'text' : 'password'}
-                id="password"
+                placeholder="Password"
                 autoComplete="current-password"
-                error={!!errors.password}
-                helperText={errors.password?.message}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Lock />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle password visibility"
-                        onClick={handleTogglePasswordVisibility}
-                        edge="end"
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
               />
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                sx={{ mt: 3, mb: 2 }}
-                disabled={isLoading}
-                size="large"
+              <IconButton
+                aria-label="toggle password visibility"
+                onClick={handleTogglePasswordVisibility}
+                edge="end"
+                style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)' }}
               >
-                {isLoading ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : (
-                  'Sign In'
-                )}
-              </Button>
-            </Box>
-
-            <Box sx={{ mt: 2, textAlign: 'center' }}>
-              <Typography variant="body2" color="textSecondary">
-                Need access? Contact your system administrator.
-              </Typography>
-            </Box>
-          </Box>
-        </Paper>
-      </Box>
-    </Container>
+                {showPassword ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+              {errors.password && <p className="error-message">{errors.password.message}</p>}
+            </div>
+            <button type="submit" className="login-btn" disabled={isLoading}>
+              {isLoading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                'Sign In'
+              )}
+            </button>
+            <p style={{ textAlign: 'center', marginTop: '20px', color: '#777' }}>
+              Need access? Contact your system administrator.
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 };
 
