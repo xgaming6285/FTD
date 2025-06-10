@@ -54,9 +54,26 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// CORS configuration - Allow all traffic
+// CORS configuration
 const corsOptions = {
-  origin: true, // Allow all origins
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+
+    // Get allowed origins from environment variable
+    const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').map(o => o.trim());
+
+    // In development, allow localhost
+    if (process.env.NODE_ENV !== 'production') {
+      allowedOrigins.push('http://localhost:3000', 'http://localhost:5173');
+    }
+
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true,
@@ -81,14 +98,11 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/users', userRoutes);
 
+// Import health check route
+const healthRoutes = require('./routes/health');
+
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Server is running',
-    timestamp: new Date().toISOString()
-  });
-});
+app.use('/api/health', healthRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
