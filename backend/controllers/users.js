@@ -90,6 +90,14 @@ exports.approveUser = async (req, res, next) => {
     user.isActive = true;
     user.role = role;
 
+    // If the role is lead_manager, set additional fields
+    if (role === 'lead_manager') {
+      user.leadManagerStatus = 'approved';
+      user.leadManagerApprovedBy = req.user._id;
+      user.leadManagerApprovedAt = new Date();
+      user.permissions.canManageLeads = true;
+    }
+
     // If the new role is 'agent', ensure fourDigitCode is set or generate one
     if (role === 'agent' && !user.fourDigitCode) {
       // Simple random 4-digit code generation
@@ -623,7 +631,6 @@ exports.getDailyTeamStats = async (req, res, next) => {
     next(error);
   }
 };
-
 // @desc    Assign a user as a lead manager
 // @route   PUT /api/users/:id/assign-lead-manager
 // @access  Private (Admin only)

@@ -339,14 +339,17 @@ const UsersPage = () => {
   const handleApproveLeadManager = async (user, approved, reason) => {
     try {
       setError(null);
+      console.log('Approving lead manager:', { userId: user._id, approved, reason });
       const response = await api.put(`/users/${user._id}/approve-lead-manager`, {
         approved,
         reason,
       });
+      console.log('Approve lead manager response:', response.data);
       setSuccess(approved ? 'Lead manager approved successfully' : 'Lead manager rejected successfully');
       fetchUsers();
       setApproveLeadManagerDialogOpen(false);
     } catch (err) {
+      console.error('Error approving lead manager:', err.response || err);
       setError(err.response?.data?.message || 'Failed to process lead manager approval');
     }
   };
@@ -926,6 +929,14 @@ const UsersPage = () => {
             </Button>
             <Button
               variant="outlined"
+              onClick={() => handleApproveUser('lead_manager')}
+              startIcon={<LeadManagerIcon />}
+              fullWidth
+            >
+              Approve as Lead Manager
+            </Button>
+            <Button
+              variant="outlined"
               onClick={() => handleApproveUser('agent')}
               startIcon={<AgentIcon />}
               fullWidth
@@ -978,15 +989,20 @@ const UsersPage = () => {
           </Typography>
           <Stack spacing={2} sx={{ mt: 2 }}>
             <Button
-              variant="outlined"
-              onClick={() => handleApproveLeadManager(selectedUser, true, '')}
+              variant="contained"
+              color="success"
+              onClick={() => {
+                console.log('Selected user for approval:', selectedUser);
+                handleApproveLeadManager(selectedUser, true);
+              }}
               fullWidth
             >
               Approve
             </Button>
             <Button
-              variant="outlined"
-              onClick={() => handleApproveLeadManager(selectedUser, false, 'Rejected')}
+              variant="contained"
+              color="error"
+              onClick={() => handleApproveLeadManager(selectedUser, false, 'Rejected by admin')}
               fullWidth
             >
               Reject

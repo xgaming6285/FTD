@@ -17,14 +17,29 @@ const leadSchema = new mongoose.Schema({
     required: [true, 'Last name is required'],
     trim: true
   },
-  email: {
+  gender: {
     type: String,
-    required: [true, 'Email is required'],
+    enum: ['male', 'female', 'other'],
+    required: [true, 'Gender is required']
+  },
+  newEmail: {
+    type: String,
+    required: [true, 'New email is required'],
     unique: true,
     trim: true,
     lowercase: true
   },
-  phone: {
+  oldEmail: {
+    type: String,
+    trim: true,
+    lowercase: true
+  },
+  newPhone: {
+    type: String,
+    trim: true,
+    required: [true, 'New phone is required']
+  },
+  oldPhone: {
     type: String,
     trim: true
   },

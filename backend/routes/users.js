@@ -115,7 +115,7 @@ router.put(
   [
     protect,
     isAdmin,
-    body('role', 'A valid role is required for approval').isIn(['admin', 'affiliate_manager', 'agent'])
+    body('role', 'A valid role is required for approval').isIn(['admin', 'affiliate_manager', 'agent', 'lead_manager'])
   ],
   approveUser
 );
