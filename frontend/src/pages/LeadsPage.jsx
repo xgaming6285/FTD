@@ -152,10 +152,10 @@ const LeadDetails = React.memo(({ lead }) => (
           </Typography>
           <Stack spacing={1}>
             <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <span style={{ color: 'text.secondary' }}>📧</span> {lead.email}
+              <span style={{ color: 'text.secondary' }}>📧</span> {lead.newEmail}
             </Typography>
             <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <span style={{ color: 'text.secondary' }}>📱</span> {lead.phone || 'N/A'}
+              <span style={{ color: 'text.secondary' }}>📱</span> {lead.newPhone || 'N/A'}
             </Typography>
             <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <span style={{ color: 'text.secondary' }}>🌍</span> {lead.country || 'Unknown'}

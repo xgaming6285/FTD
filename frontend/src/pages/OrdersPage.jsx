@@ -457,7 +457,7 @@ const OrdersPage = () => {
                                                 <TableCell><Chip label={lead.leadType?.toUpperCase()} size="small" /></TableCell>
                                                 <TableCell>{lead.firstName} {lead.lastName}</TableCell>
                                                 <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{lead.country}</TableCell>
-                                                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{lead.email}</TableCell>
+                                                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{lead.newEmail}</TableCell>
                                               </TableRow>
                                             ))}
                                           </TableBody>
