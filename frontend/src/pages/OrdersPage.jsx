@@ -68,6 +68,7 @@ const orderSchema = yup.object({
   live: yup.number().min(0, 'Must be 0 or greater').integer('Must be a whole number'),
   priority: yup.string().oneOf(['low', 'medium', 'high'], 'Invalid priority'),
   notes: yup.string(),
+  country: yup.string().nullable(),
 }).test('at-least-one', 'At least one lead type must be requested', function (value) {
   return (value.ftd || 0) + (value.filler || 0) + (value.cold || 0) + (value.live || 0) > 0;
 });
@@ -115,6 +116,7 @@ const OrdersPage = () => {
       live: 0,
       priority: 'medium',
       notes: '',
+      country: '',
     },
   });
 
@@ -183,6 +185,7 @@ const OrdersPage = () => {
         },
         priority: data.priority,
         notes: data.notes,
+        country: data.country || null,
       };
 
       await api.post('/orders', orderData);
@@ -646,7 +649,7 @@ const OrdersPage = () => {
                   )}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={12} sm={6}>
                 <Controller
                   name="priority"
                   control={control}
@@ -663,6 +666,23 @@ const OrdersPage = () => {
                         <MenuItem value="high">High</MenuItem>
                       </Select>
                     </FormControl>
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Controller
+                  name="country"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Country Filter (Optional)"
+                      placeholder="e.g. Canada, USA, UK"
+                      error={!!errors.country}
+                      helperText={errors.country?.message || "Leave empty to include leads from all countries"}
+                      size={isSmallScreen ? 'small' : 'medium'}
+                    />
                   )}
                 />
               </Grid>
@@ -764,6 +784,19 @@ const OrdersPage = () => {
                   {selectedOrder.notes || 'No notes provided'}
                 </Typography>
               </Grid>
+              {selectedOrder.countryFilter && (
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2">Country Filter Used</Typography>
+                  <Typography variant="body2" gutterBottom>
+                    <Chip 
+                      label={selectedOrder.countryFilter} 
+                      size="small" 
+                      color="primary" 
+                      variant="outlined"
+                    />
+                  </Typography>
+                </Grid>
+              )}
               <Grid item xs={12}>
                 <Typography variant="subtitle2">Created</Typography>
                 <Typography variant="body2" gutterBottom>

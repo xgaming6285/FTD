@@ -39,7 +39,12 @@ router.post('/', [
     .optional()
     .trim()
     .isLength({ max: 500 })
-    .withMessage('Notes must be less than 500 characters')
+    .withMessage('Notes must be less than 500 characters'),
+  body('country')
+    .optional()
+    .trim()
+    .isLength({ min: 2 })
+    .withMessage('Country must be at least 2 characters')
 ], createOrder);
 
 // @route   GET /api/orders

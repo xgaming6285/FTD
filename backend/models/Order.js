@@ -30,6 +30,12 @@ const orderSchema = new mongoose.Schema({
     default: 'medium'
   },
   
+  // Country filter used when creating this order
+  countryFilter: {
+    type: String,
+    trim: true
+  },
+  
   // Fulfillment tracking
   fulfilled: {
     ftd: { type: Number, default: 0 },

@@ -19,7 +19,7 @@ exports.createOrder = async (req, res, next) => {
       });
     }
 
-    const { requests, priority, notes } = req.body;
+    const { requests, priority, notes, country } = req.body;
     const { ftd = 0, filler = 0, cold = 0, live = 0 } = requests || {};
 
     if (ftd + filler + cold + live === 0) {
@@ -33,12 +33,16 @@ exports.createOrder = async (req, res, next) => {
       const pulledLeads = [];
       const fulfilled = { ftd: 0, filler: 0, cold: 0, live: 0 };
 
+      // Base query filter for country if specified
+      const countryFilter = country ? { country: new RegExp(country, "i") } : {};
+
       // Pull FTD leads
       if (ftd > 0) {
         const ftdLeads = await Lead.find({
           leadType: "ftd",
           isAssigned: false,
           "documents.status": { $in: ["good", "ok"] },
+          ...countryFilter,
         })
           .limit(ftd)
           .session(session);
@@ -54,6 +58,7 @@ exports.createOrder = async (req, res, next) => {
         const fillerLeads = await Lead.find({
           leadType: "filler",
           isAssigned: false,
+          ...countryFilter,
         })
           .limit(filler)
           .session(session);
@@ -69,6 +74,7 @@ exports.createOrder = async (req, res, next) => {
         const coldLeads = await Lead.find({
           leadType: "cold",
           isAssigned: false,
+          ...countryFilter,
         })
           .limit(cold)
           .session(session);
@@ -84,6 +90,7 @@ exports.createOrder = async (req, res, next) => {
         const liveLeads = await Lead.find({
           leadType: "live",
           isAssigned: false,
+          ...countryFilter,
         })
           .limit(live)
           .session(session);
@@ -103,6 +110,7 @@ exports.createOrder = async (req, res, next) => {
         priority: priority || "medium",
         notes,
         status: "fulfilled",
+        countryFilter: country || null, // Store the country filter used for this order
       });
 
       await order.save({ session });
@@ -152,7 +160,9 @@ exports.createOrder = async (req, res, next) => {
 
       res.status(201).json({
         success: true,
-        message: "Order created successfully",
+        message: country 
+          ? `Order created successfully with ${pulledLeads.length} leads from ${country}`
+          : "Order created successfully",
         data: order,
       });
     });
