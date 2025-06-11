@@ -7,8 +7,6 @@ const Lead = require("../models/Lead");
 // @route   POST /api/orders
 // @access  Private (Admin, Manager with canCreateOrders permission)
 exports.createOrder = async (req, res, next) => {
-  const session = await mongoose.startSession();
-
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -29,138 +27,122 @@ exports.createOrder = async (req, res, next) => {
       });
     }
 
-    await session.withTransaction(async () => {
-      const pulledLeads = [];
-      const fulfilled = { ftd: 0, filler: 0, cold: 0, live: 0 };
+    const pulledLeads = [];
+    const fulfilled = { ftd: 0, filler: 0, cold: 0, live: 0 };
 
-      // Pull FTD leads
-      if (ftd > 0) {
-        const ftdLeads = await Lead.find({
-          leadType: "ftd",
-          isAssigned: false,
-          "documents.status": { $in: ["good", "ok"] },
-        })
-          .limit(ftd)
-          .session(session);
+    // Pull FTD leads
+    if (ftd > 0) {
+      const ftdLeads = await Lead.find({
+        leadType: "ftd",
+        isAssigned: false,
+        "documents.status": { $in: ["good", "ok"] },
+      }).limit(ftd);
 
-        if (ftdLeads.length > 0) {
-          pulledLeads.push(...ftdLeads);
-          fulfilled.ftd = ftdLeads.length;
-        }
+      if (ftdLeads.length > 0) {
+        pulledLeads.push(...ftdLeads);
+        fulfilled.ftd = ftdLeads.length;
       }
+    }
 
-      // Pull Filler leads
-      if (filler > 0) {
-        const fillerLeads = await Lead.find({
-          leadType: "filler",
-          isAssigned: false,
-        })
-          .limit(filler)
-          .session(session);
+    // Pull Filler leads
+    if (filler > 0) {
+      const fillerLeads = await Lead.find({
+        leadType: "filler",
+        isAssigned: false,
+      }).limit(filler);
 
-        if (fillerLeads.length > 0) {
-          pulledLeads.push(...fillerLeads);
-          fulfilled.filler = fillerLeads.length;
-        }
+      if (fillerLeads.length > 0) {
+        pulledLeads.push(...fillerLeads);
+        fulfilled.filler = fillerLeads.length;
       }
+    }
 
-      // Pull Cold leads
-      if (cold > 0) {
-        const coldLeads = await Lead.find({
-          leadType: "cold",
-          isAssigned: false,
-        })
-          .limit(cold)
-          .session(session);
+    // Pull Cold leads
+    if (cold > 0) {
+      const coldLeads = await Lead.find({
+        leadType: "cold",
+        isAssigned: false,
+      }).limit(cold);
 
-        if (coldLeads.length > 0) {
-          pulledLeads.push(...coldLeads);
-          fulfilled.cold = coldLeads.length;
-        }
+      if (coldLeads.length > 0) {
+        pulledLeads.push(...coldLeads);
+        fulfilled.cold = coldLeads.length;
       }
+    }
 
-      // Pull Live leads
-      if (live > 0) {
-        const liveLeads = await Lead.find({
-          leadType: "live",
-          isAssigned: false,
-        })
-          .limit(live)
-          .session(session);
+    // Pull Live leads
+    if (live > 0) {
+      const liveLeads = await Lead.find({
+        leadType: "live",
+        isAssigned: false,
+      }).limit(live);
 
-        if (liveLeads.length > 0) {
-          pulledLeads.push(...liveLeads);
-          fulfilled.live = liveLeads.length;
-        }
+      if (liveLeads.length > 0) {
+        pulledLeads.push(...liveLeads);
+        fulfilled.live = liveLeads.length;
       }
+    }
 
-      // Create the order first
-      const order = new Order({
-        requester: req.user._id,
-        requests: { ftd, filler, cold, live },
-        fulfilled,
-        leads: pulledLeads.map((l) => l._id),
-        priority: priority || "medium",
-        notes,
-        status: "fulfilled",
-      });
+    // Create the order first
+    const order = new Order({
+      requester: req.user._id,
+      requests: { ftd, filler, cold, live },
+      fulfilled,
+      leads: pulledLeads.map((l) => l._id),
+      priority: priority || "medium",
+      notes,
+      status: "fulfilled",
+    });
 
-      await order.save({ session });
+    await order.save();
 
-      // Then update leads with the order ID
-      if (pulledLeads.length > 0) {
-        await Lead.updateMany(
-          { _id: { $in: pulledLeads.map((l) => l._id) } },
-          {
-            $set: {
-              isAssigned: true,
-              assignedTo: req.user._id,
-              assignedAt: new Date(),
-              orderId: order._id,
-            },
-          },
-          { session }
-        );
-
-        // Verify the update was successful
-        const updatedLeads = await Lead.find(
-          { _id: { $in: pulledLeads.map((l) => l._id) } },
-          null,
-          { session }
-        );
-
-        // Check if any leads weren't properly updated
-        const notUpdated = updatedLeads.filter(
-          (lead) => !lead.orderId || lead.orderId.toString() !== order._id.toString()
-        );
-
-        if (notUpdated.length > 0) {
-          throw new Error(`Failed to update orderId for ${notUpdated.length} leads`);
-        }
-      }
-
-      // Populate the order for response
-      await order.populate([
-        { path: "requester", select: "fullName email role" },
+    // Then update leads with the order ID
+    if (pulledLeads.length > 0) {
+      await Lead.updateMany(
+        { _id: { $in: pulledLeads.map((l) => l._id) } },
         {
-          path: "leads",
-          select: "leadType firstName lastName country email phone orderId",
-        },
-      ]);
+          $set: {
+            isAssigned: true,
+            assignedTo: req.user._id,
+            assignedAt: new Date(),
+            orderId: order._id,
+          },
+        }
+      );
 
-      await session.commitTransaction();
+      // Verify the update was successful
+      const updatedLeads = await Lead.find(
+        { _id: { $in: pulledLeads.map((l) => l._id) } }
+      );
 
-      res.status(201).json({
-        success: true,
-        message: "Order created successfully",
-        data: order,
-      });
+      // Check if any leads weren't properly updated
+      const notUpdated = updatedLeads.filter(
+        (lead) => !lead.orderId || lead.orderId.toString() !== order._id.toString()
+      );
+
+      if (notUpdated.length > 0) {
+        // If any leads weren't updated, delete the order and throw an error
+        await Order.findByIdAndDelete(order._id);
+        throw new Error(`Failed to update orderId for ${notUpdated.length} leads`);
+      }
+    }
+
+    // Populate the order for response
+    await order.populate([
+      { path: "requester", select: "fullName email role" },
+      {
+        path: "leads",
+        select: "leadType firstName lastName country email phone orderId",
+      },
+    ]);
+
+    res.status(201).json({
+      success: true,
+      message: "Order created successfully",
+      data: order,
     });
   } catch (error) {
-    await session.abortTransaction();
     next(error);
-  } finally {
-    session.endSession();
   }
 };
 
