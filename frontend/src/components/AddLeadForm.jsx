@@ -22,8 +22,11 @@ import api from '../services/api';
 const addLeadSchema = yup.object({
     firstName: yup.string().required('First name is required').min(2, 'First name must be at least 2 characters'),
     lastName: yup.string().required('Last name is required').min(2, 'Last name must be at least 2 characters'),
-    email: yup.string().required('Email is required').email('Invalid email format'),
-    phone: yup.string().nullable(),
+    gender: yup.string().required('Gender is required').oneOf(['male', 'female', 'other'], 'Invalid gender'),
+    newEmail: yup.string().required('New email is required').email('Invalid email format'),
+    oldEmail: yup.string().nullable().email('Invalid email format'),
+    newPhone: yup.string().required('New phone is required'),
+    oldPhone: yup.string().nullable(),
     country: yup.string().required('Country is required').min(2, 'Country must be at least 2 characters'),
     leadType: yup.string().required('Lead type is required').oneOf(['ftd', 'filler', 'cold', 'live'], 'Invalid lead type'),
     sin: yup.string().when('leadType', {
@@ -49,8 +52,11 @@ const AddLeadForm = ({ onLeadAdded }) => {
         defaultValues: {
             firstName: '',
             lastName: '',
-            email: '',
-            phone: '',
+            gender: '',
+            newEmail: '',
+            oldEmail: '',
+            newPhone: '',
+            oldPhone: '',
             country: '',
             leadType: '',
             sin: '',
@@ -95,9 +101,9 @@ const AddLeadForm = ({ onLeadAdded }) => {
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
-            <Box component="form" onSubmit={handleSubmit(onSubmit)}>
+            <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
                 <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} sm={6}>
                         <Controller
                             name="firstName"
                             control={control}
@@ -112,8 +118,7 @@ const AddLeadForm = ({ onLeadAdded }) => {
                             )}
                         />
                     </Grid>
-
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} sm={6}>
                         <Controller
                             name="lastName"
                             control={control}
@@ -128,40 +133,88 @@ const AddLeadForm = ({ onLeadAdded }) => {
                             )}
                         />
                     </Grid>
-
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} sm={6}>
+                        <FormControl fullWidth error={!!errors.gender}>
+                            <InputLabel>Gender</InputLabel>
+                            <Controller
+                                name="gender"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select {...field} label="Gender">
+                                        <MenuItem value="male">Male</MenuItem>
+                                        <MenuItem value="female">Female</MenuItem>
+                                        <MenuItem value="other">Other</MenuItem>
+                                    </Select>
+                                )}
+                            />
+                            {errors.gender && (
+                                <Typography variant="caption" color="error">
+                                    {errors.gender.message}
+                                </Typography>
+                            )}
+                        </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
                         <Controller
-                            name="email"
+                            name="newEmail"
                             control={control}
                             render={({ field }) => (
                                 <TextField
                                     {...field}
-                                    label="Email"
+                                    label="New Email"
                                     fullWidth
-                                    error={!!errors.email}
-                                    helperText={errors.email?.message}
+                                    error={!!errors.newEmail}
+                                    helperText={errors.newEmail?.message}
                                 />
                             )}
                         />
                     </Grid>
-
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} sm={6}>
                         <Controller
-                            name="phone"
+                            name="oldEmail"
                             control={control}
                             render={({ field }) => (
                                 <TextField
                                     {...field}
-                                    label="Phone"
+                                    label="Old Email (Optional)"
                                     fullWidth
-                                    error={!!errors.phone}
-                                    helperText={errors.phone?.message}
+                                    error={!!errors.oldEmail}
+                                    helperText={errors.oldEmail?.message}
                                 />
                             )}
                         />
                     </Grid>
-
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} sm={6}>
+                        <Controller
+                            name="newPhone"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="New Phone"
+                                    fullWidth
+                                    error={!!errors.newPhone}
+                                    helperText={errors.newPhone?.message}
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <Controller
+                            name="oldPhone"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="Old Phone (Optional)"
+                                    fullWidth
+                                    error={!!errors.oldPhone}
+                                    helperText={errors.oldPhone?.message}
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
                         <Controller
                             name="country"
                             control={control}
@@ -177,7 +230,7 @@ const AddLeadForm = ({ onLeadAdded }) => {
                         />
                     </Grid>
 
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} sm={6}>
                         <FormControl fullWidth error={!!errors.leadType}>
                             <InputLabel>Lead Type</InputLabel>
                             <Controller
@@ -201,7 +254,7 @@ const AddLeadForm = ({ onLeadAdded }) => {
                     </Grid>
 
                     {leadType === 'ftd' && (
-                        <Grid item xs={12} md={6}>
+                        <Grid item xs={12} sm={6}>
                             <Controller
                                 name="sin"
                                 control={control}
@@ -218,7 +271,7 @@ const AddLeadForm = ({ onLeadAdded }) => {
                         </Grid>
                     )}
 
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} sm={6}>
                         <Controller
                             name="client"
                             control={control}
@@ -232,7 +285,7 @@ const AddLeadForm = ({ onLeadAdded }) => {
                         />
                     </Grid>
 
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} sm={6}>
                         <Controller
                             name="clientBroker"
                             control={control}
@@ -246,7 +299,7 @@ const AddLeadForm = ({ onLeadAdded }) => {
                         />
                     </Grid>
 
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} sm={6}>
                         <Controller
                             name="clientNetwork"
                             control={control}

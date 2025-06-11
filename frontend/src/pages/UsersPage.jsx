@@ -195,6 +195,10 @@ const UsersPage = () => {
         fullName: data.fullName,
         role: data.role,
         isActive: data.isActive,
+        permissions: {
+          canCreateOrders: data.permissions.canCreateOrders,
+          canManageLeads: data.role === 'lead_manager' || data.permissions.canManageLeads,
+        },
       };
 
       if (data.role === 'agent' && data.fourDigitCode) {
@@ -205,25 +209,10 @@ const UsersPage = () => {
         userData.password = data.password;
       }
 
-      let updatedUser;
       if (isEditing) {
-        // First update the user's general information
         await api.put(`/users/${selectedUser._id}`, userData);
-
-        // Then update the permissions separately
-        await api.put(`/users/${selectedUser._id}/permissions`, {
-          permissions: {
-            canCreateOrders: data.permissions.canCreateOrders,
-            canManageLeads: data.role === 'lead_manager' || data.permissions.canManageLeads,
-          }
-        });
         setSuccess('User updated successfully!');
       } else {
-        // For new users, include permissions in the initial creation
-        userData.permissions = {
-          canCreateOrders: data.permissions.canCreateOrders,
-          canManageLeads: data.role === 'lead_manager' || data.permissions.canManageLeads,
-        };
         await api.post('/users', userData);
         setSuccess('User created successfully!');
       }
@@ -339,14 +328,17 @@ const UsersPage = () => {
   const handleApproveLeadManager = async (user, approved, reason) => {
     try {
       setError(null);
+      console.log('Approving lead manager:', { userId: user._id, approved, reason });
       const response = await api.put(`/users/${user._id}/approve-lead-manager`, {
         approved,
         reason,
       });
+      console.log('Approve lead manager response:', response.data);
       setSuccess(approved ? 'Lead manager approved successfully' : 'Lead manager rejected successfully');
       fetchUsers();
       setApproveLeadManagerDialogOpen(false);
     } catch (err) {
+      console.error('Error approving lead manager:', err.response || err);
       setError(err.response?.data?.message || 'Failed to process lead manager approval');
     }
   };
@@ -926,6 +918,14 @@ const UsersPage = () => {
             </Button>
             <Button
               variant="outlined"
+              onClick={() => handleApproveUser('lead_manager')}
+              startIcon={<LeadManagerIcon />}
+              fullWidth
+            >
+              Approve as Lead Manager
+            </Button>
+            <Button
+              variant="outlined"
               onClick={() => handleApproveUser('agent')}
               startIcon={<AgentIcon />}
               fullWidth
@@ -978,15 +978,20 @@ const UsersPage = () => {
           </Typography>
           <Stack spacing={2} sx={{ mt: 2 }}>
             <Button
-              variant="outlined"
-              onClick={() => handleApproveLeadManager(selectedUser, true, '')}
+              variant="contained"
+              color="success"
+              onClick={() => {
+                console.log('Selected user for approval:', selectedUser);
+                handleApproveLeadManager(selectedUser, true);
+              }}
               fullWidth
             >
               Approve
             </Button>
             <Button
-              variant="outlined"
-              onClick={() => handleApproveLeadManager(selectedUser, false, 'Rejected')}
+              variant="contained"
+              color="error"
+              onClick={() => handleApproveLeadManager(selectedUser, false, 'Rejected by admin')}
               fullWidth
             >
               Reject
