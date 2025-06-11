@@ -861,7 +861,7 @@ const OrdersPage = () => {
                             </TableCell>
                             <TableCell>{lead.firstName} {lead.lastName}</TableCell>
                             <TableCell sx={{ display: isSmallScreen ? 'none' : 'table-cell' }}>{lead.country}</TableCell>
-                            <TableCell sx={{ display: isSmallScreen ? 'none' : 'table-cell' }}>{lead.email}</TableCell>
+                            <TableCell sx={{ display: isSmallScreen ? 'none' : 'table-cell' }}>{lead.newEmail}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
