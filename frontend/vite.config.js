@@ -52,6 +52,6 @@ export default defineConfig({
   },
   // Define environment variables for API URL
   define: {
-    __API_URL__: JSON.stringify(process.env.VITE_API_URL || 'https://ftd-backend.onrender.com')
+    __API_URL__: JSON.stringify(process.env.VITE_API_URL || 'https://ftd-backend.onrender.com/api')
   }
 }) 

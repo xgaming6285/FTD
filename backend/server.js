@@ -27,6 +27,9 @@ if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 
+// Additional trust proxy configuration for Render
+app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
+
 // Database connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/lead-management', {
   useNewUrlParser: true,
@@ -54,28 +57,36 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// CORS configuration
+// CORS configuration - Simplified and more permissive for Vercel
 const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, Postman)
-    if (!origin) return callback(null, true);
-
-    // Get allowed origins from environment variable
-    const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').map(o => o.trim());
-
-    // In development, allow localhost
-    if (process.env.NODE_ENV !== 'production') {
-      allowedOrigins.push('http://localhost:3000', 'http://localhost:5173');
+  origin: function (origin, callback) {
+    console.log('CORS request from origin:', origin);
+    console.log('CORS_ORIGIN env var:', process.env.CORS_ORIGIN);
+    
+    // Always allow Vercel domains
+    if (!origin || origin.includes('.vercel.app') || origin.includes('ftd-omega.vercel.app')) {
+      console.log('CORS: Allowing Vercel domain or no origin');
+      return callback(null, true);
     }
 
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    // Allow localhost for development
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      console.log('CORS: Allowing localhost');
+      return callback(null, true);
     }
+
+    // Check environment variable
+    const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').map(o => o.trim()).filter(o => o);
+    if (allowedOrigins.includes(origin)) {
+      console.log('CORS: Allowing origin from env variable');
+      return callback(null, true);
+    }
+
+    console.log('CORS: Blocking origin:', origin);
+    callback(new Error('Not allowed by CORS'));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   credentials: true,
   optionsSuccessStatus: 200,
   preflightContinue: false
