@@ -26,7 +26,8 @@ exports.getLeads = async (req, res, next) => {
     // Build filter object
     const filter = {};
     if (leadType) filter.leadType = leadType;
-    if (isAssigned !== undefined) filter.isAssigned = isAssigned === "true";
+    if (isAssigned !== undefined && isAssigned !== "")
+      filter.isAssigned = isAssigned === "true";
     if (country) filter.country = new RegExp(country, "i");
     if (gender) filter.gender = gender;
     if (orderId) filter.orderId = new mongoose.Types.ObjectId(orderId); // Convert to ObjectId
@@ -439,7 +440,12 @@ exports.assignLeads = async (req, res, next) => {
     const agent = await User.findById(agentId);
 
     // FIX: The check now ensures the agent is not only active but also approved
-    if (!agent || agent.role !== "agent" || !agent.isActive || agent.status !== 'approved') {
+    if (
+      !agent ||
+      agent.role !== "agent" ||
+      !agent.isActive ||
+      agent.status !== "approved"
+    ) {
       return res.status(400).json({
         success: false,
         message: "Invalid or inactive/unapproved agent selected.",
@@ -552,7 +558,7 @@ exports.updateLead = async (req, res, next) => {
       leadType,
       socialMedia,
       sin,
-      gender
+      gender,
     } = req.body;
 
     const lead = await Lead.findById(req.params.id);
@@ -564,9 +570,11 @@ exports.updateLead = async (req, res, next) => {
     }
 
     // Check if lead manager is trying to update a lead they didn't create
-    if (req.user.role === "lead_manager" &&
+    if (
+      req.user.role === "lead_manager" &&
       lead.createdBy &&
-      lead.createdBy.toString() !== req.user.id) {
+      lead.createdBy.toString() !== req.user.id
+    ) {
       return res.status(403).json({
         success: false,
         message: "You can only edit leads that you created",
@@ -581,14 +589,14 @@ exports.updateLead = async (req, res, next) => {
     if (country) lead.country = country;
     if (status) lead.status = status;
     if (leadType) lead.leadType = leadType;
-    if (sin !== undefined && leadType === 'ftd') lead.sin = sin;
+    if (sin !== undefined && leadType === "ftd") lead.sin = sin;
     if (gender !== undefined) lead.gender = gender;
 
     // Update social media fields if provided
     if (socialMedia) {
       lead.socialMedia = {
         ...lead.socialMedia,
-        ...socialMedia
+        ...socialMedia,
       };
     }
 
@@ -643,7 +651,7 @@ exports.createLead = async (req, res, next) => {
       clientNetwork,
       dob,
       address,
-      gender
+      gender,
     } = req.body;
 
     // Create a new lead
@@ -664,13 +672,13 @@ exports.createLead = async (req, res, next) => {
       gender,
       createdBy: req.user.id,
       isAssigned: false,
-      status: 'active'
+      status: "active",
     });
 
     // Set document status to pending for FTD leads
-    if (leadType === 'ftd') {
+    if (leadType === "ftd") {
       lead.documents = {
-        status: 'pending'
+        status: "pending",
       };
     }
 

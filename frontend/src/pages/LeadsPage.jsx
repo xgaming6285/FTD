@@ -330,7 +330,7 @@ const LeadsPage = () => {
       });
 
       // For admins/managers, if isAssigned filter is empty, remove it to show all leads
-      if ( (isAdminOrManager || isLeadManager) && !filters.isAssigned) {
+      if ( (isAdminOrManager || isLeadManager) && filters.isAssigned === "") {
         params.delete("isAssigned");
       }
 
@@ -433,7 +433,7 @@ const LeadsPage = () => {
       fetchOrders();
     }
   }, [isAdminOrManager, fetchAgents, fetchOrders]);
-  
+
   // Clear success message after a delay
   useEffect(() => {
     if(success) {
@@ -576,7 +576,7 @@ const LeadsPage = () => {
           </Collapse>
         </CardContent>
       </Card>
-      
+
       {/* --- Leads Table (Desktop) --- */}
       <Box sx={{ display: { xs: 'none', md: 'block' } }}>
         <Paper>
@@ -595,17 +595,17 @@ const LeadsPage = () => {
                  : leads.length === 0 ? <TableRow><TableCell colSpan={isAdminOrManager ? 12 : 11} align="center">No leads found</TableCell></TableRow>
                  : leads.map(lead => (
                     <React.Fragment key={lead._id}>
-                        <LeadRow 
-                            lead={lead} 
-                            canAssignLeads={canAssignLeads} 
-                            isAdminOrManager={isAdminOrManager} 
+                        <LeadRow
+                            lead={lead}
+                            canAssignLeads={canAssignLeads}
+                            isAdminOrManager={isAdminOrManager}
                             isLeadManager={isLeadManager}
                             userId={user.id}
-                            selectedLeads={selectedLeads} 
-                            expandedRows={expandedRows} 
-                            onSelectLead={handleSelectLead} 
-                            onUpdateStatus={updateLeadStatus} 
-                            onComment={handleOpenCommentDialog} 
+                            selectedLeads={selectedLeads}
+                            expandedRows={expandedRows}
+                            onSelectLead={handleSelectLead}
+                            onUpdateStatus={updateLeadStatus}
+                            onComment={handleOpenCommentDialog}
                             onToggleExpansion={toggleRowExpansion}
                             onFilterByOrder={(orderId) => handleFilterChange("orderId", orderId)}
                         />
@@ -632,15 +632,15 @@ const LeadsPage = () => {
          : (
           <Stack spacing={2}>
             {leads.map(lead => (
-                <LeadCard 
+                <LeadCard
                     key={lead._id}
-                    lead={lead} 
-                    canAssignLeads={canAssignLeads} 
-                    selectedLeads={selectedLeads} 
-                    expandedRows={expandedRows} 
-                    onSelectLead={handleSelectLead} 
-                    onUpdateStatus={updateLeadStatus} 
-                    onComment={handleOpenCommentDialog} 
+                    lead={lead}
+                    canAssignLeads={canAssignLeads}
+                    selectedLeads={selectedLeads}
+                    expandedRows={expandedRows}
+                    onSelectLead={handleSelectLead}
+                    onUpdateStatus={updateLeadStatus}
+                    onComment={handleOpenCommentDialog}
                     onToggleExpansion={toggleRowExpansion}
                 />
             ))}
@@ -648,7 +648,7 @@ const LeadsPage = () => {
           </Stack>
         )}
       </Box>
-      
+
       {/* --- Dialogs --- */}
       <Dialog open={commentDialogOpen} onClose={() => setCommentDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Add Comment</DialogTitle>
