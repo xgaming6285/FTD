@@ -43,6 +43,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import api from '../services/api';
 import { selectUser } from '../store/slices/authSlice';
+import { getSortedCountries } from '../constants/countries';
 
 // --- Best Practice: Define constants and schemas outside the component ---
 // This prevents them from being recreated on every render.
@@ -131,7 +132,7 @@ const OrdersPage = () => {
   });
   const debouncedFilters = useDebounce(filters, 500); // Debounce filter state
   const [showFilters, setShowFilters] = useState(false);
-  
+
   // --- Bug Fix: Use an object to store data for each expanded row individually ---
   const [expandedRowData, setExpandedRowData] = useState({});
 
@@ -231,7 +232,7 @@ const OrdersPage = () => {
       });
     }
   }, []);
-  
+
   const toggleRowExpansion = useCallback(async (orderId) => {
     const isCurrentlyExpanded = !!expandedRowData[orderId];
     if (isCurrentlyExpanded) {
@@ -274,7 +275,7 @@ const OrdersPage = () => {
     setFilters({ status: '', priority: '', startDate: '', endDate: '' });
     setPage(0);
   }, []);
-  
+
   // Readability: Helper component for rendering lead counts
   const renderLeadCounts = (label, requested, fulfilled) => (
     <Typography variant="body2">
@@ -519,7 +520,33 @@ const OrdersPage = () => {
                 )}/>
               </Grid>
               <Grid item xs={12}>
-                <Controller name="country" control={control} render={({ field }) => <TextField {...field} fullWidth label="Country Filter (Optional)" placeholder="e.g. CA, US, GB" helperText={errors.country?.message || "Leave empty for all countries"} size="small" />}/>
+                <Controller name="country" control={control} render={({ field }) => (
+                  <FormControl fullWidth size="small" error={!!errors.country}>
+                    <InputLabel>Country Filter (Optional)</InputLabel>
+                    <Select
+                      {...field}
+                      label="Country Filter (Optional)"
+                      value={field.value || ''}
+                    >
+                      <MenuItem value="">All Countries</MenuItem>
+                      {getSortedCountries().map((country) => (
+                        <MenuItem key={country.code} value={country.name}>
+                          {country.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {errors.country?.message && (
+                      <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                        {errors.country.message}
+                      </Typography>
+                    )}
+                    {!errors.country?.message && (
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.5 }}>
+                        Leave empty for all countries
+                      </Typography>
+                    )}
+                  </FormControl>
+                )}/>
               </Grid>
               <Grid item xs={12}>
                 <Controller name="notes" control={control} render={({ field }) => <TextField {...field} fullWidth label="Notes" multiline rows={3} error={!!errors.notes} helperText={errors.notes?.message} size="small" />}/>

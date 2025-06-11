@@ -17,6 +17,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import api from '../services/api';
+import { getSortedCountries } from '../constants/countries';
 
 // Validation schema for adding a lead
 const addLeadSchema = yup.object({
@@ -219,13 +220,25 @@ const AddLeadForm = ({ onLeadAdded }) => {
                             name="country"
                             control={control}
                             render={({ field }) => (
-                                <TextField
-                                    {...field}
-                                    label="Country"
-                                    fullWidth
-                                    error={!!errors.country}
-                                    helperText={errors.country?.message}
-                                />
+                                <FormControl fullWidth error={!!errors.country}>
+                                    <InputLabel>Country</InputLabel>
+                                    <Select
+                                        {...field}
+                                        label="Country"
+                                        value={field.value || ''}
+                                    >
+                                        {getSortedCountries().map((country) => (
+                                            <MenuItem key={country.code} value={country.name}>
+                                                {country.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                    {errors.country?.message && (
+                                        <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                                            {errors.country.message}
+                                        </Typography>
+                                    )}
+                                </FormControl>
                             )}
                         />
                     </Grid>

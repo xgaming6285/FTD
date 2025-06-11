@@ -61,6 +61,7 @@ import AddLeadForm from "../components/AddLeadForm";
 import DocumentPreview from "../components/DocumentPreview";
 import api from "../services/api";
 import { selectUser } from "../store/slices/authSlice";
+import { getSortedCountries } from "../constants/countries";
 
 // --- Constants ---
 const ROLES = {
@@ -567,7 +568,23 @@ const LeadsPage = () => {
               {isAdminOrManager && <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Assignment</InputLabel><Select value={filters.isAssigned} label="Assignment" onChange={(e) => handleFilterChange("isAssigned", e.target.value)}><MenuItem value="">All</MenuItem><MenuItem value="true">Assigned</MenuItem><MenuItem value="false">Unassigned</MenuItem></Select></FormControl></Grid>}
               <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Status</InputLabel><Select value={filters.status} label="Status" onChange={(e) => handleFilterChange("status", e.target.value)}><MenuItem value="">All</MenuItem>{Object.values(LEAD_STATUSES).map(status => <MenuItem key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</MenuItem>)}</Select></FormControl></Grid>
               {isAdminOrManager && <Grid item xs={12} sm={6} md={2}><FormControlLabel control={<Switch checked={filters.includeConverted} onChange={(e) => handleFilterChange("includeConverted", e.target.checked)} color="primary" />} label="Show Converted"/></Grid>}
-              <Grid item xs={12} sm={6} md={2}><TextField fullWidth label="Country" value={filters.country} onChange={(e) => handleFilterChange("country", e.target.value)}/></Grid>
+              <Grid item xs={12} sm={6} md={2}>
+                <FormControl fullWidth>
+                  <InputLabel>Country</InputLabel>
+                  <Select
+                    value={filters.country}
+                    label="Country"
+                    onChange={(e) => handleFilterChange("country", e.target.value)}
+                  >
+                    <MenuItem value="">All Countries</MenuItem>
+                    {getSortedCountries().map((country) => (
+                      <MenuItem key={country.code} value={country.name}>
+                        {country.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
               <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Gender</InputLabel><Select value={filters.gender} label="Gender" onChange={(e) => handleFilterChange("gender", e.target.value)}><MenuItem value="">All</MenuItem><MenuItem value="male">Male</MenuItem><MenuItem value="female">Female</MenuItem><MenuItem value="not_defined">Not Defined</MenuItem></Select></FormControl></Grid>
               {isAdminOrManager && <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Order Filter</InputLabel><Select value={filters.orderId} label="Order Filter" onChange={(e) => handleFilterChange("orderId", e.target.value)}><MenuItem value="">All Orders</MenuItem>{orders.map(order => <MenuItem key={order._id} value={order._id}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Chip label={`#${order._id.slice(-6)}`} size="small" color={order.status === 'fulfilled' ? 'success' : 'default'} /><Typography variant="body2">{`${Object.values(order.fulfilled).reduce((a, b) => a + b, 0)} leads - ${new Date(order.createdAt).toLocaleDateString()}`}</Typography></Box></MenuItem>)}</Select></FormControl></Grid>}
               <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Order By</InputLabel><Select value={filters.order} label="Order By" onChange={(e) => handleFilterChange("order", e.target.value)}><MenuItem value="newest">Newest First</MenuItem><MenuItem value="oldest">Oldest First</MenuItem><MenuItem value="name_asc">Name (A-Z)</MenuItem><MenuItem value="name_desc">Name (Z-A)</MenuItem></Select></FormControl></Grid>
