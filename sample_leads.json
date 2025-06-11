@@ -24,7 +24,7 @@
     "comments": [],
     "source": "direct",
     "priority": "medium",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2024-08-03T16:57:57.820668",
     "dob": "1968-08-27",
     "address": {
@@ -66,7 +66,7 @@
     "comments": [],
     "source": "website",
     "priority": "high",
-    "status": "inactive",
+    "status": "active",
     "createdAt": "2024-10-01T16:57:57.822553"
   },
   {
@@ -78,7 +78,7 @@
     "newPhone": "+2901199700732",
     "oldPhone": "",
     "country": "Serbia",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "Fritz, Smith and Brewer",
     "clientBroker": "",
     "clientNetwork": "",
@@ -94,7 +94,7 @@
     "comments": [],
     "source": "direct",
     "priority": "high",
-    "status": "contacted",
+    "status": "active",
     "createdAt": "2025-06-07T16:57:57.823509",
     "dob": "1981-05-11",
     "address": {
@@ -128,7 +128,7 @@
     "comments": [],
     "source": "direct",
     "priority": "low",
-    "status": "inactive",
+    "status": "active",
     "createdAt": "2024-11-08T16:57:57.824822",
     "dob": "1972-09-04",
     "address": {
@@ -212,7 +212,7 @@
     "comments": [],
     "source": "referral",
     "priority": "high",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2024-11-28T16:57:57.827051"
   },
   {
@@ -274,7 +274,7 @@
     "comments": [],
     "source": "referral",
     "priority": "medium",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2024-08-17T16:57:57.829786",
     "dob": "1966-09-21",
     "address": {
@@ -292,7 +292,7 @@
     "newPhone": "+5266815085014",
     "oldPhone": "",
     "country": "Slovenia",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "Duncan, Hansen and Berg",
     "clientBroker": "Cole LLC",
     "clientNetwork": "Chung LLC",
@@ -308,7 +308,7 @@
     "comments": [],
     "source": "referral",
     "priority": "low",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2025-05-16T16:57:57.831257",
     "dob": "1997-08-28",
     "address": {
@@ -342,7 +342,7 @@
     "comments": [],
     "source": "referral",
     "priority": "high",
-    "status": "contacted",
+    "status": "active",
     "createdAt": "2024-12-01T16:57:57.832457",
     "dob": "1960-12-25",
     "address": {
@@ -410,7 +410,7 @@
     "newPhone": "+502169034222",
     "oldPhone": "",
     "country": "Papua New Guinea",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "",
     "clientBroker": "",
     "clientNetwork": "",
@@ -426,7 +426,7 @@
     "comments": [],
     "source": "direct",
     "priority": "low",
-    "status": "contacted",
+    "status": "active",
     "createdAt": "2025-03-18T16:57:57.834713",
     "dob": "2004-05-30",
     "address": {
@@ -502,7 +502,7 @@
     "comments": [],
     "source": "referral",
     "priority": "medium",
-    "status": "contacted",
+    "status": "active",
     "createdAt": "2024-09-22T16:57:57.836541",
     "dob": "1972-05-08",
     "address": {
@@ -520,7 +520,7 @@
     "newPhone": "+2458712862906",
     "oldPhone": "+5322327599094",
     "country": "Guam",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "",
     "clientBroker": "Mitchell, Howard and Coleman",
     "clientNetwork": "Webb, Owen and Church",
@@ -536,7 +536,7 @@
     "comments": [],
     "source": "social_media",
     "priority": "low",
-    "status": "inactive",
+    "status": "active",
     "createdAt": "2024-12-18T16:57:57.838107",
     "dob": "1977-08-20",
     "address": {
@@ -590,7 +590,7 @@
     "newPhone": "+7386731143109",
     "oldPhone": "",
     "country": "Moldova",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "",
     "clientBroker": "Jackson-Terry",
     "clientNetwork": "",
@@ -648,7 +648,7 @@
     "comments": [],
     "source": "website",
     "priority": "low",
-    "status": "contacted",
+    "status": "active",
     "createdAt": "2024-06-13T16:57:57.841818",
     "dob": "1965-03-07",
     "address": {
@@ -690,7 +690,7 @@
     "comments": [],
     "source": "website",
     "priority": "medium",
-    "status": "contacted",
+    "status": "active",
     "createdAt": "2024-11-24T16:57:57.843450"
   },
   {
@@ -702,7 +702,7 @@
     "newPhone": "+2913381818941",
     "oldPhone": "",
     "country": "Israel",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "",
     "clientBroker": "",
     "clientNetwork": "Foster PLC",
@@ -718,7 +718,7 @@
     "comments": [],
     "source": "social_media",
     "priority": "low",
-    "status": "inactive",
+    "status": "active",
     "createdAt": "2024-12-09T16:57:57.844541",
     "dob": "1960-09-13",
     "address": {
@@ -760,7 +760,7 @@
     "comments": [],
     "source": "direct",
     "priority": "medium",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2024-12-05T16:57:57.845741"
   },
   {
@@ -788,7 +788,7 @@
     "comments": [],
     "source": "website",
     "priority": "high",
-    "status": "inactive",
+    "status": "active",
     "createdAt": "2024-12-28T16:57:57.846732"
   },
   {
@@ -800,7 +800,7 @@
     "newPhone": "+4372756422625",
     "oldPhone": "",
     "country": "Libyan Arab Jamahiriya",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "",
     "clientBroker": "Ochoa, Miller and Mckinney",
     "clientNetwork": "",
@@ -816,7 +816,7 @@
     "comments": [],
     "source": "referral",
     "priority": "low",
-    "status": "contacted",
+    "status": "active",
     "createdAt": "2024-07-30T16:57:57.848000",
     "dob": "1989-07-27",
     "address": {
@@ -834,7 +834,7 @@
     "newPhone": "+8454612049135",
     "oldPhone": "",
     "country": "Sri Lanka",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "Trevino, Terry and Pierce",
     "clientBroker": "Johnson, Jackson and Harrison",
     "clientNetwork": "",
@@ -850,7 +850,7 @@
     "comments": [],
     "source": "social_media",
     "priority": "high",
-    "status": "contacted",
+    "status": "active",
     "createdAt": "2024-06-20T16:57:57.849453"
   },
   {
@@ -878,7 +878,7 @@
     "comments": [],
     "source": "social_media",
     "priority": "low",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2025-03-04T16:57:57.850616",
     "dob": "1977-10-02",
     "address": {
@@ -896,7 +896,7 @@
     "newPhone": "+9323229406814",
     "oldPhone": "+9107862209665",
     "country": "Korea",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "",
     "clientBroker": "Tucker-Peterson",
     "clientNetwork": "",
@@ -940,7 +940,7 @@
     "comments": [],
     "source": "website",
     "priority": "low",
-    "status": "contacted",
+    "status": "active",
     "createdAt": "2024-12-14T16:57:57.853111"
   },
   {
@@ -952,7 +952,7 @@
     "newPhone": "+1979410084790",
     "oldPhone": "",
     "country": "Morocco",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "",
     "clientBroker": "Whitney, Wolfe and Johnson",
     "clientNetwork": "",
@@ -968,7 +968,7 @@
     "comments": [],
     "source": "referral",
     "priority": "medium",
-    "status": "contacted",
+    "status": "active",
     "createdAt": "2025-05-18T16:57:57.854302",
     "dob": "1980-08-26",
     "address": {
@@ -986,7 +986,7 @@
     "newPhone": "+4335943870100",
     "oldPhone": "",
     "country": "Congo",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "",
     "clientBroker": "",
     "clientNetwork": "Sparks and Sons",
@@ -1002,7 +1002,7 @@
     "comments": [],
     "source": "direct",
     "priority": "low",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2025-01-06T16:57:57.855379"
   },
   {
@@ -1030,7 +1030,7 @@
     "comments": [],
     "source": "direct",
     "priority": "medium",
-    "status": "contacted",
+    "status": "active",
     "createdAt": "2025-03-20T16:57:57.856592",
     "dob": "1964-10-24",
     "address": {
@@ -1072,7 +1072,7 @@
     "comments": [],
     "source": "website",
     "priority": "low",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2024-09-29T16:57:57.858186",
     "dob": "1969-01-11",
     "address": {
@@ -1098,7 +1098,7 @@
     "newPhone": "+9221826977610",
     "oldPhone": "",
     "country": "Chad",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "Rogers-Weaver",
     "clientBroker": "Mack PLC",
     "clientNetwork": "",
@@ -1114,7 +1114,7 @@
     "comments": [],
     "source": "referral",
     "priority": "high",
-    "status": "inactive",
+    "status": "active",
     "createdAt": "2025-05-02T16:57:57.859449"
   },
   {
@@ -1126,7 +1126,7 @@
     "newPhone": "+6686530711515",
     "oldPhone": "",
     "country": "Netherlands Antilles",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "",
     "clientBroker": "Holmes Ltd",
     "clientNetwork": "Williams, Moore and Cannon",
@@ -1170,7 +1170,7 @@
     "comments": [],
     "source": "website",
     "priority": "medium",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2024-07-09T16:57:57.861661"
   },
   {
@@ -1182,7 +1182,7 @@
     "newPhone": "+5812181948028",
     "oldPhone": "",
     "country": "Liberia",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "",
     "clientBroker": "Gray LLC",
     "clientNetwork": "",
@@ -1198,7 +1198,7 @@
     "comments": [],
     "source": "referral",
     "priority": "low",
-    "status": "contacted",
+    "status": "active",
     "createdAt": "2024-09-11T16:57:57.862452",
     "dob": "1982-09-19",
     "address": {
@@ -1224,7 +1224,7 @@
     "newPhone": "+2575564931937",
     "oldPhone": "+8183238682531",
     "country": "French Southern Territories",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "",
     "clientBroker": "Lowery-Williams",
     "clientNetwork": "Flores, Anderson and Bradley",
@@ -1240,7 +1240,7 @@
     "comments": [],
     "source": "referral",
     "priority": "high",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2024-10-17T16:57:57.863903",
     "dob": "1979-01-27",
     "address": {
@@ -1258,7 +1258,7 @@
     "newPhone": "+7563730269253",
     "oldPhone": "+542729316791",
     "country": "Vanuatu",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "Church PLC",
     "clientBroker": "",
     "clientNetwork": "Reid-Robinson",
@@ -1316,7 +1316,7 @@
     "comments": [],
     "source": "direct",
     "priority": "medium",
-    "status": "inactive",
+    "status": "active",
     "createdAt": "2025-02-23T16:57:57.866641"
   },
   {
@@ -1344,7 +1344,7 @@
     "comments": [],
     "source": "direct",
     "priority": "medium",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2024-12-27T16:57:57.867802",
     "dob": "1966-01-10",
     "address": {
@@ -1386,7 +1386,7 @@
     "comments": [],
     "source": "social_media",
     "priority": "medium",
-    "status": "inactive",
+    "status": "active",
     "createdAt": "2025-01-11T16:57:57.869125"
   },
   {
@@ -1414,7 +1414,7 @@
     "comments": [],
     "source": "social_media",
     "priority": "high",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2024-06-25T16:57:57.870029",
     "dob": "1956-08-28",
     "address": {
@@ -1456,7 +1456,7 @@
     "comments": [],
     "source": "direct",
     "priority": "high",
-    "status": "inactive",
+    "status": "active",
     "createdAt": "2025-04-04T16:57:57.871724",
     "dob": "1973-08-19",
     "address": {
@@ -1474,7 +1474,7 @@
     "newPhone": "+5163520853983",
     "oldPhone": "+4937165352280",
     "country": "Cape Verde",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "",
     "clientBroker": "Miller, Murphy and Kerr",
     "clientNetwork": "George Inc",
@@ -1490,7 +1490,7 @@
     "comments": [],
     "source": "referral",
     "priority": "low",
-    "status": "contacted",
+    "status": "active",
     "createdAt": "2024-12-18T16:57:57.873185",
     "dob": "1969-03-29",
     "address": {
@@ -1508,7 +1508,7 @@
     "newPhone": "+9820533404904",
     "oldPhone": "",
     "country": "South Georgia and the South Sandwich Islands",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "Bright, Garza and Rodriguez",
     "clientBroker": "Ross-Woodward",
     "clientNetwork": "Pena, Morris and Mitchell",
@@ -1524,7 +1524,7 @@
     "comments": [],
     "source": "social_media",
     "priority": "medium",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2024-10-13T16:57:57.874986"
   },
   {
@@ -1552,7 +1552,7 @@
     "comments": [],
     "source": "social_media",
     "priority": "high",
-    "status": "contacted",
+    "status": "active",
     "createdAt": "2024-07-03T16:57:57.876319"
   },
   {
@@ -1580,7 +1580,7 @@
     "comments": [],
     "source": "referral",
     "priority": "high",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2024-11-05T16:57:57.877544"
   },
   {
@@ -1608,7 +1608,7 @@
     "comments": [],
     "source": "referral",
     "priority": "high",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2024-09-20T16:57:57.878380"
   },
   {
@@ -1620,7 +1620,7 @@
     "newPhone": "+8502578128295",
     "oldPhone": "",
     "country": "Barbados",
-    "isAssigned": true,
+    "isAssigned": false,
     "client": "",
     "clientBroker": "",
     "clientNetwork": "",
@@ -1636,7 +1636,7 @@
     "comments": [],
     "source": "website",
     "priority": "low",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2025-01-20T16:57:57.879123",
     "dob": "1973-02-02",
     "address": {
@@ -1678,7 +1678,7 @@
     "comments": [],
     "source": "direct",
     "priority": "high",
-    "status": "converted",
+    "status": "active",
     "createdAt": "2024-12-15T16:57:57.880231",
     "dob": "2000-08-21",
     "address": {
@@ -1712,7 +1712,7 @@
     "comments": [],
     "source": "website",
     "priority": "high",
-    "status": "inactive",
+    "status": "active",
     "createdAt": "2024-12-16T16:57:57.881882"
   }
 ]
