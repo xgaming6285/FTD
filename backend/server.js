@@ -20,15 +20,8 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 
 // Set trust proxy to fix express-rate-limit issue behind a proxy
-// Trust all proxies when in production (for platforms like Render, Heroku, etc.)
-if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', true);
-} else {
-  app.set('trust proxy', 1);
-}
-
-// Additional trust proxy configuration for Render
-app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
+// For Render and other cloud platforms, always trust the first proxy
+app.set('trust proxy', 1);
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/lead-management', {
@@ -45,17 +38,17 @@ db.once('open', () => {
 // Security middleware
 app.use(helmet());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: process.env.NODE_ENV === 'production'
-    ? parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000 // 15 minutes in production
-    : 1 * 60 * 1000, // 1 minute in development
-  max: process.env.NODE_ENV === 'production'
-    ? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100 // 100 requests per window in production
-    : 1000, // 1000 requests per window in development
-  message: 'Too many requests from this IP, please try again later.'
-});
-app.use('/api/', limiter);
+// Rate limiting - Temporarily disabled for debugging
+// const limiter = rateLimit({
+//   windowMs: process.env.NODE_ENV === 'production'
+//     ? parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000 // 15 minutes in production
+//     : 1 * 60 * 1000, // 1 minute in development
+//   max: process.env.NODE_ENV === 'production'
+//     ? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100 // 100 requests per window in production
+//     : 1000, // 1000 requests per window in development
+//   message: 'Too many requests from this IP, please try again later.'
+// });
+// app.use('/api/', limiter);
 
 // CORS configuration - Simplified and more permissive for Vercel
 const corsOptions = {
