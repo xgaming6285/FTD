@@ -6,8 +6,8 @@ import { logout } from '../store/slices/authSlice';
 
 // Create axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
-  timeout: 10000,
+  baseURL: import.meta.env.VITE_API_URL || 'https://ftd-backend.onrender.com/api',
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },

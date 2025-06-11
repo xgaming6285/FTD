@@ -20,12 +20,8 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 
 // Set trust proxy to fix express-rate-limit issue behind a proxy
-// Trust all proxies when in production (for platforms like Render, Heroku, etc.)
-if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', true);
-} else {
-  app.set('trust proxy', 1);
-}
+// For Render and other cloud platforms, always trust the first proxy
+app.set('trust proxy', 1);
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/lead-management', {
@@ -42,40 +38,48 @@ db.once('open', () => {
 // Security middleware
 app.use(helmet());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: process.env.NODE_ENV === 'production'
-    ? parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000 // 15 minutes in production
-    : 1 * 60 * 1000, // 1 minute in development
-  max: process.env.NODE_ENV === 'production'
-    ? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100 // 100 requests per window in production
-    : 1000, // 1000 requests per window in development
-  message: 'Too many requests from this IP, please try again later.'
-});
-app.use('/api/', limiter);
+// Rate limiting - Temporarily disabled for debugging
+// const limiter = rateLimit({
+//   windowMs: process.env.NODE_ENV === 'production'
+//     ? parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000 // 15 minutes in production
+//     : 1 * 60 * 1000, // 1 minute in development
+//   max: process.env.NODE_ENV === 'production'
+//     ? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100 // 100 requests per window in production
+//     : 1000, // 1000 requests per window in development
+//   message: 'Too many requests from this IP, please try again later.'
+// });
+// app.use('/api/', limiter);
 
-// CORS configuration
+// CORS configuration - Simplified and more permissive for Vercel
 const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, Postman)
-    if (!origin) return callback(null, true);
-
-    // Get allowed origins from environment variable
-    const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').map(o => o.trim());
-
-    // In development, allow localhost
-    if (process.env.NODE_ENV !== 'production') {
-      allowedOrigins.push('http://localhost:3000', 'http://localhost:5173');
+  origin: function (origin, callback) {
+    console.log('CORS request from origin:', origin);
+    console.log('CORS_ORIGIN env var:', process.env.CORS_ORIGIN);
+    
+    // Always allow Vercel domains
+    if (!origin || origin.includes('.vercel.app') || origin.includes('ftd-omega.vercel.app')) {
+      console.log('CORS: Allowing Vercel domain or no origin');
+      return callback(null, true);
     }
 
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    // Allow localhost for development
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      console.log('CORS: Allowing localhost');
+      return callback(null, true);
     }
+
+    // Check environment variable
+    const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').map(o => o.trim()).filter(o => o);
+    if (allowedOrigins.includes(origin)) {
+      console.log('CORS: Allowing origin from env variable');
+      return callback(null, true);
+    }
+
+    console.log('CORS: Blocking origin:', origin);
+    callback(new Error('Not allowed by CORS'));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   credentials: true,
   optionsSuccessStatus: 200,
   preflightContinue: false
