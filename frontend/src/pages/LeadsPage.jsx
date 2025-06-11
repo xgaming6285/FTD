@@ -694,8 +694,25 @@ const LeadsPage = () => {
 // --- Memoized Row Component for Desktop Table ---
 const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadManager, userId, selectedLeads, expandedRows, onSelectLead, onUpdateStatus, onComment, onToggleExpansion, onFilterByOrder }) => {
     const isOwner = !isLeadManager || lead.createdBy === userId;
+
+    const handleRowClick = (event) => {
+        // Prevent row click when clicking on interactive elements
+        if (event.target.closest('button, input, select, [role="combobox"], .MuiSelect-select, .MuiMenuItem-root')) {
+            return;
+        }
+        onToggleExpansion(lead._id);
+    };
+
     return (
-    <TableRow hover sx={{ '&:hover': { backgroundColor: 'action.hover' }, borderLeft: theme => `4px solid ${theme.palette[getLeadTypeColor(lead.leadType)]?.main || theme.palette.grey.main}` }}>
+    <TableRow
+        hover
+        onClick={handleRowClick}
+        sx={{
+            '&:hover': { backgroundColor: 'action.hover' },
+            borderLeft: theme => `4px solid ${theme.palette[getLeadTypeColor(lead.leadType)]?.main || theme.palette.grey.main}`,
+            cursor: 'pointer'
+        }}
+    >
       {canAssignLeads && <TableCell padding="checkbox"><Checkbox checked={selectedLeads.has(lead._id)} onChange={onSelectLead(lead._id)} /></TableCell>}
       <TableCell><Stack direction="row" spacing={2} alignItems="center"><Avatar sx={{ bgcolor: theme => theme.palette[getLeadTypeColor(lead.leadType)]?.light || theme.palette.grey.light, color: theme => theme.palette[getLeadTypeColor(lead.leadType)]?.main || theme.palette.grey.main }}>{(lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()).charAt(0).toUpperCase()}</Avatar><Box><Typography variant="subtitle2" fontWeight="bold">{lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()}</Typography><Typography variant="caption" color="text.secondary">ID: {lead._id.slice(-8)}</Typography></Box></Stack></TableCell>
       <TableCell><Chip label={(lead.leadType || 'unknown').toUpperCase()} color={getLeadTypeColor(lead.leadType)} size="small" sx={{ fontWeight: 'medium' }} /></TableCell>
@@ -718,15 +735,42 @@ const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadMana
         <Stack direction="row" spacing={1}>
           <FormControl size="small" sx={{ minWidth: 120 }}><Select value={lead.status} onChange={(e) => onUpdateStatus(lead._id, e.target.value)} size="small" disabled={!isOwner}>{Object.values(LEAD_STATUSES).map(status => <MenuItem key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</MenuItem>)}</Select></FormControl>
           <IconButton size="small" onClick={() => onComment(lead)} disabled={!isOwner}><CommentIcon /></IconButton>
-          <IconButton size="small" onClick={() => onToggleExpansion(lead._id)}>{expandedRows.has(lead._id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}</IconButton>
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent row click when arrow is clicked directly
+              onToggleExpansion(lead._id);
+            }}
+          >
+            {expandedRows.has(lead._id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </IconButton>
         </Stack>
       </TableCell>
     </TableRow>
 )});
 
 // --- Memoized Card Component for Mobile View ---
-const LeadCard = React.memo(({ lead, canAssignLeads, selectedLeads, expandedRows, onSelectLead, onUpdateStatus, onComment, onToggleExpansion }) => (
-    <Paper sx={{ p: 2, borderLeft: theme => `4px solid ${theme.palette[getLeadTypeColor(lead.leadType)]?.main || theme.palette.grey.main}` }}>
+const LeadCard = React.memo(({ lead, canAssignLeads, selectedLeads, expandedRows, onSelectLead, onUpdateStatus, onComment, onToggleExpansion }) => {
+    const handleCardClick = (event) => {
+        // Prevent card click when clicking on interactive elements
+        if (event.target.closest('button, input, select, [role="combobox"], .MuiSelect-select, .MuiMenuItem-root')) {
+            return;
+        }
+        onToggleExpansion(lead._id);
+    };
+
+    return (
+    <Paper
+        onClick={handleCardClick}
+        sx={{
+            p: 2,
+            borderLeft: theme => `4px solid ${theme.palette[getLeadTypeColor(lead.leadType)]?.main || theme.palette.grey.main}`,
+            cursor: 'pointer',
+            '&:hover': {
+                backgroundColor: 'action.hover'
+            }
+        }}
+    >
         <Grid container spacing={2}>
             <Grid item xs={12}>
                 <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
@@ -747,7 +791,16 @@ const LeadCard = React.memo(({ lead, canAssignLeads, selectedLeads, expandedRows
             <Grid item xs={12}><FormControl size="small" fullWidth><InputLabel>Status</InputLabel><Select value={lead.status} label="Status" onChange={(e) => onUpdateStatus(lead._id, e.target.value)} size="small">{Object.values(LEAD_STATUSES).map(status => <MenuItem key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</MenuItem>)}</Select></FormControl></Grid>
             <Grid item xs={12}>
                 <Stack direction="row" spacing={1} justifyContent="flex-end">
-                    <IconButton size="small" onClick={() => onToggleExpansion(lead._id)} sx={{ transform: expandedRows.has(lead._id) ? 'rotate(180deg)' : 'none' }}><ExpandMoreIcon /></IconButton>
+                    <IconButton
+                        size="small"
+                        onClick={(e) => {
+                            e.stopPropagation(); // Prevent card click when arrow is clicked directly
+                            onToggleExpansion(lead._id);
+                        }}
+                        sx={{ transform: expandedRows.has(lead._id) ? 'rotate(180deg)' : 'none' }}
+                    >
+                        <ExpandMoreIcon />
+                    </IconButton>
                     <IconButton size="small" onClick={() => onComment(lead)} sx={{ color: 'info.main' }}><CommentIcon /></IconButton>
                     {canAssignLeads && <Checkbox checked={selectedLeads.has(lead._id)} onChange={onSelectLead(lead._id)} size="small" />}
                 </Stack>
@@ -761,7 +814,8 @@ const LeadCard = React.memo(({ lead, canAssignLeads, selectedLeads, expandedRows
             </Collapse>
         </Grid>
     </Paper>
-));
+)});
+
 
 
 export default LeadsPage;
