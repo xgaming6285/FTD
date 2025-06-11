@@ -12,6 +12,7 @@ exports.getLeads = async (req, res, next) => {
       leadType,
       isAssigned,
       country,
+      gender,
       status,
       documentStatus,
       page = 1,
@@ -27,6 +28,7 @@ exports.getLeads = async (req, res, next) => {
     if (leadType) filter.leadType = leadType;
     if (isAssigned !== undefined) filter.isAssigned = isAssigned === "true";
     if (country) filter.country = new RegExp(country, "i");
+    if (gender) filter.gender = gender;
     if (orderId) filter.orderId = new mongoose.Types.ObjectId(orderId); // Convert to ObjectId
 
     // Determine sort order based on order parameter
@@ -549,7 +551,8 @@ exports.updateLead = async (req, res, next) => {
       documents,
       leadType,
       socialMedia,
-      sin
+      sin,
+      gender
     } = req.body;
 
     const lead = await Lead.findById(req.params.id);
@@ -579,6 +582,7 @@ exports.updateLead = async (req, res, next) => {
     if (status) lead.status = status;
     if (leadType) lead.leadType = leadType;
     if (sin !== undefined && leadType === 'ftd') lead.sin = sin;
+    if (gender) lead.gender = gender;
 
     // Update social media fields if provided
     if (socialMedia) {
@@ -638,7 +642,8 @@ exports.createLead = async (req, res, next) => {
       clientBroker,
       clientNetwork,
       dob,
-      address
+      address,
+      gender
     } = req.body;
 
     // Create a new lead
@@ -656,6 +661,7 @@ exports.createLead = async (req, res, next) => {
       clientNetwork,
       dob,
       address,
+      gender,
       createdBy: req.user.id,
       isAssigned: false,
       status: 'active'

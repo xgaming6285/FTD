@@ -26,6 +26,7 @@ const addLeadSchema = yup.object({
     phone: yup.string().nullable(),
     country: yup.string().required('Country is required').min(2, 'Country must be at least 2 characters'),
     leadType: yup.string().required('Lead type is required').oneOf(['ftd', 'filler', 'cold', 'live'], 'Invalid lead type'),
+    gender: yup.string().oneOf(['male', 'female', 'not_defined'], 'Invalid gender').default('not_defined'),
     sin: yup.string().when('leadType', {
         is: 'ftd',
         then: () => yup.string().required('SIN is required for FTD leads'),
@@ -53,6 +54,7 @@ const AddLeadForm = ({ onLeadAdded }) => {
             phone: '',
             country: '',
             leadType: '',
+            gender: 'not_defined',
             sin: '',
             client: '',
             clientBroker: '',
@@ -195,6 +197,28 @@ const AddLeadForm = ({ onLeadAdded }) => {
                             {errors.leadType && (
                                 <Typography color="error" variant="caption">
                                     {errors.leadType.message}
+                                </Typography>
+                            )}
+                        </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                        <FormControl fullWidth error={!!errors.gender}>
+                            <InputLabel>Gender</InputLabel>
+                            <Controller
+                                name="gender"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select {...field} label="Gender">
+                                        <MenuItem value="male">Male</MenuItem>
+                                        <MenuItem value="female">Female</MenuItem>
+                                        <MenuItem value="not_defined">Not Defined</MenuItem>
+                                    </Select>
+                                )}
+                            />
+                            {errors.gender && (
+                                <Typography color="error" variant="caption">
+                                    {errors.gender.message}
                                 </Typography>
                             )}
                         </FormControl>

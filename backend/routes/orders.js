@@ -44,7 +44,11 @@ router.post('/', [
     .optional()
     .trim()
     .isLength({ min: 2 })
-    .withMessage('Country must be at least 2 characters')
+    .withMessage('Country must be at least 2 characters'),
+  body('gender')
+    .optional()
+    .isIn(['male', 'female', 'not_defined'])
+    .withMessage('Gender must be male, female, or not_defined')
 ], createOrder);
 
 // @route   GET /api/orders

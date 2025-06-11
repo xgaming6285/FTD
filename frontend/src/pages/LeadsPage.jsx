@@ -91,6 +91,7 @@ const LeadsPage = () => {
     leadType: "",
     isAssigned: "",
     country: "",
+    gender: "",
     status: "",
     documentStatus: "",
     search: "",
@@ -304,6 +305,7 @@ const LeadsPage = () => {
       leadType: "",
       isAssigned: "",
       country: "",
+      gender: "",
       status: "",
       documentStatus: "",
       search: "",
@@ -646,6 +648,21 @@ const LeadsPage = () => {
                   onChange={handleFilterChange("country")}
                 />
               </Grid>
+              <Grid item xs={12} sm={6} md={2}>
+                <FormControl fullWidth>
+                  <InputLabel>Gender</InputLabel>
+                  <Select
+                    value={filters.gender}
+                    label="Gender"
+                    onChange={handleFilterChange("gender")}
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    <MenuItem value="male">Male</MenuItem>
+                    <MenuItem value="female">Female</MenuItem>
+                    <MenuItem value="not_defined">Not Defined</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
               {isAdmin && (
                 <Grid item xs={12} sm={6} md={2}>
                   <FormControl fullWidth>
@@ -727,6 +744,7 @@ const LeadsPage = () => {
                   <TableCell>Type</TableCell>
                   <TableCell>Contact</TableCell>
                   <TableCell>Country</TableCell>
+                  <TableCell>Gender</TableCell>
                   <TableCell>Client Info</TableCell>
                   {isAdmin && <TableCell>Assigned To</TableCell>}
                   <TableCell>Status</TableCell>
@@ -738,13 +756,13 @@ const LeadsPage = () => {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={isAdmin ? 11 : 10} align="center">
+                    <TableCell colSpan={isAdmin ? 12 : 11} align="center">
                       <CircularProgress />
                     </TableCell>
                   </TableRow>
                 ) : leads.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={isAdmin ? 11 : 10} align="center">
+                    <TableCell colSpan={isAdmin ? 12 : 11} align="center">
                       No leads found
                     </TableCell>
                   </TableRow>
@@ -823,6 +841,23 @@ const LeadsPage = () => {
                             label={lead.country || 'Unknown'}
                             size="small"
                             variant="outlined"
+                            sx={{
+                              borderRadius: 1,
+                              backgroundColor: 'background.paper',
+                              '& .MuiChip-label': { px: 1 }
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={lead.gender ? 
+                              (lead.gender === 'not_defined' ? 'Not Defined' : 
+                               lead.gender.charAt(0).toUpperCase() + lead.gender.slice(1)) : 
+                              'Not Defined'}
+                            size="small"
+                            variant="outlined"
+                            color={lead.gender === 'male' ? 'primary' : 
+                                   lead.gender === 'female' ? 'secondary' : 'default'}
                             sx={{
                               borderRadius: 1,
                               backgroundColor: 'background.paper',
@@ -971,7 +1006,7 @@ const LeadsPage = () => {
                       {expandedRows.has(lead._id) && (
                         <TableRow>
                           <TableCell
-                            colSpan={isAdmin ? 11 : 10}
+                            colSpan={isAdmin ? 12 : 11}
                             sx={{
                               bgcolor: 'background.default',
                               borderBottom: '2px solid',
@@ -1018,6 +1053,12 @@ const LeadsPage = () => {
                                         </Typography>
                                         <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                           <span style={{ color: 'text.secondary' }}>🌍</span> {lead.country || 'Unknown'}
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <span style={{ color: 'text.secondary' }}>⚧</span> {lead.gender ? 
+                                            (lead.gender === 'not_defined' ? 'Not Defined' : 
+                                             lead.gender.charAt(0).toUpperCase() + lead.gender.slice(1)) : 
+                                            'Not Defined'}
                                         </Typography>
                                         {lead.leadType === 'ftd' && (
                                           <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1380,6 +1421,12 @@ const LeadsPage = () => {
                       <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <span style={{ color: 'text.secondary' }}>🌍</span> {lead.country || 'Unknown'}
                       </Typography>
+                      <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <span style={{ color: 'text.secondary' }}>⚧</span> {lead.gender ? 
+                          (lead.gender === 'not_defined' ? 'Not Defined' : 
+                           lead.gender.charAt(0).toUpperCase() + lead.gender.slice(1)) : 
+                          'Not Defined'}
+                      </Typography>
                       {lead.leadType === 'ftd' && (
                         <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <span style={{ color: 'text.secondary' }}>🆔</span> SIN: {lead.sin || 'N/A'}
@@ -1468,6 +1515,12 @@ const LeadsPage = () => {
                                 </Typography>
                                 <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                   <span style={{ color: 'text.secondary' }}>🌍</span> {lead.country || 'Unknown'}
+                                </Typography>
+                                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <span style={{ color: 'text.secondary' }}>⚧</span> {lead.gender ? 
+                                    (lead.gender === 'not_defined' ? 'Not Defined' : 
+                                     lead.gender.charAt(0).toUpperCase() + lead.gender.slice(1)) : 
+                                    'Not Defined'}
                                 </Typography>
                                 {lead.leadType === 'ftd' && (
                                   <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

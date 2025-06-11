@@ -202,7 +202,8 @@ router.post(
         throw new Error('SIN is required for FTD leads');
       }
       return true;
-    })
+    }),
+    body("gender").optional().isIn(["male", "female", "not_defined"]).withMessage("Gender must be male, female, or not_defined")
   ],
   createLead
 );
@@ -234,7 +235,8 @@ router.put(
         throw new Error('SIN is required for FTD leads');
       }
       return true;
-    })
+    }),
+    body("gender").optional().isIn(["male", "female", "not_defined"]).withMessage("Gender must be male, female, or not_defined")
   ],
   updateLead
 );

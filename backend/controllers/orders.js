@@ -19,7 +19,7 @@ exports.createOrder = async (req, res, next) => {
       });
     }
 
-    const { requests, priority, notes, country } = req.body;
+    const { requests, priority, notes, country, gender } = req.body;
     const { ftd = 0, filler = 0, cold = 0, live = 0 } = requests || {};
 
     if (ftd + filler + cold + live === 0) {
@@ -33,8 +33,9 @@ exports.createOrder = async (req, res, next) => {
       const pulledLeads = [];
       const fulfilled = { ftd: 0, filler: 0, cold: 0, live: 0 };
 
-      // Base query filter for country if specified
+      // Base query filters for country and gender if specified
       const countryFilter = country ? { country: new RegExp(country, "i") } : {};
+      const genderFilter = gender ? { gender } : {};
 
       // Pull FTD leads
       if (ftd > 0) {
@@ -43,6 +44,7 @@ exports.createOrder = async (req, res, next) => {
           isAssigned: false,
           "documents.status": { $in: ["good", "ok"] },
           ...countryFilter,
+          ...genderFilter,
         })
           .limit(ftd)
           .session(session);
@@ -59,6 +61,7 @@ exports.createOrder = async (req, res, next) => {
           leadType: "filler",
           isAssigned: false,
           ...countryFilter,
+          ...genderFilter,
         })
           .limit(filler)
           .session(session);
@@ -75,6 +78,7 @@ exports.createOrder = async (req, res, next) => {
           leadType: "cold",
           isAssigned: false,
           ...countryFilter,
+          ...genderFilter,
         })
           .limit(cold)
           .session(session);
@@ -91,6 +95,7 @@ exports.createOrder = async (req, res, next) => {
           leadType: "live",
           isAssigned: false,
           ...countryFilter,
+          ...genderFilter,
         })
           .limit(live)
           .session(session);
@@ -111,6 +116,7 @@ exports.createOrder = async (req, res, next) => {
         notes,
         status: "fulfilled",
         countryFilter: country || null, // Store the country filter used for this order
+        genderFilter: gender || null, // Store the gender filter used for this order
       });
 
       await order.save({ session });
@@ -160,9 +166,12 @@ exports.createOrder = async (req, res, next) => {
 
       res.status(201).json({
         success: true,
-        message: country 
-          ? `Order created successfully with ${pulledLeads.length} leads from ${country}`
-          : "Order created successfully",
+        message: (() => {
+          let msg = `Order created successfully with ${pulledLeads.length} leads`;
+          if (country) msg += ` from ${country}`;
+          if (gender) msg += ` with gender: ${gender}`;
+          return msg;
+        })(),
         data: order,
       });
     });

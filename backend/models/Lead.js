@@ -56,6 +56,12 @@ const leadSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  gender: {
+    type: String,
+    enum: ['male', 'female', 'not_defined'],
+    default: 'not_defined',
+    index: true // Add index for better query performance
+  },
   orderId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Order',

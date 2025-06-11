@@ -36,6 +36,13 @@ const orderSchema = new mongoose.Schema({
     trim: true
   },
   
+  // Gender filter used when creating this order
+  genderFilter: {
+    type: String,
+    enum: ['male', 'female', 'not_defined'],
+    default: null
+  },
+  
   // Fulfillment tracking
   fulfilled: {
     ftd: { type: Number, default: 0 },

@@ -69,6 +69,7 @@ const orderSchema = yup.object({
   priority: yup.string().oneOf(['low', 'medium', 'high'], 'Invalid priority'),
   notes: yup.string(),
   country: yup.string().nullable(),
+  gender: yup.string().oneOf(['male', 'female', 'not_defined'], 'Invalid gender').nullable(),
 }).test('at-least-one', 'At least one lead type must be requested', function (value) {
   return (value.ftd || 0) + (value.filler || 0) + (value.cold || 0) + (value.live || 0) > 0;
 });
@@ -117,6 +118,7 @@ const OrdersPage = () => {
       priority: 'medium',
       notes: '',
       country: '',
+      gender: '',
     },
   });
 
@@ -186,6 +188,7 @@ const OrdersPage = () => {
         priority: data.priority,
         notes: data.notes,
         country: data.country || null,
+        gender: data.gender || null,
       };
 
       await api.post('/orders', orderData);
@@ -686,6 +689,27 @@ const OrdersPage = () => {
                   )}
                 />
               </Grid>
+              <Grid item xs={12} sm={6}>
+                <Controller
+                  name="gender"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth size={isSmallScreen ? 'small' : 'medium'}>
+                      <InputLabel>Gender Filter (Optional)</InputLabel>
+                      <Select
+                        {...field}
+                        label="Gender Filter (Optional)"
+                        error={!!errors.gender}
+                      >
+                        <MenuItem value="">All Genders</MenuItem>
+                        <MenuItem value="male">Male</MenuItem>
+                        <MenuItem value="female">Female</MenuItem>
+                        <MenuItem value="not_defined">Not Defined</MenuItem>
+                      </Select>
+                    </FormControl>
+                  )}
+                />
+              </Grid>
               <Grid item xs={12}>
                 <Controller
                   name="notes"
@@ -792,6 +816,19 @@ const OrdersPage = () => {
                       label={selectedOrder.countryFilter} 
                       size="small" 
                       color="primary" 
+                      variant="outlined"
+                    />
+                  </Typography>
+                </Grid>
+              )}
+              {selectedOrder.genderFilter && (
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2">Gender Filter Used</Typography>
+                  <Typography variant="body2" gutterBottom>
+                    <Chip 
+                      label={selectedOrder.genderFilter} 
+                      size="small" 
+                      color="secondary" 
                       variant="outlined"
                     />
                   </Typography>
