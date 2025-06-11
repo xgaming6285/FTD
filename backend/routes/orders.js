@@ -41,14 +41,28 @@ router.post('/', [
     .isLength({ max: 500 })
     .withMessage('Notes must be less than 500 characters'),
   body('country')
-    .optional()
+    .optional({ nullable: true })
     .trim()
-    .isLength({ min: 2 })
-    .withMessage('Country must be at least 2 characters'),
+    .custom((value) => {
+      if (value === null || value === '') {
+        return true;
+      }
+      if (value.length < 2) {
+        throw new Error('Country must be at least 2 characters');
+      }
+      return true;
+    }),
   body('gender')
-    .optional()
-    .isIn(['male', 'female', 'not_defined'])
-    .withMessage('Gender must be male, female, or not_defined')
+    .optional({ nullable: true })
+    .custom((value) => {
+      if (value === null || value === '') {
+        return true;
+      }
+      if (!['male', 'female', 'not_defined'].includes(value)) {
+        throw new Error('Gender must be male, female, or not_defined');
+      }
+      return true;
+    })
 ], createOrder);
 
 // @route   GET /api/orders
