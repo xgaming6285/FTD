@@ -69,7 +69,7 @@ const orderSchema = yup.object({
   priority: yup.string().oneOf(['low', 'medium', 'high'], 'Invalid priority'),
   notes: yup.string(),
   country: yup.string().nullable(),
-  gender: yup.string().oneOf(['male', 'female', 'not_defined'], 'Invalid gender').nullable(),
+  gender: yup.string().oneOf(['', 'male', 'female', 'not_defined'], 'Invalid gender').nullable(),
 }).test('at-least-one', 'At least one lead type must be requested', function (value) {
   return (value.ftd || 0) + (value.filler || 0) + (value.cold || 0) + (value.live || 0) > 0;
 });
