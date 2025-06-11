@@ -195,10 +195,6 @@ const UsersPage = () => {
         fullName: data.fullName,
         role: data.role,
         isActive: data.isActive,
-        permissions: {
-          canCreateOrders: data.permissions.canCreateOrders,
-          canManageLeads: data.role === 'lead_manager' || data.permissions.canManageLeads,
-        },
       };
 
       if (data.role === 'agent' && data.fourDigitCode) {
@@ -209,10 +205,25 @@ const UsersPage = () => {
         userData.password = data.password;
       }
 
+      let updatedUser;
       if (isEditing) {
+        // First update the user's general information
         await api.put(`/users/${selectedUser._id}`, userData);
+
+        // Then update the permissions separately
+        await api.put(`/users/${selectedUser._id}/permissions`, {
+          permissions: {
+            canCreateOrders: data.permissions.canCreateOrders,
+            canManageLeads: data.role === 'lead_manager' || data.permissions.canManageLeads,
+          }
+        });
         setSuccess('User updated successfully!');
       } else {
+        // For new users, include permissions in the initial creation
+        userData.permissions = {
+          canCreateOrders: data.permissions.canCreateOrders,
+          canManageLeads: data.role === 'lead_manager' || data.permissions.canManageLeads,
+        };
         await api.post('/users', userData);
         setSuccess('User created successfully!');
       }
