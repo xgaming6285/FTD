@@ -193,7 +193,7 @@ router.post(
     authorize("admin", "affiliate_manager", "lead_manager"),
     body("firstName").trim().isLength({ min: 2 }).withMessage("First name must be at least 2 characters"),
     body("lastName").trim().isLength({ min: 2 }).withMessage("Last name must be at least 2 characters"),
-    body("gender").isIn(["male", "female", "other"]).withMessage("Please provide a valid gender"),
+    body("gender").optional().isIn(["male", "female", "not_defined"]).withMessage("Gender must be male, female, or not_defined"),
     body("newEmail").trim().isEmail().withMessage("Please provide a valid new email"),
     body("oldEmail").optional().trim().isEmail().withMessage("Please provide a valid old email"),
     body("newPhone").trim().notEmpty().withMessage("New phone is required"),
@@ -205,8 +205,7 @@ router.post(
         throw new Error('SIN is required for FTD leads');
       }
       return true;
-    }),
-    body("gender").optional().isIn(["male", "female", "not_defined"]).withMessage("Gender must be male, female, or not_defined")
+    })
   ],
   createLead
 );
@@ -221,7 +220,7 @@ router.put(
     authorize("admin", "affiliate_manager", "lead_manager"),
     body("firstName").optional().trim().isLength({ min: 2 }).withMessage("First name must be at least 2 characters"),
     body("lastName").optional().trim().isLength({ min: 2 }).withMessage("Last name must be at least 2 characters"),
-    body("gender").optional().isIn(["male", "female", "other"]).withMessage("Please provide a valid gender"),
+    body("gender").optional().isIn(["male", "female", "not_defined"]).withMessage("Gender must be male, female, or not_defined"),
     body("newEmail").optional().trim().isEmail().withMessage("Please provide a valid new email"),
     body("oldEmail").optional().trim().isEmail().withMessage("Please provide a valid old email"),
     body("newPhone").optional().trim(),

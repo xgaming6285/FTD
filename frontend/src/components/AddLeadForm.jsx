@@ -22,14 +22,13 @@ import api from '../services/api';
 const addLeadSchema = yup.object({
     firstName: yup.string().required('First name is required').min(2, 'First name must be at least 2 characters'),
     lastName: yup.string().required('Last name is required').min(2, 'Last name must be at least 2 characters'),
-    gender: yup.string().required('Gender is required').oneOf(['male', 'female', 'other'], 'Invalid gender'),
+    gender: yup.string().oneOf(['male', 'female', 'not_defined'], 'Invalid gender').default('not_defined'),
     newEmail: yup.string().required('New email is required').email('Invalid email format'),
     oldEmail: yup.string().nullable().email('Invalid email format'),
     newPhone: yup.string().required('New phone is required'),
     oldPhone: yup.string().nullable(),
     country: yup.string().required('Country is required').min(2, 'Country must be at least 2 characters'),
     leadType: yup.string().required('Lead type is required').oneOf(['ftd', 'filler', 'cold', 'live'], 'Invalid lead type'),
-    gender: yup.string().oneOf(['male', 'female', 'not_defined'], 'Invalid gender').default('not_defined'),
     sin: yup.string().when('leadType', {
         is: 'ftd',
         then: () => yup.string().required('SIN is required for FTD leads'),
@@ -53,14 +52,13 @@ const AddLeadForm = ({ onLeadAdded }) => {
         defaultValues: {
             firstName: '',
             lastName: '',
-            gender: '',
+            gender: 'not_defined',
             newEmail: '',
             oldEmail: '',
             newPhone: '',
             oldPhone: '',
             country: '',
             leadType: '',
-            gender: 'not_defined',
             sin: '',
             client: '',
             clientBroker: '',
@@ -145,7 +143,7 @@ const AddLeadForm = ({ onLeadAdded }) => {
                                     <Select {...field} label="Gender">
                                         <MenuItem value="male">Male</MenuItem>
                                         <MenuItem value="female">Female</MenuItem>
-                                        <MenuItem value="other">Other</MenuItem>
+                                        <MenuItem value="not_defined">Not Defined</MenuItem>
                                     </Select>
                                 )}
                             />

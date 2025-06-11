@@ -582,7 +582,7 @@ exports.updateLead = async (req, res, next) => {
     if (status) lead.status = status;
     if (leadType) lead.leadType = leadType;
     if (sin !== undefined && leadType === 'ftd') lead.sin = sin;
-    if (gender) lead.gender = gender;
+    if (gender !== undefined) lead.gender = gender;
 
     // Update social media fields if provided
     if (socialMedia) {

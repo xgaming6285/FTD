@@ -18,7 +18,7 @@ const generateUniqueEmail = () => {
 // Function to generate a random lead
 const generateRandomLead = () => {
     const leadTypes = ['ftd', 'filler', 'cold', 'live'];
-    const genders = ['male', 'female', 'other'];
+    const genders = ['male', 'female', 'not_defined'];
     const documentStatuses = ['good', 'ok', 'pending'];
     const priorities = ['low', 'medium', 'high'];
     const statuses = ['active', 'contacted', 'converted', 'inactive'];

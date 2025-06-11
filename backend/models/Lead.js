@@ -17,11 +17,6 @@ const leadSchema = new mongoose.Schema({
     required: [true, 'Last name is required'],
     trim: true
   },
-  gender: {
-    type: String,
-    enum: ['male', 'female', 'other'],
-    required: [true, 'Gender is required']
-  },
   newEmail: {
     type: String,
     required: [true, 'New email is required'],
