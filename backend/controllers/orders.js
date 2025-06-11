@@ -95,6 +95,26 @@ exports.createOrder = async (req, res, next) => {
       }
     }
 
+    // Determine order status based on fulfillment
+    const totalRequested = ftd + filler + cold + live;
+    const totalFulfilled =
+      fulfilled.ftd + fulfilled.filler + fulfilled.cold + fulfilled.live;
+
+    let orderStatus;
+    if (totalFulfilled === 0) {
+      orderStatus = "cancelled";
+    } else if (
+      totalFulfilled === totalRequested &&
+      fulfilled.ftd === ftd &&
+      fulfilled.filler === filler &&
+      fulfilled.cold === cold &&
+      fulfilled.live === live
+    ) {
+      orderStatus = "fulfilled";
+    } else {
+      orderStatus = "partial";
+    }
+
     // Create the order first
     const order = new Order({
       requester: req.user._id,
@@ -103,9 +123,14 @@ exports.createOrder = async (req, res, next) => {
       leads: pulledLeads.map((l) => l._id),
       priority: priority || "medium",
       notes,
-      status: "fulfilled",
+      status: orderStatus,
       countryFilter: country || null,
       genderFilter: gender || null,
+      // Set cancellation details if no leads available
+      ...(orderStatus === "cancelled" && {
+        cancelledAt: new Date(),
+        cancellationReason: "No leads available for the requested criteria",
+      }),
     });
 
     await order.save();
@@ -125,19 +150,22 @@ exports.createOrder = async (req, res, next) => {
       );
 
       // Verify the update was successful
-      const updatedLeads = await Lead.find(
-        { _id: { $in: pulledLeads.map((l) => l._id) } }
-      );
+      const updatedLeads = await Lead.find({
+        _id: { $in: pulledLeads.map((l) => l._id) },
+      });
 
       // Check if any leads weren't properly updated
       const notUpdated = updatedLeads.filter(
-        (lead) => !lead.orderId || lead.orderId.toString() !== order._id.toString()
+        (lead) =>
+          !lead.orderId || lead.orderId.toString() !== order._id.toString()
       );
 
       if (notUpdated.length > 0) {
         // If any leads weren't updated, delete the order and throw an error
         await Order.findByIdAndDelete(order._id);
-        throw new Error(`Failed to update orderId for ${notUpdated.length} leads`);
+        throw new Error(
+          `Failed to update orderId for ${notUpdated.length} leads`
+        );
       }
     }
 
@@ -153,7 +181,14 @@ exports.createOrder = async (req, res, next) => {
     res.status(201).json({
       success: true,
       message: (() => {
-        let msg = `Order created successfully with ${pulledLeads.length} leads`;
+        let msg = `Order created with ${pulledLeads.length} leads`;
+        if (orderStatus === "fulfilled") {
+          msg += " - fully fulfilled";
+        } else if (orderStatus === "partial") {
+          msg += ` - partially fulfilled (${totalFulfilled}/${totalRequested} leads)`;
+        } else {
+          msg += " - cancelled (no leads available)";
+        }
         if (country) msg += ` from ${country}`;
         if (gender) msg += ` with gender: ${gender}`;
         return msg;
@@ -425,12 +460,22 @@ exports.getOrderStats = async (req, res, next) => {
           count: { $sum: 1 },
           totalRequested: {
             $sum: {
-              $add: ["$requests.ftd", "$requests.filler", "$requests.cold"],
+              $add: [
+                "$requests.ftd",
+                "$requests.filler",
+                "$requests.cold",
+                "$requests.live",
+              ],
             },
           },
           totalFulfilled: {
             $sum: {
-              $add: ["$fulfilled.ftd", "$fulfilled.filler", "$fulfilled.cold"],
+              $add: [
+                "$fulfilled.ftd",
+                "$fulfilled.filler",
+                "$fulfilled.cold",
+                "$fulfilled.live",
+              ],
             },
           },
         },
