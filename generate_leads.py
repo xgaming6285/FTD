@@ -3,6 +3,7 @@ import random
 from datetime import datetime, timedelta
 from faker import Faker
 import uuid
+import argparse
 
 # Initialize Faker
 fake = Faker()
@@ -48,7 +49,6 @@ def generate_lead():
     lead_types = ["ftd", "filler", "cold", "live"]
     genders = ["male", "female", "not_defined"]
     priorities = ["low", "medium", "high"]
-    statuses = ["active", "contacted", "converted", "inactive"]
     
     lead_type = random.choice(lead_types)
     
@@ -62,7 +62,7 @@ def generate_lead():
         "newPhone": generate_phone(),
         "oldPhone": generate_phone() if random.random() > 0.7 else "",
         "country": fake.country(),
-        "isAssigned": random.choice([True, False]),
+        "isAssigned": False,
         "client": fake.company() if random.random() > 0.5 else "",
         "clientBroker": fake.company() if random.random() > 0.5 else "",
         "clientNetwork": fake.company() if random.random() > 0.5 else "",
@@ -71,7 +71,7 @@ def generate_lead():
         "comments": [],
         "source": random.choice(["website", "referral", "social_media", "direct"]),
         "priority": random.choice(priorities),
-        "status": random.choice(statuses),
+        "status": "active",
         "createdAt": (datetime.now() - timedelta(days=random.randint(0, 365))).isoformat()
     }
     
@@ -101,4 +101,9 @@ def generate_leads_file(num_leads=50, output_file="sample_leads.json"):
     print(f"Generated {num_leads} leads and saved to {output_file}")
 
 if __name__ == "__main__":
-    generate_leads_file() 
+    parser = argparse.ArgumentParser(description='Generate sample leads data')
+    parser.add_argument('num_leads', type=int, nargs='?', default=50,
+                      help='Number of leads to generate (default: 50)')
+    args = parser.parse_args()
+    
+    generate_leads_file(num_leads=args.num_leads) 
