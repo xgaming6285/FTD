@@ -65,6 +65,7 @@ import DocumentPreview from "../components/DocumentPreview";
 import api from "../services/api";
 import { selectUser } from "../store/slices/authSlice";
 import { getSortedCountries } from "../constants/countries";
+import ImportLeadsDialog from "../components/ImportLeadsDialog";
 
 // --- Constants ---
 const ROLES = {
@@ -325,6 +326,7 @@ const LeadsPage = () => {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [selectedLeads, setSelectedLeads] = useState(new Set());
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   // Pagination and filtering
   const [page, setPage] = useState(0);
@@ -585,12 +587,21 @@ const LeadsPage = () => {
         </Typography>
         <Box display="flex" gap={2} alignItems="center">
           {isAdminOrManager && (
-            <Button variant="outlined" size="small" startIcon={<ImportIcon />} disabled sx={{ opacity: 0.7, cursor: "not-allowed" }}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<ImportIcon />}
+              onClick={() => setImportDialogOpen(true)}
+            >
               Import
             </Button>
           )}
           {canAssignLeads && numSelected > 0 && (
-            <Button variant="contained" startIcon={<PersonAddIcon />} onClick={() => setAssignDialogOpen(true)}>
+            <Button
+              variant="contained"
+              startIcon={<PersonAddIcon />}
+              onClick={() => setAssignDialogOpen(true)}
+            >
               Assign {numSelected} Lead{numSelected !== 1 ? "s" : ""}
             </Button>
           )}
@@ -759,6 +770,13 @@ const LeadsPage = () => {
           <DialogActions><Button onClick={() => setAssignDialogOpen(false)}>Cancel</Button><Button type="submit" variant="contained" disabled={isAssignSubmitting}>{isAssignSubmitting ? <CircularProgress size={24} /> : "Assign Leads"}</Button></DialogActions>
         </form>
       </Dialog>
+
+      {/* Add ImportLeadsDialog */}
+      <ImportLeadsDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        onImportComplete={fetchLeads}
+      />
     </Box>
   );
 };

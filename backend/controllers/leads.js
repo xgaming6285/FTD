@@ -698,6 +698,254 @@ exports.createLead = async (req, res, next) => {
   }
 };
 
+// @desc    Import leads from CSV file
+// @route   POST /api/leads/import
+// @access  Private (Admin, Affiliate Manager, Lead Manager)
+exports.importLeads = async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Please upload a CSV file",
+      });
+    }
+
+    const file = req.files.file;
+
+    // Debug file information
+    console.log("File details:", {
+      name: file.name,
+      size: file.size,
+      mimetype: file.mimetype,
+      encoding: file.encoding,
+      data: file.data ? "Buffer present" : "No buffer",
+      tempFilePath: file.tempFilePath,
+    });
+
+    // Check if file exists and has data
+    if (!file || !file.data || file.data.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No file data received",
+        debug: {
+          fileExists: !!file,
+          hasData: file ? !!file.data : false,
+          dataLength: file ? file.data.length : 0,
+        },
+      });
+    }
+
+    // Check if file is CSV
+    if (!file.mimetype.includes("csv") && !file.name.endsWith(".csv")) {
+      return res.status(400).json({
+        success: false,
+        message: "Please upload a valid CSV file",
+      });
+    }
+
+    // Read and parse CSV file with explicit UTF-8 encoding
+    let csvData;
+    try {
+      // Log raw buffer data
+      console.log("Raw buffer (first 100 bytes):", file.data.slice(0, 100));
+      console.log("Buffer length:", file.data.length);
+
+      // Convert buffer to string and handle BOM if present
+      csvData = file.data
+        .toString("utf-8")
+        .replace(/^\uFEFF/, "")
+        .trim();
+
+      // Log the raw string data
+      console.log(
+        "Raw CSV string (first 200 chars):",
+        csvData.substring(0, 200)
+      );
+      console.log("Raw CSV string length:", csvData.length);
+      console.log("Raw CSV string contains newlines:", csvData.includes("\n"));
+      console.log(
+        "Raw CSV string contains carriage returns:",
+        csvData.includes("\r")
+      );
+
+      // Log character codes for debugging
+      console.log(
+        "First 10 character codes:",
+        Array.from(csvData.substring(0, 10)).map((c) => c.charCodeAt(0))
+      );
+    } catch (error) {
+      console.error("Error reading file:", error);
+      return res.status(400).json({
+        success: false,
+        message: "Error reading CSV file",
+        error: error.message,
+      });
+    }
+
+    // Split by newlines and handle different line endings
+    const rawRows = csvData.split(/\r?\n/);
+    console.log("Raw rows before processing:", {
+      count: rawRows.length,
+      firstRow: rawRows[0],
+      secondRow: rawRows[1],
+    });
+
+    const rows = rawRows
+      .map((row) => row.trim())
+      .filter((row) => row.length > 0) // Remove empty lines
+      .map((row) => {
+        // Split by comma and handle quoted values
+        const cells = [];
+        let currentCell = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < row.length; i++) {
+          const char = row[i];
+
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === "," && !inQuotes) {
+            cells.push(currentCell.trim());
+            currentCell = "";
+          } else {
+            currentCell += char;
+          }
+        }
+
+        // Add the last cell
+        cells.push(currentCell.trim());
+        return cells;
+      });
+
+    console.log("Processed rows:", {
+      totalRows: rows.length,
+      firstRow: rows[0],
+      secondRow: rows[1],
+    });
+
+    if (rows.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: "CSV file must contain at least a header row and one data row",
+        debug: {
+          totalRows: rows.length,
+          rawRowCount: rawRows.length,
+          firstRawRow: rawRows[0],
+          fileSize: file.size,
+          fileType: file.mimetype,
+          csvLength: csvData.length,
+        },
+      });
+    }
+
+    // Get headers from first row
+    const headers = rows[0];
+    const dataRows = rows.slice(1);
+
+    // Log headers for debugging
+    console.log("CSV Headers:", headers);
+
+    // Validate required headers
+    const requiredHeaders = [
+      "firstName",
+      "lastName",
+      "newEmail",
+      "newPhone",
+      "country",
+      "leadType",
+    ];
+    const missingHeaders = requiredHeaders.filter(
+      (header) => !headers.includes(header)
+    );
+
+    if (missingHeaders.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required headers: ${missingHeaders.join(", ")}`,
+        debug: {
+          receivedHeaders: headers,
+          requiredHeaders: requiredHeaders,
+          firstDataRow: dataRows[0],
+        },
+      });
+    }
+
+    // Process each row and create leads
+    const leads = [];
+    const errors = [];
+
+    for (let i = 0; i < dataRows.length; i++) {
+      const row = dataRows[i];
+      const leadData = {};
+
+      // Map CSV columns to lead fields
+      headers.forEach((header, index) => {
+        if (row[index]) {
+          leadData[header] = row[index];
+        }
+      });
+
+      try {
+        // Validate lead data
+        if (
+          !leadData.firstName ||
+          !leadData.lastName ||
+          !leadData.newEmail ||
+          !leadData.newPhone ||
+          !leadData.country ||
+          !leadData.leadType
+        ) {
+          throw new Error("Missing required fields");
+        }
+
+        // Validate lead type
+        if (!["ftd", "filler", "cold", "live"].includes(leadData.leadType)) {
+          throw new Error("Invalid lead type");
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(leadData.newEmail)) {
+          throw new Error("Invalid email format");
+        }
+
+        // Create lead
+        const lead = new Lead({
+          ...leadData,
+          createdBy: req.user.id,
+          isAssigned: false,
+          status: "active",
+          documents:
+            leadData.leadType === "ftd" ? { status: "pending" } : undefined,
+        });
+
+        await lead.save();
+        leads.push(lead);
+      } catch (error) {
+        errors.push({
+          row: i + 2, // +2 because of 0-based index and header row
+          error: error.message,
+          data: leadData,
+        });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully imported ${leads.length} leads${
+        errors.length > 0 ? ` with ${errors.length} errors` : ""
+      }`,
+      data: {
+        imported: leads.length,
+        errors: errors,
+      },
+    });
+  } catch (error) {
+    console.error("Import error:", error);
+    next(error);
+  }
+};
+
 // @desc    Delete a lead
 // @route   DELETE /api/leads/:id
 // @access  Private (Admin only)

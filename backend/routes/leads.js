@@ -1,6 +1,12 @@
 const express = require("express");
 const { body, query } = require("express-validator");
-const { protect, isAdmin, isAgent, authorize, isLeadManager } = require("../middleware/auth");
+const {
+  protect,
+  isAdmin,
+  isAgent,
+  authorize,
+  isLeadManager,
+} = require("../middleware/auth");
 const {
   getLeads,
   getAssignedLeads,
@@ -12,7 +18,8 @@ const {
   unassignLeads,
   updateLead,
   createLead,
-  deleteLead
+  deleteLead,
+  importLeads,
 } = require("../controllers/leads");
 
 const router = express.Router();
@@ -192,21 +199,45 @@ router.post(
   [
     protect,
     authorize("admin", "affiliate_manager", "lead_manager"),
-    body("firstName").trim().isLength({ min: 2 }).withMessage("First name must be at least 2 characters"),
-    body("lastName").trim().isLength({ min: 2 }).withMessage("Last name must be at least 2 characters"),
-    body("gender").optional().isIn(["male", "female", "not_defined"]).withMessage("Gender must be male, female, or not_defined"),
-    body("newEmail").trim().isEmail().withMessage("Please provide a valid new email"),
-    body("oldEmail").optional().trim().isEmail().withMessage("Please provide a valid old email"),
+    body("firstName")
+      .trim()
+      .isLength({ min: 2 })
+      .withMessage("First name must be at least 2 characters"),
+    body("lastName")
+      .trim()
+      .isLength({ min: 2 })
+      .withMessage("Last name must be at least 2 characters"),
+    body("gender")
+      .optional()
+      .isIn(["male", "female", "not_defined"])
+      .withMessage("Gender must be male, female, or not_defined"),
+    body("newEmail")
+      .trim()
+      .isEmail()
+      .withMessage("Please provide a valid new email"),
+    body("oldEmail")
+      .optional()
+      .trim()
+      .isEmail()
+      .withMessage("Please provide a valid old email"),
     body("newPhone").trim().notEmpty().withMessage("New phone is required"),
     body("oldPhone").optional().trim(),
-    body("country").trim().isLength({ min: 2 }).withMessage("Country must be at least 2 characters"),
-    body("leadType").isIn(["ftd", "filler", "cold", "live"]).withMessage("Invalid lead type"),
-    body("sin").optional().trim().custom((value, { req }) => {
-      if (req.body.leadType === 'ftd' && !value) {
-        throw new Error('SIN is required for FTD leads');
-      }
-      return true;
-    })
+    body("country")
+      .trim()
+      .isLength({ min: 2 })
+      .withMessage("Country must be at least 2 characters"),
+    body("leadType")
+      .isIn(["ftd", "filler", "cold", "live"])
+      .withMessage("Invalid lead type"),
+    body("sin")
+      .optional()
+      .trim()
+      .custom((value, { req }) => {
+        if (req.body.leadType === "ftd" && !value) {
+          throw new Error("SIN is required for FTD leads");
+        }
+        return true;
+      }),
   ],
   createLead
 );
@@ -219,35 +250,98 @@ router.put(
   [
     protect,
     authorize("admin", "affiliate_manager", "lead_manager"),
-    body("firstName").optional().trim().isLength({ min: 2 }).withMessage("First name must be at least 2 characters"),
-    body("lastName").optional().trim().isLength({ min: 2 }).withMessage("Last name must be at least 2 characters"),
-    body("gender").optional().isIn(["male", "female", "not_defined"]).withMessage("Gender must be male, female, or not_defined"),
-    body("newEmail").optional().trim().isEmail().withMessage("Please provide a valid new email"),
-    body("oldEmail").optional().trim().isEmail().withMessage("Please provide a valid old email"),
+    body("firstName")
+      .optional()
+      .trim()
+      .isLength({ min: 2 })
+      .withMessage("First name must be at least 2 characters"),
+    body("lastName")
+      .optional()
+      .trim()
+      .isLength({ min: 2 })
+      .withMessage("Last name must be at least 2 characters"),
+    body("gender")
+      .optional()
+      .isIn(["male", "female", "not_defined"])
+      .withMessage("Gender must be male, female, or not_defined"),
+    body("newEmail")
+      .optional()
+      .trim()
+      .isEmail()
+      .withMessage("Please provide a valid new email"),
+    body("oldEmail")
+      .optional()
+      .trim()
+      .isEmail()
+      .withMessage("Please provide a valid old email"),
     body("newPhone").optional().trim(),
     body("oldPhone").optional().trim(),
-    body("country").optional().trim().isLength({ min: 2 }).withMessage("Country must be at least 2 characters"),
-    body("status").optional().isIn(["active", "contacted", "converted", "inactive"]).withMessage("Invalid status"),
-    body("leadType").optional().isIn(["ftd", "filler", "cold", "live"]).withMessage("Invalid lead type"),
-    body("documents.status").optional().isIn(["good", "ok", "pending"]).withMessage("Invalid document status"),
-    body("socialMedia.facebook").optional().trim().isURL().withMessage("Invalid Facebook URL"),
-    body("socialMedia.twitter").optional().trim().isURL().withMessage("Invalid Twitter URL"),
-    body("socialMedia.linkedin").optional().trim().isURL().withMessage("Invalid LinkedIn URL"),
-    body("socialMedia.instagram").optional().trim().isURL().withMessage("Invalid Instagram URL"),
+    body("country")
+      .optional()
+      .trim()
+      .isLength({ min: 2 })
+      .withMessage("Country must be at least 2 characters"),
+    body("status")
+      .optional()
+      .isIn(["active", "contacted", "converted", "inactive"])
+      .withMessage("Invalid status"),
+    body("leadType")
+      .optional()
+      .isIn(["ftd", "filler", "cold", "live"])
+      .withMessage("Invalid lead type"),
+    body("documents.status")
+      .optional()
+      .isIn(["good", "ok", "pending"])
+      .withMessage("Invalid document status"),
+    body("socialMedia.facebook")
+      .optional()
+      .trim()
+      .isURL()
+      .withMessage("Invalid Facebook URL"),
+    body("socialMedia.twitter")
+      .optional()
+      .trim()
+      .isURL()
+      .withMessage("Invalid Twitter URL"),
+    body("socialMedia.linkedin")
+      .optional()
+      .trim()
+      .isURL()
+      .withMessage("Invalid LinkedIn URL"),
+    body("socialMedia.instagram")
+      .optional()
+      .trim()
+      .isURL()
+      .withMessage("Invalid Instagram URL"),
     body("socialMedia.telegram").optional().trim(),
     body("socialMedia.whatsapp").optional().trim(),
-    body("sin").optional().trim().custom((value, { req }) => {
-      if (req.body.leadType === 'ftd' && !value) {
-        throw new Error('SIN is required for FTD leads');
-      }
-      return true;
-    }),
-    body("gender").optional().isIn(["male", "female", "not_defined"]).withMessage("Gender must be male, female, or not_defined")
+    body("sin")
+      .optional()
+      .trim()
+      .custom((value, { req }) => {
+        if (req.body.leadType === "ftd" && !value) {
+          throw new Error("SIN is required for FTD leads");
+        }
+        return true;
+      }),
+    body("gender")
+      .optional()
+      .isIn(["male", "female", "not_defined"])
+      .withMessage("Gender must be male, female, or not_defined"),
   ],
   updateLead
 );
 
 // Delete lead (Admin only)
 router.delete("/:id", [protect, isAdmin], deleteLead);
+
+// @route   POST /api/leads/import
+// @desc    Import leads from CSV file
+// @access  Private (Admin, Affiliate Manager, Lead Manager)
+router.post(
+  "/import",
+  [protect, authorize("admin", "affiliate_manager", "lead_manager")],
+  importLeads
+);
 
 module.exports = router;
