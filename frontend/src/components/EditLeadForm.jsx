@@ -63,7 +63,7 @@ const schema = yup.object().shape({
   'socialMedia.whatsapp': yup.string().nullable()
 });
 
-const EditLeadForm = ({ open, onClose, lead, onLeadUpdated }) => {
+const EditLeadForm = ({ open, onClose, lead, onLeadUpdated, sx }) => {
   const {
     control,
     handleSubmit,
@@ -120,7 +120,13 @@ const EditLeadForm = ({ open, onClose, lead, onLeadUpdated }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="md" 
+      fullWidth
+      sx={sx}
+    >
       <DialogTitle>Edit Lead</DialogTitle>
       <form onSubmit={handleSubmit(onSubmit)}>
         <DialogContent>

@@ -844,6 +844,11 @@ const LeadsPage = () => {
         }}
         lead={selectedLead}
         onLeadUpdated={handleLeadUpdated}
+        sx={{
+          '& .MuiBackdrop-root': {
+            backdropFilter: 'blur(5px)',
+          }
+        }}
       />
 
       <Dialog 
