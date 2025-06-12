@@ -596,8 +596,10 @@ exports.updateLead = async (req, res, next) => {
     const {
       firstName,
       lastName,
-      email,
-      phone,
+      newEmail,
+      oldEmail,
+      newPhone,
+      oldPhone,
       country,
       status,
       documents,
@@ -630,8 +632,10 @@ exports.updateLead = async (req, res, next) => {
     // Update fields if provided
     if (firstName) lead.firstName = firstName;
     if (lastName) lead.lastName = lastName;
-    if (email) lead.email = email;
-    if (phone) lead.phone = phone;
+    if (newEmail) lead.newEmail = newEmail;
+    if (oldEmail !== undefined) lead.oldEmail = oldEmail;
+    if (newPhone) lead.newPhone = newPhone;
+    if (oldPhone !== undefined) lead.oldPhone = oldPhone;
     if (country) lead.country = country;
     if (status) lead.status = status;
     if (leadType) lead.leadType = leadType;

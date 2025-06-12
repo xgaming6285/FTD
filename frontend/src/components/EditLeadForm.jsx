@@ -124,25 +124,25 @@ const EditLeadForm = ({ open, onClose, lead, onLeadUpdated, sx }) => {
 
   const leadType = watch("leadType");
 
-  const onSubmit = async (data) => {
+    const onSubmit = async (data) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Transform data to match backend expectations
+      // Send data directly - backend now expects newEmail/newPhone correctly
       const updateData = {
         firstName: data.firstName,
         lastName: data.lastName,
-        email: data.newEmail, // Backend expects 'email' for newEmail
-        phone: data.newPhone, // Backend expects 'phone' for newPhone
+        newEmail: data.newEmail,
+        oldEmail: data.oldEmail,
+        newPhone: data.newPhone,
+        oldPhone: data.oldPhone,
         country: data.country,
         status: data.status,
         leadType: data.leadType,
         sin: data.sin,
         gender: data.gender,
         socialMedia: data.socialMedia,
-        // Note: Backend doesn't handle client fields, address, dob in updateLead
-        // Only basic fields are supported in the current backend implementation
       };
 
       const response = await api.put(`/leads/${lead._id}`, updateData);
