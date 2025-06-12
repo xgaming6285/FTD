@@ -329,6 +329,7 @@ const LeadsPage = () => {
   const [selectedLeads, setSelectedLeads] = useState(new Set());
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [addLeadDialogOpen, setAddLeadDialogOpen] = useState(false);
 
   // Pagination and filtering
   const [page, setPage] = useState(0);
@@ -517,7 +518,7 @@ const LeadsPage = () => {
 
 
   // --- Handlers (Memoized) ---
-  const handleLeadAdded = useCallback(() => {
+  const handleLeadAdded = useCallback((lead) => {
     fetchLeads();
   }, [fetchLeads]);
 
@@ -598,6 +599,16 @@ const LeadsPage = () => {
           {isAgent ? "My Assigned Leads" : "Lead Management"}
         </Typography>
         <Box display="flex" gap={2} alignItems="center">
+          {(isLeadManager || user?.role === ROLES.ADMIN) && (
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<PersonAddIcon />}
+              onClick={() => setAddLeadDialogOpen(true)}
+            >
+              Add New Lead
+            </Button>
+          )}
           {isAdminOrManager && (
             <Button
               variant="outlined"
@@ -646,8 +657,6 @@ const LeadsPage = () => {
 
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
-
-      {(isLeadManager || user?.role === ROLES.ADMIN) && <Box sx={{ mb: 3 }}><AddLeadForm onLeadAdded={handleLeadAdded} /></Box>}
 
       {isAdminOrManager && (
         <Card sx={{ mb: 2, background: 'linear-gradient(to right, #f5f7fa, #ffffff)' }}>
@@ -828,6 +837,28 @@ const LeadsPage = () => {
         lead={selectedLead}
         onLeadUpdated={handleLeadUpdated}
       />
+
+      <Dialog 
+        open={addLeadDialogOpen} 
+        onClose={() => setAddLeadDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+        sx={{
+          '& .MuiBackdrop-root': {
+            backdropFilter: 'blur(5px)',
+          }
+        }}
+      >
+        <DialogTitle>Add New Lead</DialogTitle>
+        <DialogContent>
+          <AddLeadForm 
+            onLeadAdded={(lead) => {
+              handleLeadAdded(lead);
+              setAddLeadDialogOpen(false);
+            }} 
+          />
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };
