@@ -34,7 +34,7 @@ def generate_address():
 def generate_documents(lead_type):
     """Generate document URLs for FTD leads."""
     if lead_type == "ftd":
-        status_choices = ["good", "ok", "pending"]
+        status_choices = ["good", "ok", "pending"]  # Valid document statuses
         return {
             "idFrontUrl": f"https://storage.example.com/documents/{uuid.uuid4()}/id_front.jpg",
             "idBackUrl": f"https://storage.example.com/documents/{uuid.uuid4()}/id_back.jpg",
@@ -49,6 +49,7 @@ def generate_lead():
     lead_types = ["ftd", "filler", "cold", "live"]
     genders = ["male", "female", "not_defined"]
     priorities = ["low", "medium", "high"]
+    statuses = ["active", "contacted", "converted", "inactive"]  # Valid lead statuses
     
     lead_type = random.choice(lead_types)
     
@@ -71,7 +72,7 @@ def generate_lead():
         "comments": [],
         "source": random.choice(["website", "referral", "social_media", "direct"]),
         "priority": random.choice(priorities),
-        "status": "active",
+        "status": random.choice(statuses),  # Use valid status values
         "createdAt": (datetime.now() - timedelta(days=random.randint(0, 365))).isoformat()
     }
     

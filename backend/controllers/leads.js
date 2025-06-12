@@ -640,8 +640,10 @@ exports.createLead = async (req, res, next) => {
     const {
       firstName,
       lastName,
-      email,
-      phone,
+      newEmail,
+      oldEmail,
+      newPhone,
+      oldPhone,
       country,
       leadType,
       socialMedia,
@@ -658,8 +660,10 @@ exports.createLead = async (req, res, next) => {
     const lead = new Lead({
       firstName,
       lastName,
-      email,
-      phone,
+      newEmail,
+      oldEmail,
+      newPhone,
+      oldPhone,
       country,
       leadType,
       socialMedia,
@@ -938,6 +942,39 @@ exports.importLeads = async (req, res, next) => {
     });
   } catch (error) {
     console.error("Import error:", error);
+    next(error);
+  }
+};
+
+// @desc    Delete a lead
+// @route   DELETE /api/leads/:id
+// @access  Private (Admin only)
+exports.deleteLead = async (req, res, next) => {
+  try {
+    const lead = await Lead.findById(req.params.id);
+
+    if (!lead) {
+      return res.status(404).json({
+        success: false,
+        message: "Lead not found",
+      });
+    }
+
+    // Only admin can delete leads
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to delete leads",
+      });
+    }
+
+    await lead.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: "Lead deleted successfully",
+    });
+  } catch (error) {
     next(error);
   }
 };

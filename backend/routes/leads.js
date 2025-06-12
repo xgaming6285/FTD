@@ -18,7 +18,7 @@ const {
   unassignLeads,
   updateLead,
   createLead,
-  importLeads,
+  deleteLead,
 } = require("../controllers/leads");
 
 const router = express.Router();
@@ -330,6 +330,9 @@ router.put(
   ],
   updateLead
 );
+
+// Delete lead (Admin only)
+router.delete("/:id", [protect, isAdmin], deleteLead);
 
 // @route   POST /api/leads/import
 // @desc    Import leads from CSV file
