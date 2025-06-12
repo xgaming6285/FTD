@@ -446,7 +446,7 @@ const LeadsPage = () => {
     } catch (err) {
       setError(err.response?.data?.message || "Failed to add comment.");
     }
-  }, [selectedLead, fetchLeads, resetComment, isLeadManager, user?.id, leads]);
+  }, [selectedLead, fetchLeads, resetComment, isLeadManager, user?.id, leads, setSuccess, setError]);
 
   const onSubmitAssignment = useCallback(async (data) => {
     try {
@@ -461,7 +461,7 @@ const LeadsPage = () => {
     } catch (err) {
       setError(err.response?.data?.message || "Failed to assign leads.");
     }
-  }, [selectedLeads, fetchLeads, resetAssign]);
+  }, [selectedLeads, fetchLeads, resetAssign, setSuccess, setError]);
 
   const updateLeadStatus = useCallback(async (leadId, status) => {
     try {
@@ -479,17 +479,17 @@ const LeadsPage = () => {
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update lead status.");
     }
-  }, [fetchLeads, isLeadManager, user?.id, leads]);
+  }, [fetchLeads, isLeadManager, user?.id, leads, setSuccess, setError]);
 
   const handleDeleteLead = useCallback(async (leadId) => {
     try {
       await api.delete(`/leads/${leadId}`);
-      showSuccess('Lead deleted successfully');
+      setSuccess('Lead deleted successfully');
       fetchLeads();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete lead');
     }
-  }, [fetchLeads]);
+  }, [fetchLeads, setSuccess, setError]);
 
   // --- Effects ---
   useEffect(() => {
@@ -683,6 +683,7 @@ const LeadsPage = () => {
                         <LeadRow
                             lead={lead}
                             canAssignLeads={canAssignLeads}
+                            canDeleteLeads={canDeleteLeads}
                             isAdminOrManager={isAdminOrManager}
                             isLeadManager={isLeadManager}
                             userId={user.id}
@@ -693,6 +694,7 @@ const LeadsPage = () => {
                             onComment={handleOpenCommentDialog}
                             onToggleExpansion={toggleRowExpansion}
                             onFilterByOrder={(orderId) => handleFilterChange("orderId", orderId)}
+                            onDeleteLead={handleDeleteLead}
                         />
                         {expandedRows.has(lead._id) && (
                             <TableRow>
@@ -721,12 +723,14 @@ const LeadsPage = () => {
                     key={lead._id}
                     lead={lead}
                     canAssignLeads={canAssignLeads}
+                    canDeleteLeads={canDeleteLeads}
                     selectedLeads={selectedLeads}
                     expandedRows={expandedRows}
                     onSelectLead={handleSelectLead}
                     onUpdateStatus={updateLeadStatus}
                     onComment={handleOpenCommentDialog}
                     onToggleExpansion={toggleRowExpansion}
+                    onDeleteLead={handleDeleteLead}
                 />
             ))}
             <TablePagination rowsPerPageOptions={[5, 10, 25]} component="div" count={totalLeads} rowsPerPage={rowsPerPage} page={page} onPageChange={handleChangePage} onRowsPerPageChange={handleChangeRowsPerPage} />
@@ -760,7 +764,7 @@ const LeadsPage = () => {
 };
 
 // --- Memoized Row Component for Desktop Table ---
-const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadManager, userId, selectedLeads, expandedRows, onSelectLead, onUpdateStatus, onComment, onToggleExpansion, onFilterByOrder }) => {
+const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadManager, userId, selectedLeads, expandedRows, onSelectLead, onUpdateStatus, onComment, onToggleExpansion, onFilterByOrder, onDeleteLead, canDeleteLeads }) => {
     const isOwner = !isLeadManager || lead.createdBy === userId;
 
     const handleRowClick = (event) => {
@@ -803,10 +807,24 @@ const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadMana
         <Stack direction="row" spacing={1}>
           <FormControl size="small" sx={{ minWidth: 120 }}><Select value={lead.status} onChange={(e) => onUpdateStatus(lead._id, e.target.value)} size="small" disabled={!isOwner}>{Object.values(LEAD_STATUSES).map(status => <MenuItem key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</MenuItem>)}</Select></FormControl>
           <IconButton size="small" onClick={() => onComment(lead)} disabled={!isOwner}><CommentIcon /></IconButton>
+          {canDeleteLeads && (
+            <IconButton 
+              size="small" 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (window.confirm('Are you sure you want to delete this lead?')) {
+                  onDeleteLead(lead._id);
+                }
+              }}
+              color="error"
+            >
+              <DeleteIcon />
+            </IconButton>
+          )}
           <IconButton
             size="small"
             onClick={(e) => {
-              e.stopPropagation(); // Prevent row click when arrow is clicked directly
+              e.stopPropagation();
               onToggleExpansion(lead._id);
             }}
           >
@@ -818,7 +836,7 @@ const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadMana
 )});
 
 // --- Memoized Card Component for Mobile View ---
-const LeadCard = React.memo(({ lead, canAssignLeads, selectedLeads, expandedRows, onSelectLead, onUpdateStatus, onComment, onToggleExpansion }) => {
+const LeadCard = React.memo(({ lead, canAssignLeads, selectedLeads, expandedRows, onSelectLead, onUpdateStatus, onComment, onToggleExpansion, onDeleteLead, canDeleteLeads }) => {
     const handleCardClick = (event) => {
         // Prevent card click when clicking on interactive elements
         if (event.target.closest('button, input, select, [role="combobox"], .MuiSelect-select, .MuiMenuItem-root')) {
@@ -862,7 +880,7 @@ const LeadCard = React.memo(({ lead, canAssignLeads, selectedLeads, expandedRows
                     <IconButton
                         size="small"
                         onClick={(e) => {
-                            e.stopPropagation(); // Prevent card click when arrow is clicked directly
+                            e.stopPropagation();
                             onToggleExpansion(lead._id);
                         }}
                         sx={{ transform: expandedRows.has(lead._id) ? 'rotate(180deg)' : 'none' }}
@@ -870,6 +888,20 @@ const LeadCard = React.memo(({ lead, canAssignLeads, selectedLeads, expandedRows
                         <ExpandMoreIcon />
                     </IconButton>
                     <IconButton size="small" onClick={() => onComment(lead)} sx={{ color: 'info.main' }}><CommentIcon /></IconButton>
+                    {canDeleteLeads && (
+                      <IconButton 
+                        size="small" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm('Are you sure you want to delete this lead?')) {
+                            onDeleteLead(lead._id);
+                          }
+                        }}
+                        color="error"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    )}
                     {canAssignLeads && <Checkbox checked={selectedLeads.has(lead._id)} onChange={onSelectLead(lead._id)} size="small" />}
                 </Stack>
             </Grid>
