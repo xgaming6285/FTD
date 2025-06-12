@@ -9,13 +9,25 @@ import {
   Typography,
   Alert,
   CircularProgress,
-  Link
+  Link,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { FileUpload as ImportIcon } from '@mui/icons-material';
 import api from '../services/api';
 
+const LEAD_TYPES = {
+  FTD: "ftd",
+  FILLER: "filler",
+  COLD: "cold",
+  LIVE: "live",
+};
+
 const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
   const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedLeadType, setSelectedLeadType] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -52,31 +64,36 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
 
       setSelectedFile(file);
       setError(null);
+      setSuccess(null);
+      setImportResults(null);
     } else {
       setSelectedFile(null);
     }
   };
 
   const handleImport = async () => {
-    if (!selectedFile) {
-      setError("Please select a file");
+    if (!selectedFile || !selectedLeadType) {
+      setError("Please select both a file and a lead type");
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    setImportResults(null);
 
-      // Create FormData and append file
+    try {
       const formData = new FormData();
-      formData.append("file", selectedFile, selectedFile.name);
+      formData.append("file", selectedFile);
+      formData.append("leadType", selectedLeadType);
 
       // Log the FormData contents for debugging
       console.log('FormData contents:', {
         file: selectedFile,
         fileSize: selectedFile.size,
         fileType: selectedFile.type,
-        fileName: selectedFile.name
+        fileName: selectedFile.name,
+        leadType: selectedLeadType
       });
 
       // Make API request
@@ -117,6 +134,7 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
 
   const handleClose = () => {
     setSelectedFile(null);
+    setSelectedLeadType("");
     setError(null);
     setSuccess(null);
     setImportResults(null);
@@ -145,6 +163,23 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
               {selectedFile ? selectedFile.name : "Select CSV File"}
             </Button>
           </label>
+        </Box>
+
+        <Box sx={{ my: 2 }}>
+          <FormControl fullWidth>
+            <InputLabel>Lead Type</InputLabel>
+            <Select
+              value={selectedLeadType}
+              label="Lead Type"
+              onChange={(e) => setSelectedLeadType(e.target.value)}
+            >
+              {Object.entries(LEAD_TYPES).map(([key, value]) => (
+                <MenuItem key={value} value={value}>
+                  {key}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Box>
 
         {error && (
@@ -188,7 +223,7 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
         <Button
           onClick={handleImport}
           variant="contained"
-          disabled={!selectedFile || loading}
+          disabled={!selectedFile || !selectedLeadType || loading}
         >
           {loading ? <CircularProgress size={24} /> : "Import"}
         </Button>
