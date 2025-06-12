@@ -154,28 +154,70 @@ const LeadDetails = React.memo(({ lead }) => (
             Contact Details
           </Typography>
           <Stack spacing={1}>
-            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <span style={{ color: 'text.secondary' }}>📧</span> {lead.newEmail}
-            </Typography>
-            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <span style={{ color: 'text.secondary' }}>📱</span> {lead.newPhone || 'N/A'}
-            </Typography>
-            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <span style={{ color: 'text.secondary' }}>🌍</span> {lead.country || 'Unknown'}
-            </Typography>
-            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <span style={{ color: 'text.secondary' }}>⚧</span> {lead.gender ? (lead.gender === 'not_defined' ? 'Not Defined' : lead.gender.charAt(0).toUpperCase() + lead.gender.slice(1)) : 'Not Defined'}
-            </Typography>
-            {lead.leadType === LEAD_TYPES.FTD && (
+            {lead.newEmail && (
               <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span style={{ color: 'text.secondary' }}>🆔</span> SIN: {lead.sin || 'N/A'}
+                <span style={{ color: 'text.secondary' }}>📧</span> {lead.newEmail}
               </Typography>
+            )}
+            {lead.oldEmail && (
+              <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <span style={{ color: 'text.secondary' }}>📧</span> Old Email: {lead.oldEmail}
+              </Typography>
+            )}
+            {lead.newPhone && (
+              <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <span style={{ color: 'text.secondary' }}>📱</span> {lead.newPhone}
+              </Typography>
+            )}
+            {lead.oldPhone && (
+              <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <span style={{ color: 'text.secondary' }}>📱</span> Old Phone: {lead.oldPhone}
+              </Typography>
+            )}
+            {lead.country && (
+              <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <span style={{ color: 'text.secondary' }}>🌍</span> {lead.country}
+              </Typography>
+            )}
+            {lead.gender && (
+              <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <span style={{ color: 'text.secondary' }}>⚧</span> {lead.gender === 'not_defined' ? 'Not Defined' : lead.gender.charAt(0).toUpperCase() + lead.gender.slice(1)}
+              </Typography>
+            )}
+            {lead.leadType === LEAD_TYPES.FTD && lead.sin && (
+              <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <span style={{ color: 'text.secondary' }}>🆔</span> SIN: {lead.sin}
+              </Typography>
+            )}
+            {lead.dob && (
+              <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <span style={{ color: 'text.secondary' }}>📅</span> DOB: {new Date(lead.dob).toLocaleDateString()}
+              </Typography>
+            )}
+            {lead.address && (
+              <>
+                {lead.address.street && (
+                  <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <span style={{ color: 'text.secondary' }}>🏠</span> {lead.address.street}
+                  </Typography>
+                )}
+                {lead.address.city && (
+                  <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <span style={{ color: 'text.secondary' }}>🏙️</span> {lead.address.city}
+                  </Typography>
+                )}
+                {lead.address.postalCode && (
+                  <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <span style={{ color: 'text.secondary' }}>📮</span> {lead.address.postalCode}
+                  </Typography>
+                )}
+              </>
             )}
           </Stack>
         </Paper>
       </Grid>
 
-      {lead.leadType === LEAD_TYPES.FTD && (
+      {lead.leadType === LEAD_TYPES.FTD && lead.documents && Object.values(lead.documents).some(v => v) && (
         <Grid item xs={12} md={4}>
           <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider', height: '100%' }}>
             <Typography variant="subtitle2" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -184,7 +226,7 @@ const LeadDetails = React.memo(({ lead }) => (
             </Typography>
             <Stack spacing={2}>
               <Grid container spacing={1}>
-                {Object.entries(lead.documents || {}).map(([key, url]) => url && (
+                {Object.entries(lead.documents).map(([key, url]) => url && (
                   <Grid item xs={6} key={key}>
                     <Typography variant="caption" color="text.secondary" display="block">
                       {key.replace('Url', '').replace(/([A-Z])/g, ' $1').trim()}
@@ -198,11 +240,6 @@ const LeadDetails = React.memo(({ lead }) => (
                   </Grid>
                 ))}
               </Grid>
-              {!lead.documents || Object.values(lead.documents).every(v => !v) && (
-                <Typography variant="body2" color="text.secondary">
-                  No documents uploaded
-                </Typography>
-              )}
             </Stack>
           </Paper>
         </Grid>
@@ -235,22 +272,39 @@ const LeadDetails = React.memo(({ lead }) => (
           </Box>
         </Paper>
       </Grid>
+
+      {(lead.client || lead.clientBroker || lead.clientNetwork) && (
         <Grid item xs={12}>
-            <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
-                <Typography variant="subtitle2" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    Social Media Profiles
-                </Typography>
-                <Stack spacing={1}>
-                    {lead.socialMedia?.facebook && <Link href={lead.socialMedia.facebook} target="_blank" rel="noopener noreferrer" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}><img src="/facebook-icon.svg" alt="Facebook" width={16} height={16} />Facebook</Link>}
-                    {lead.socialMedia?.twitter && <Link href={lead.socialMedia.twitter} target="_blank" rel="noopener noreferrer" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}><img src="/twitter-icon.svg" alt="Twitter" width={16} height={16} />Twitter</Link>}
-                    {lead.socialMedia?.linkedin && <Link href={lead.socialMedia.linkedin} target="_blank" rel="noopener noreferrer" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}><img src="/linkedin-icon.svg" alt="LinkedIn" width={16} height={16} />LinkedIn</Link>}
-                    {lead.socialMedia?.instagram && <Link href={lead.socialMedia.instagram} target="_blank" rel="noopener noreferrer" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}><img src="/instagram-icon.svg" alt="Instagram" width={16} height={16} />Instagram</Link>}
-                    {lead.socialMedia?.telegram && <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><img src="/telegram-icon.svg" alt="Telegram" width={16} height={16} />{lead.socialMedia.telegram}</Typography>}
-                    {lead.socialMedia?.whatsapp && <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><img src="/whatsapp-icon.svg" alt="WhatsApp" width={16} height={16} />{lead.socialMedia.whatsapp}</Typography>}
-                    {(!lead.socialMedia || !Object.values(lead.socialMedia).some(Boolean)) && <Typography variant="body2" color="text.secondary">No social media profiles available</Typography>}
-                </Stack>
-            </Paper>
+          <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="subtitle2" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              Client Information
+            </Typography>
+            <Stack spacing={1}>
+              {lead.client && <Typography variant="body2">Client: {lead.client}</Typography>}
+              {lead.clientBroker && <Typography variant="body2">Broker: {lead.clientBroker}</Typography>}
+              {lead.clientNetwork && <Typography variant="body2">Network: {lead.clientNetwork}</Typography>}
+            </Stack>
+          </Paper>
         </Grid>
+      )}
+
+      {lead.socialMedia && Object.values(lead.socialMedia).some(Boolean) && (
+        <Grid item xs={12}>
+          <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="subtitle2" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              Social Media Profiles
+            </Typography>
+            <Stack spacing={1}>
+              {lead.socialMedia.facebook && <Link href={lead.socialMedia.facebook} target="_blank" rel="noopener noreferrer" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}><img src="/facebook-icon.svg" alt="Facebook" width={16} height={16} />Facebook</Link>}
+              {lead.socialMedia.twitter && <Link href={lead.socialMedia.twitter} target="_blank" rel="noopener noreferrer" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}><img src="/twitter-icon.svg" alt="Twitter" width={16} height={16} />Twitter</Link>}
+              {lead.socialMedia.linkedin && <Link href={lead.socialMedia.linkedin} target="_blank" rel="noopener noreferrer" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}><img src="/linkedin-icon.svg" alt="LinkedIn" width={16} height={16} />LinkedIn</Link>}
+              {lead.socialMedia.instagram && <Link href={lead.socialMedia.instagram} target="_blank" rel="noopener noreferrer" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none' }}><img src="/instagram-icon.svg" alt="Instagram" width={16} height={16} />Instagram</Link>}
+              {lead.socialMedia.telegram && <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><img src="/telegram-icon.svg" alt="Telegram" width={16} height={16} />{lead.socialMedia.telegram}</Typography>}
+              {lead.socialMedia.whatsapp && <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><img src="/whatsapp-icon.svg" alt="WhatsApp" width={16} height={16} />{lead.socialMedia.whatsapp}</Typography>}
+            </Stack>
+          </Paper>
+        </Grid>
+      )}
     </Grid>
   </Box>
 ));
