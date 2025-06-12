@@ -34,7 +34,21 @@ const addLeadSchema = yup.object({
         is: 'ftd',
         then: () => yup.string().required('SIN is required for FTD leads'),
         otherwise: () => yup.string().nullable()
-    })
+    }),
+    dob: yup.date().nullable().when('leadType', {
+        is: (val) => val === 'ftd' || val === 'filler',
+        then: () => yup.date().nullable(),
+        otherwise: () => yup.date().nullable()
+    }),
+    'address.street': yup.string().nullable(),
+    'address.city': yup.string().nullable(),
+    'address.postalCode': yup.string().nullable(),
+    'socialMedia.facebook': yup.string().nullable().url('Invalid Facebook URL'),
+    'socialMedia.twitter': yup.string().nullable().url('Invalid Twitter URL'),
+    'socialMedia.linkedin': yup.string().nullable().url('Invalid LinkedIn URL'),
+    'socialMedia.instagram': yup.string().nullable().url('Invalid Instagram URL'),
+    'socialMedia.telegram': yup.string().nullable(),
+    'socialMedia.whatsapp': yup.string().nullable()
 });
 
 const AddLeadForm = ({ onLeadAdded }) => {
@@ -63,7 +77,21 @@ const AddLeadForm = ({ onLeadAdded }) => {
             sin: '',
             client: '',
             clientBroker: '',
-            clientNetwork: ''
+            clientNetwork: '',
+            dob: null,
+            address: {
+                street: '',
+                city: '',
+                postalCode: ''
+            },
+            socialMedia: {
+                facebook: '',
+                twitter: '',
+                linkedin: '',
+                instagram: '',
+                telegram: '',
+                whatsapp: ''
+            }
         }
     });
 
@@ -104,6 +132,7 @@ const AddLeadForm = ({ onLeadAdded }) => {
 
             <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
                 <Grid container spacing={2}>
+                    {/* Basic Information */}
                     <Grid item xs={12} sm={6}>
                         <Controller
                             name="firstName"
@@ -134,6 +163,30 @@ const AddLeadForm = ({ onLeadAdded }) => {
                             )}
                         />
                     </Grid>
+
+                    {/* Lead Type and Gender */}
+                    <Grid item xs={12} sm={6}>
+                        <FormControl fullWidth error={!!errors.leadType}>
+                            <InputLabel>Lead Type</InputLabel>
+                            <Controller
+                                name="leadType"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select {...field} label="Lead Type">
+                                        <MenuItem value="ftd">FTD</MenuItem>
+                                        <MenuItem value="filler">Filler</MenuItem>
+                                        <MenuItem value="cold">Cold</MenuItem>
+                                        <MenuItem value="live">Live</MenuItem>
+                                    </Select>
+                                )}
+                            />
+                            {errors.leadType && (
+                                <Typography color="error" variant="caption">
+                                    {errors.leadType.message}
+                                </Typography>
+                            )}
+                        </FormControl>
+                    </Grid>
                     <Grid item xs={12} sm={6}>
                         <FormControl fullWidth error={!!errors.gender}>
                             <InputLabel>Gender</InputLabel>
@@ -155,6 +208,8 @@ const AddLeadForm = ({ onLeadAdded }) => {
                             )}
                         </FormControl>
                     </Grid>
+
+                    {/* Contact Information */}
                     <Grid item xs={12} sm={6}>
                         <Controller
                             name="newEmail"
@@ -215,6 +270,8 @@ const AddLeadForm = ({ onLeadAdded }) => {
                             )}
                         />
                     </Grid>
+
+                    {/* Location and Client Information */}
                     <Grid item xs={12} sm={6}>
                         <Controller
                             name="country"
@@ -243,51 +300,48 @@ const AddLeadForm = ({ onLeadAdded }) => {
                         />
                     </Grid>
 
+                    {/* Client Information */}
                     <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth error={!!errors.leadType}>
-                            <InputLabel>Lead Type</InputLabel>
-                            <Controller
-                                name="leadType"
-                                control={control}
-                                render={({ field }) => (
-                                    <Select {...field} label="Lead Type">
-                                        <MenuItem value="ftd">FTD</MenuItem>
-                                        <MenuItem value="filler">Filler</MenuItem>
-                                        <MenuItem value="cold">Cold</MenuItem>
-                                        <MenuItem value="live">Live</MenuItem>
-                                    </Select>
-                                )}
-                            />
-                            {errors.leadType && (
-                                <Typography color="error" variant="caption">
-                                    {errors.leadType.message}
-                                </Typography>
+                        <Controller
+                            name="client"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="Client"
+                                    fullWidth
+                                />
                             )}
-                        </FormControl>
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <Controller
+                            name="clientBroker"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="Client Broker"
+                                    fullWidth
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <Controller
+                            name="clientNetwork"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="Client Network"
+                                    fullWidth
+                                />
+                            )}
+                        />
                     </Grid>
 
-                    <Grid item xs={12} md={6}>
-                        <FormControl fullWidth error={!!errors.gender}>
-                            <InputLabel>Gender</InputLabel>
-                            <Controller
-                                name="gender"
-                                control={control}
-                                render={({ field }) => (
-                                    <Select {...field} label="Gender">
-                                        <MenuItem value="male">Male</MenuItem>
-                                        <MenuItem value="female">Female</MenuItem>
-                                        <MenuItem value="not_defined">Not Defined</MenuItem>
-                                    </Select>
-                                )}
-                            />
-                            {errors.gender && (
-                                <Typography color="error" variant="caption">
-                                    {errors.gender.message}
-                                </Typography>
-                            )}
-                        </FormControl>
-                    </Grid>
-
+                    {/* FTD Specific Fields */}
                     {leadType === 'ftd' && (
                         <Grid item xs={12} sm={6}>
                             <Controller
@@ -306,48 +360,174 @@ const AddLeadForm = ({ onLeadAdded }) => {
                         </Grid>
                     )}
 
+                    {/* FTD & Filler Specific Fields */}
+                    {(leadType === 'ftd' || leadType === 'filler') && (
+                        <>
+                            <Grid item xs={12} sm={6}>
+                                <Controller
+                                    name="dob"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            label="Date of Birth"
+                                            type="date"
+                                            fullWidth
+                                            InputLabelProps={{
+                                                shrink: true,
+                                            }}
+                                            error={!!errors.dob}
+                                            helperText={errors.dob?.message}
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Controller
+                                    name="address.street"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            label="Street Address"
+                                            fullWidth
+                                            error={!!errors['address.street']}
+                                            helperText={errors['address.street']?.message}
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Controller
+                                    name="address.city"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            label="City"
+                                            fullWidth
+                                            error={!!errors['address.city']}
+                                            helperText={errors['address.city']?.message}
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Controller
+                                    name="address.postalCode"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            label="Postal Code"
+                                            fullWidth
+                                            error={!!errors['address.postalCode']}
+                                            helperText={errors['address.postalCode']?.message}
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                        </>
+                    )}
+
+                    {/* Social Media Fields */}
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle1" gutterBottom>
+                            Social Media (Optional)
+                        </Typography>
+                    </Grid>
                     <Grid item xs={12} sm={6}>
                         <Controller
-                            name="client"
+                            name="socialMedia.facebook"
                             control={control}
                             render={({ field }) => (
                                 <TextField
                                     {...field}
-                                    label="Client"
+                                    label="Facebook"
                                     fullWidth
+                                    error={!!errors['socialMedia.facebook']}
+                                    helperText={errors['socialMedia.facebook']?.message}
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <Controller
+                            name="socialMedia.twitter"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="Twitter"
+                                    fullWidth
+                                    error={!!errors['socialMedia.twitter']}
+                                    helperText={errors['socialMedia.twitter']?.message}
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <Controller
+                            name="socialMedia.linkedin"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="LinkedIn"
+                                    fullWidth
+                                    error={!!errors['socialMedia.linkedin']}
+                                    helperText={errors['socialMedia.linkedin']?.message}
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <Controller
+                            name="socialMedia.instagram"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="Instagram"
+                                    fullWidth
+                                    error={!!errors['socialMedia.instagram']}
+                                    helperText={errors['socialMedia.instagram']?.message}
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <Controller
+                            name="socialMedia.telegram"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="Telegram"
+                                    fullWidth
+                                    error={!!errors['socialMedia.telegram']}
+                                    helperText={errors['socialMedia.telegram']?.message}
+                                />
+                            )}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <Controller
+                            name="socialMedia.whatsapp"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="WhatsApp"
+                                    fullWidth
+                                    error={!!errors['socialMedia.whatsapp']}
+                                    helperText={errors['socialMedia.whatsapp']?.message}
                                 />
                             )}
                         />
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
-                        <Controller
-                            name="clientBroker"
-                            control={control}
-                            render={({ field }) => (
-                                <TextField
-                                    {...field}
-                                    label="Client Broker"
-                                    fullWidth
-                                />
-                            )}
-                        />
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <Controller
-                            name="clientNetwork"
-                            control={control}
-                            render={({ field }) => (
-                                <TextField
-                                    {...field}
-                                    label="Client Network"
-                                    fullWidth
-                                />
-                            )}
-                        />
-                    </Grid>
-
+                    {/* Form Actions */}
                     <Grid item xs={12}>
                         <Button
                             type="submit"
