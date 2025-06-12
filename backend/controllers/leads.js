@@ -711,6 +711,15 @@ exports.importLeads = async (req, res, next) => {
     }
 
     const file = req.files.file;
+    const leadType = req.body.leadType;
+
+    // Validate lead type
+    if (!leadType || !["ftd", "filler", "cold", "live"].includes(leadType)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please select a valid lead type (ftd, filler, cold, or live)",
+      });
+    }
 
     // Debug file information
     console.log("File details:", {
@@ -720,6 +729,7 @@ exports.importLeads = async (req, res, next) => {
       encoding: file.encoding,
       data: file.data ? "Buffer present" : "No buffer",
       tempFilePath: file.tempFilePath,
+      leadType: leadType,
     });
 
     // Check if file exists and has data
@@ -838,34 +848,143 @@ exports.importLeads = async (req, res, next) => {
       });
     }
 
-    // Get headers from first row
-    const headers = rows[0];
+    // Get headers from first row and normalize them
+    const rawHeaders = rows[0];
     const dataRows = rows.slice(1);
 
-    // Log headers for debugging
-    console.log("CSV Headers:", headers);
+    // Create a flexible header mapping function
+    const normalizeHeader = (header) => {
+      return header
+        .toLowerCase()
+        .replace(/[\s_-]+/g, "")
+        .trim();
+    };
 
-    // Validate required headers
-    const requiredHeaders = [
-      "firstName",
-      "lastName",
-      "newEmail",
-      "newPhone",
-      "country",
-      "leadType",
-    ];
-    const missingHeaders = requiredHeaders.filter(
-      (header) => !headers.includes(header)
+    // Define header mappings for flexible matching
+    const headerMappings = {
+      // Core fields
+      gender: ["gender"],
+      firstname: ["firstname", "first_name", "fname", "first name"],
+      lastname: ["lastname", "last_name", "lname", "last name"],
+      oldemail: [
+        "oldemail",
+        "old_email",
+        "email_old",
+        "previousemail",
+        "old email",
+      ],
+      newemail: [
+        "newemail",
+        "new_email",
+        "email_new",
+        "email",
+        "emailaddress",
+        "new email",
+      ],
+      prefix: ["prefix"],
+      oldphone: ["oldphone", "old_phone", "phone_old", "previousphone"],
+      newphone: [
+        "newphone",
+        "new_phone",
+        "phone_new",
+        "phone",
+        "phonenumber",
+        "new phone",
+      ],
+      agent: ["agent"],
+      extension: ["extension", "ext"],
+      dateofbirth: ["dateofbirth", "date_of_birth", "dob", "birthday"],
+
+      // Social media fields
+      facebook: ["facebook", "fb"],
+      twitter: ["twitter"],
+      linkedin: ["linkedin"],
+      instagram: ["instagram", "ig"],
+      telegram: ["telegram"],
+
+      // Document fields
+      idfront: ["idfront", "id_front", "frontid"],
+      idback: ["idback", "id_back", "backid"],
+      selfieback: ["selfieback", "selfie_back", "backselfie"],
+      selfiefront: ["selfiefront", "selfie_front", "frontselfie"],
+
+      // Geographic field
+      geo: ["geo", "country", "location", "region"],
+    };
+
+    // Create reverse mapping from CSV headers to field names
+    const fieldMapping = {};
+    rawHeaders.forEach((header, index) => {
+      const normalizedHeader = normalizeHeader(header);
+
+      // Find matching field
+      for (const [fieldName, variations] of Object.entries(headerMappings)) {
+        if (
+          variations.some(
+            (variation) =>
+              normalizedHeader.includes(variation) ||
+              variation.includes(normalizedHeader)
+          )
+        ) {
+          fieldMapping[index] = fieldName;
+          break;
+        }
+      }
+    });
+
+    console.log("Header mapping:", {
+      rawHeaders,
+      fieldMapping,
+      mappedFields: Object.values(fieldMapping),
+    });
+
+    // Validate that we have at least the required fields
+    const requiredFields = ["firstname", "lastname"];
+    const hasRequiredEmail =
+      Object.values(fieldMapping).includes("newemail") ||
+      Object.values(fieldMapping).includes("email");
+    const hasRequiredPhone =
+      Object.values(fieldMapping).includes("newphone") ||
+      Object.values(fieldMapping).includes("phone");
+
+    const missingRequired = requiredFields.filter(
+      (field) => !Object.values(fieldMapping).includes(field)
     );
 
-    if (missingHeaders.length > 0) {
+    if (missingRequired.length > 0) {
       return res.status(400).json({
         success: false,
-        message: `Missing required headers: ${missingHeaders.join(", ")}`,
+        message: `Missing required fields: ${missingRequired.join(
+          ", "
+        )}. Headers found: ${rawHeaders.join(", ")}`,
         debug: {
-          receivedHeaders: headers,
-          requiredHeaders: requiredHeaders,
-          firstDataRow: dataRows[0],
+          receivedHeaders: rawHeaders,
+          fieldMapping: fieldMapping,
+          missingRequired: missingRequired,
+        },
+      });
+    }
+
+    if (!hasRequiredEmail) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Missing required email field (newemail, new_email, email, etc.)",
+        debug: {
+          receivedHeaders: rawHeaders,
+          fieldMapping: fieldMapping,
+        },
+      });
+    }
+
+    if (!hasRequiredPhone) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Missing required phone field (newphone, new_phone, phone, etc.)",
+        debug: {
+          receivedHeaders: rawHeaders,
+          fieldMapping: fieldMapping,
         },
       });
     }
@@ -876,49 +995,155 @@ exports.importLeads = async (req, res, next) => {
 
     for (let i = 0; i < dataRows.length; i++) {
       const row = dataRows[i];
+
+      // Skip empty rows
+      if (row.every((cell) => !cell || cell.trim() === "")) {
+        continue;
+      }
+
       const leadData = {};
 
-      // Map CSV columns to lead fields
-      headers.forEach((header, index) => {
-        if (row[index]) {
-          leadData[header] = row[index];
+      // Map CSV columns to lead fields using our flexible mapping
+      row.forEach((cellValue, cellIndex) => {
+        const fieldName = fieldMapping[cellIndex];
+        if (fieldName && cellValue && cellValue.trim()) {
+          leadData[fieldName] = cellValue.trim();
         }
       });
 
+      console.log(`Row ${i + 2} mapped data:`, leadData);
+
       try {
-        // Validate lead data
-        if (
-          !leadData.firstName ||
-          !leadData.lastName ||
-          !leadData.newEmail ||
-          !leadData.newPhone ||
-          !leadData.country ||
-          !leadData.leadType
-        ) {
-          throw new Error("Missing required fields");
+        // Validate required lead data
+        if (!leadData.firstname || !leadData.lastname) {
+          throw new Error(
+            "Missing required fields (firstName and lastName are required)"
+          );
         }
 
-        // Validate lead type
-        if (!["ftd", "filler", "cold", "live"].includes(leadData.leadType)) {
-          throw new Error("Invalid lead type");
+        // Get email - prioritize newemail, fall back to any email field
+        const email = leadData.newemail || leadData.email;
+        if (!email) {
+          throw new Error("Email is required");
         }
 
-        // Validate email format
+        // Get phone - prioritize newphone, fall back to any phone field
+        const phone = leadData.newphone || leadData.phone;
+        if (!phone) {
+          throw new Error("Phone is required");
+        }
+
+        // Validate and clean email format
+        const cleanEmail = email.split(" ")[0].trim().toLowerCase();
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(leadData.newEmail)) {
+        if (!emailRegex.test(cleanEmail)) {
           throw new Error("Invalid email format");
         }
 
-        // Create lead
-        const lead = new Lead({
-          ...leadData,
+        // Phone validation - ensure it exists and has reasonable length
+        const cleanPhone = phone.replace(/\D/g, ""); // Remove non-digits
+        if (cleanPhone.length < 5) {
+          throw new Error("Phone number must be at least 5 digits");
+        }
+
+        // Create lead object with all available fields
+        const leadObject = {
+          firstName: leadData.firstname,
+          lastName: leadData.lastname,
+          newEmail: cleanEmail,
+          oldEmail: leadData.oldemail || "",
+          newPhone: cleanPhone,
+          oldPhone: leadData.oldphone
+            ? leadData.oldphone.replace(/\D/g, "")
+            : "",
+          country: leadData.geo || "Unknown",
+          gender: leadData.gender
+            ? leadData.gender.toLowerCase()
+            : "not_defined",
+          leadType: leadType,
           createdBy: req.user.id,
           isAssigned: false,
           status: "active",
-          documents:
-            leadData.leadType === "ftd" ? { status: "pending" } : undefined,
-        });
+        };
 
+        // Validate gender value and set default if invalid
+        const validGenders = ["male", "female", "not_defined"];
+        if (!validGenders.includes(leadObject.gender)) {
+          leadObject.gender = "not_defined";
+        }
+
+        // Handle date of birth conversion
+        if (leadData.dateofbirth) {
+          try {
+            const dobString = leadData.dateofbirth;
+            let dobDate;
+
+            // Check if it's a number (Excel serial date)
+            if (!isNaN(dobString) && dobString.length <= 5) {
+              // Convert Excel serial date to JavaScript date
+              const excelEpoch = new Date(1900, 0, 1);
+              dobDate = new Date(
+                excelEpoch.getTime() +
+                  (parseInt(dobString) - 2) * 24 * 60 * 60 * 1000
+              );
+            } else if (dobString.includes("/")) {
+              // Handle DD/MM/YYYY format
+              const parts = dobString.split("/");
+              if (parts.length === 3) {
+                const day = parseInt(parts[0]);
+                const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+                const year = parseInt(parts[2]);
+                dobDate = new Date(year, month, day);
+              }
+            } else if (dobString.includes("-")) {
+              // Handle YYYY-MM-DD format
+              dobDate = new Date(dobString);
+            }
+
+            if (dobDate && !isNaN(dobDate.getTime())) {
+              leadObject.dob = dobDate;
+            }
+          } catch (error) {
+            console.log(
+              `Warning: Could not parse date of birth "${
+                leadData.dateofbirth
+              }" for row ${i + 2}`
+            );
+          }
+        }
+
+        // Add optional fields if they exist in CSV
+        if (leadData.prefix) leadObject.prefix = leadData.prefix;
+        if (leadData.agent) leadObject.agent = leadData.agent;
+        if (leadData.extension) leadObject.extension = leadData.extension;
+
+        // Handle social media fields
+        const socialMedia = {};
+        if (leadData.facebook) socialMedia.facebook = leadData.facebook;
+        if (leadData.twitter) socialMedia.twitter = leadData.twitter;
+        if (leadData.linkedin) socialMedia.linkedin = leadData.linkedin;
+        if (leadData.instagram) socialMedia.instagram = leadData.instagram;
+        if (leadData.telegram) socialMedia.telegram = leadData.telegram;
+
+        if (Object.keys(socialMedia).length > 0) {
+          leadObject.socialMedia = socialMedia;
+        }
+
+        // Handle document fields for FTD leads
+        if (leadType === "ftd") {
+          const documents = { status: "pending" };
+
+          if (leadData.idfront) documents.idFrontUrl = leadData.idfront;
+          if (leadData.idback) documents.idBackUrl = leadData.idback;
+          if (leadData.selfiefront) documents.selfieUrl = leadData.selfiefront;
+          if (leadData.selfieback)
+            documents.selfieBackUrl = leadData.selfieback;
+
+          leadObject.documents = documents;
+        }
+
+        // Create and save lead
+        const lead = new Lead(leadObject);
         await lead.save();
         leads.push(lead);
       } catch (error) {
@@ -938,6 +1163,8 @@ exports.importLeads = async (req, res, next) => {
       data: {
         imported: leads.length,
         errors: errors,
+        headerMapping: fieldMapping,
+        detectedFields: Object.values(fieldMapping),
       },
     });
   } catch (error) {
