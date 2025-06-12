@@ -1205,7 +1205,7 @@ const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadMana
       <TableCell sx={cellSx}>{lead.clientInfo || 'N/A'}</TableCell>
       {isAdminOrManager && <TableCell sx={cellSx}>{lead.assignedTo ? lead.assignedTo.fullName : 'Unassigned'}</TableCell>}
       <TableCell sx={cellSx}><Chip label={lead.status.charAt(0).toUpperCase() + lead.status.slice(1)} color={getStatusColor(lead.status)} size="small" sx={{ height: '20px', '& .MuiChip-label': { fontSize: '0.75rem', px: 1 } }} /></TableCell>
-      <TableCell sx={cellSx}>{lead.orderId ? <Link component="button" onClick={(e) => { e.stopPropagation(); onFilterByOrder(lead.orderId); }} sx={{ fontSize: '0.875rem' }}>{lead.orderId.slice(-8)}</Link> : 'N/A'}</TableCell>
+      <TableCell sx={cellSx}>{lead.orderId ? <Link component="button" onClick={(e) => { e.stopPropagation(); onFilterByOrder(typeof lead.orderId === 'object' ? lead.orderId._id : lead.orderId); }} sx={{ fontSize: '0.875rem' }}>{(typeof lead.orderId === 'object' ? lead.orderId._id : lead.orderId).slice(-8)}</Link> : 'N/A'}</TableCell>
       <TableCell sx={cellSx}>{new Date(lead.createdAt).toLocaleDateString()}</TableCell>
       <TableCell sx={{ py: 0.5 }}>
         <Stack direction="row" spacing={0.5}>
