@@ -137,20 +137,35 @@ const getLeadTypeColor = (leadType) => {
 
 // Memoized component for lead details to avoid re-renders
 const LeadDetails = React.memo(({ lead }) => (
-  <Box sx={{ px: { xs: 0, md: 2 } }}>
-    <Grid container spacing={2}>
+  <Box sx={{ 
+    animation: 'fadeIn 0.3s ease-in-out',
+    '@keyframes fadeIn': {
+      '0%': {
+        opacity: 0,
+        transform: 'translateY(-10px)',
+      },
+      '100%': {
+        opacity: 1,
+        transform: 'translateY(0)',
+      },
+    },
+  }}>
+    <Grid container spacing={3}>
+      {/* Basic Information */}
       <Grid item xs={12} md={4}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            bgcolor: 'background.paper',
-            borderRadius: 1,
-            border: '1px solid',
-            borderColor: 'divider',
-            height: '100%',
-          }}
-        >
+        <Paper elevation={0} sx={{ 
+          p: 2, 
+          bgcolor: 'background.paper', 
+          borderRadius: 1, 
+          border: '1px solid', 
+          borderColor: 'divider',
+          height: '100%',
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            boxShadow: theme => theme.shadows[4],
+            transform: 'translateY(-4px)',
+          },
+        }}>
           <Typography variant="subtitle2" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <PersonAddIcon fontSize="small" />
             Contact Details
@@ -594,8 +609,42 @@ const LeadsPage = () => {
   // --- Render ---
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" gutterBottom>
+      <Box 
+        display="flex" 
+        justifyContent="space-between" 
+        alignItems="center" 
+        mb={3}
+        sx={{
+          '& .MuiButton-root': {
+            transition: 'all 0.2s ease-in-out',
+            '&:hover': {
+              transform: 'translateY(-2px)',
+              boxShadow: theme => theme.shadows[4],
+            },
+          },
+        }}
+      >
+        <Typography 
+          variant="h4" 
+          gutterBottom
+          sx={{
+            position: 'relative',
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              bottom: -8,
+              left: 0,
+              width: '60px',
+              height: '4px',
+              backgroundColor: 'primary.main',
+              borderRadius: '2px',
+              transition: 'width 0.3s ease-in-out',
+            },
+            '&:hover::after': {
+              width: '100%',
+            },
+          }}
+        >
           {isAgent ? "My Assigned Leads" : "Lead Management"}
         </Typography>
         <Box display="flex" gap={2} alignItems="center">
@@ -659,64 +708,308 @@ const LeadsPage = () => {
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
       {isAdminOrManager && (
-        <Card sx={{ mb: 2, background: 'linear-gradient(to right, #f5f7fa, #ffffff)' }}>
+        <Card sx={{ 
+          mb: 2, 
+          background: 'linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%)',
+          transition: 'all 0.3s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: theme => theme.shadows[8],
+          },
+        }}>
             <CardContent>
                 <Box sx={{ mb: 2 }}>
-                    <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+                    <Typography 
+                      variant="h6" 
+                      gutterBottom 
+                      sx={{ 
+                        color: 'primary.main', 
+                        fontWeight: 'bold', 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        '& .MuiSvgIcon-root': {
+                          transition: 'transform 0.3s ease-in-out',
+                        },
+                        '&:hover .MuiSvgIcon-root': {
+                          transform: 'rotate(360deg)',
+                        },
+                      }}
+                    >
                         <AssignmentIcon sx={{ mr: 1 }} />
                         Lead Assignment Summary
                     </Typography>
                     <Divider />
                 </Box>
                 <Grid container spacing={3}>
-                  <Grid item xs={6} sm={3}><Paper elevation={0} sx={{ p: 2, textAlign: 'center', height: '100%', background: 'rgba(255, 255, 255, 0.8)' }}><Typography variant="h4" color="primary" sx={{ fontWeight: 'bold' }}>{totalLeads}</Typography><Typography variant="subtitle2" color="textSecondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Leads</Typography></Paper></Grid>
-                  <Grid item xs={6} sm={3}><Paper elevation={0} sx={{ p: 2, textAlign: 'center', height: '100%', background: 'rgba(255, 255, 255, 0.8)' }}><Typography variant="h4" color="success.main" sx={{ fontWeight: 'bold' }}>{leads.filter(lead => lead.isAssigned).length}</Typography><Typography variant="subtitle2" color="textSecondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>Assigned</Typography></Paper></Grid>
-                  <Grid item xs={6} sm={3}><Paper elevation={0} sx={{ p: 2, textAlign: 'center', height: '100%', background: 'rgba(255, 255, 255, 0.8)' }}><Typography variant="h4" color="warning.main" sx={{ fontWeight: 'bold' }}>{leads.filter(lead => !lead.isAssigned).length}</Typography><Typography variant="subtitle2" color="textSecondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>Unassigned</Typography></Paper></Grid>
-                  <Grid item xs={6} sm={3}><Paper elevation={0} sx={{ p: 2, textAlign: 'center', height: '100%', background: 'rgba(255, 255, 255, 0.8)' }}><Typography variant="h4" color="info.main" sx={{ fontWeight: 'bold' }}>{Math.round((leads.filter(lead => lead.isAssigned).length / (leads.length || 1)) * 100)}%</Typography><Typography variant="subtitle2" color="textSecondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>Assignment Rate</Typography></Paper></Grid>
+                    <Grid item xs={6} sm={3}>
+                        <Paper 
+                          elevation={0} 
+                          sx={{ 
+                            p: 2, 
+                            textAlign: 'center', 
+                            height: '100%', 
+                            background: 'rgba(255, 255, 255, 0.8)',
+                            transition: 'all 0.3s ease-in-out',
+                            '&:hover': {
+                              transform: 'translateY(-4px)',
+                              boxShadow: theme => theme.shadows[4],
+                              background: 'rgba(255, 255, 255, 0.95)',
+                            },
+                          }}
+                        >
+                            <Typography 
+                              variant="h4" 
+                              color="primary" 
+                              sx={{ 
+                                fontWeight: 'bold',
+                                animation: 'countUp 1s ease-out',
+                                '@keyframes countUp': {
+                                  '0%': {
+                                    opacity: 0,
+                                    transform: 'translateY(20px)',
+                                  },
+                                  '100%': {
+                                    opacity: 1,
+                                    transform: 'translateY(0)',
+                                  },
+                                },
+                              }}
+                            >
+                              {totalLeads}
+                            </Typography>
+                            <Typography 
+                              variant="subtitle2" 
+                              color="textSecondary" 
+                              sx={{ 
+                                textTransform: 'uppercase', 
+                                letterSpacing: '0.5px',
+                                opacity: 0.8,
+                                transition: 'opacity 0.3s ease-in-out',
+                                '&:hover': {
+                                  opacity: 1,
+                                },
+                              }}
+                            >
+                              Total Leads
+                            </Typography>
+                        </Paper>
+                    </Grid>
+                    <Grid item xs={6} sm={3}>
+                        <Paper 
+                          elevation={0} 
+                          sx={{ 
+                            p: 2, 
+                            textAlign: 'center', 
+                            height: '100%', 
+                            background: 'rgba(255, 255, 255, 0.8)',
+                            transition: 'all 0.3s ease-in-out',
+                            '&:hover': {
+                              transform: 'translateY(-4px)',
+                              boxShadow: theme => theme.shadows[4],
+                              background: 'rgba(255, 255, 255, 0.95)',
+                            },
+                          }}
+                        >
+                            <Typography 
+                              variant="h4" 
+                              color="success.main" 
+                              sx={{ 
+                                fontWeight: 'bold',
+                                animation: 'countUp 1s ease-out',
+                                '@keyframes countUp': {
+                                  '0%': {
+                                    opacity: 0,
+                                    transform: 'translateY(20px)',
+                                  },
+                                  '100%': {
+                                    opacity: 1,
+                                    transform: 'translateY(0)',
+                                  },
+                                },
+                              }}
+                            >
+                              {leads.filter(lead => lead.isAssigned).length}
+                            </Typography>
+                            <Typography 
+                              variant="subtitle2" 
+                              color="textSecondary" 
+                              sx={{ 
+                                textTransform: 'uppercase', 
+                                letterSpacing: '0.5px',
+                                opacity: 0.8,
+                                transition: 'opacity 0.3s ease-in-out',
+                                '&:hover': {
+                                  opacity: 1,
+                                },
+                              }}
+                            >
+                              Assigned
+                            </Typography>
+                        </Paper>
+                    </Grid>
+                    <Grid item xs={6} sm={3}>
+                        <Paper 
+                          elevation={0} 
+                          sx={{ 
+                            p: 2, 
+                            textAlign: 'center', 
+                            height: '100%', 
+                            background: 'rgba(255, 255, 255, 0.8)',
+                            transition: 'all 0.3s ease-in-out',
+                            '&:hover': {
+                              transform: 'translateY(-4px)',
+                              boxShadow: theme => theme.shadows[4],
+                              background: 'rgba(255, 255, 255, 0.95)',
+                            },
+                          }}
+                        >
+                            <Typography 
+                              variant="h4" 
+                              color="warning.main" 
+                              sx={{ 
+                                fontWeight: 'bold',
+                                animation: 'countUp 1s ease-out',
+                                '@keyframes countUp': {
+                                  '0%': {
+                                    opacity: 0,
+                                    transform: 'translateY(20px)',
+                                  },
+                                  '100%': {
+                                    opacity: 1,
+                                    transform: 'translateY(0)',
+                                  },
+                                },
+                              }}
+                            >
+                              {leads.filter(lead => !lead.isAssigned).length}
+                            </Typography>
+                            <Typography 
+                              variant="subtitle2" 
+                              color="textSecondary" 
+                              sx={{ 
+                                textTransform: 'uppercase', 
+                                letterSpacing: '0.5px',
+                                opacity: 0.8,
+                                transition: 'opacity 0.3s ease-in-out',
+                                '&:hover': {
+                                  opacity: 1,
+                                },
+                              }}
+                            >
+                              Unassigned
+                            </Typography>
+                        </Paper>
+                    </Grid>
+                    <Grid item xs={6} sm={3}>
+                        <Paper 
+                          elevation={0} 
+                          sx={{ 
+                            p: 2, 
+                            textAlign: 'center', 
+                            height: '100%', 
+                            background: 'rgba(255, 255, 255, 0.8)',
+                            transition: 'all 0.3s ease-in-out',
+                            '&:hover': {
+                              transform: 'translateY(-4px)',
+                              boxShadow: theme => theme.shadows[4],
+                              background: 'rgba(255, 255, 255, 0.95)',
+                            },
+                          }}
+                        >
+                            <Typography 
+                              variant="h4" 
+                              color="info.main" 
+                              sx={{ 
+                                fontWeight: 'bold',
+                                animation: 'countUp 1s ease-out',
+                                '@keyframes countUp': {
+                                  '0%': {
+                                    opacity: 0,
+                                    transform: 'translateY(20px)',
+                                  },
+                                  '100%': {
+                                    opacity: 1,
+                                    transform: 'translateY(0)',
+                                  },
+                                },
+                              }}
+                            >
+                              {Math.round((leads.filter(lead => lead.isAssigned).length / (leads.length || 1)) * 100)}%
+                            </Typography>
+                            <Typography 
+                              variant="subtitle2" 
+                              color="textSecondary" 
+                              sx={{ 
+                                textTransform: 'uppercase', 
+                                letterSpacing: '0.5px',
+                                opacity: 0.8,
+                                transition: 'opacity 0.3s ease-in-out',
+                                '&:hover': {
+                                  opacity: 1,
+                                },
+                              }}
+                            >
+                              Assignment Rate
+                            </Typography>
+                        </Paper>
+                    </Grid>
                 </Grid>
             </CardContent>
         </Card>
       )}
 
       {/* --- Filters --- */}
-      <Card sx={{ mb: 2 }}>
-        <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6">Filters & Search</Typography>
-            <IconButton onClick={() => setShowFilters(!showFilters)}>{showFilters ? <ExpandLessIcon /> : <ExpandMoreIcon />}</IconButton>
-          </Box>
-          <Collapse in={showFilters}>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} sm={6} md={3}><TextField fullWidth label="Search" value={filters.search} onChange={(e) => handleFilterChange("search", e.target.value)} placeholder="Name, email, phone..." InputProps={{ startAdornment: (<SearchIcon sx={{ mr: 1, color: "action.active" }} />) }}/></Grid>
-              <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Lead Type</InputLabel><Select value={filters.leadType} label="Lead Type" onChange={(e) => handleFilterChange("leadType", e.target.value)}><MenuItem value="">All</MenuItem>{Object.values(LEAD_TYPES).map(type => <MenuItem key={type} value={type}>{type.toUpperCase()}</MenuItem>)}</Select></FormControl></Grid>
-              {isAdminOrManager && <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Assignment</InputLabel><Select value={filters.isAssigned} label="Assignment" onChange={(e) => handleFilterChange("isAssigned", e.target.value)}><MenuItem value="">All</MenuItem><MenuItem value="true">Assigned</MenuItem><MenuItem value="false">Unassigned</MenuItem></Select></FormControl></Grid>}
-              <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Status</InputLabel><Select value={filters.status} label="Status" onChange={(e) => handleFilterChange("status", e.target.value)}><MenuItem value="">All</MenuItem>{Object.values(LEAD_STATUSES).map(status => <MenuItem key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</MenuItem>)}</Select></FormControl></Grid>
-              {isAdminOrManager && <Grid item xs={12} sm={6} md={2}><FormControlLabel control={<Switch checked={filters.includeConverted} onChange={(e) => handleFilterChange("includeConverted", e.target.checked)} color="primary" />} label="Show Converted"/></Grid>}
-              <Grid item xs={12} sm={6} md={2}>
-                <FormControl fullWidth>
-                  <InputLabel>Country</InputLabel>
-                  <Select
-                    value={filters.country}
-                    label="Country"
-                    onChange={(e) => handleFilterChange("country", e.target.value)}
-                  >
-                    <MenuItem value="">All Countries</MenuItem>
-                    {getSortedCountries().map((country) => (
-                      <MenuItem key={country.code} value={country.name}>
-                        {country.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Gender</InputLabel><Select value={filters.gender} label="Gender" onChange={(e) => handleFilterChange("gender", e.target.value)}><MenuItem value="">All</MenuItem><MenuItem value="male">Male</MenuItem><MenuItem value="female">Female</MenuItem><MenuItem value="not_defined">Not Defined</MenuItem></Select></FormControl></Grid>
-              {isAdminOrManager && <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Order Filter</InputLabel><Select value={filters.orderId} label="Order Filter" onChange={(e) => handleFilterChange("orderId", e.target.value)}><MenuItem value="">All Orders</MenuItem>{orders.map(order => <MenuItem key={order._id} value={order._id}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Chip label={`#${order._id.slice(-6)}`} size="small" color={order.status === 'fulfilled' ? 'success' : 'default'} /><Typography variant="body2">{`${Object.values(order.fulfilled).reduce((a, b) => a + b, 0)} leads - ${new Date(order.createdAt).toLocaleDateString()}`}</Typography></Box></MenuItem>)}</Select></FormControl></Grid>}
-              <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Order By</InputLabel><Select value={filters.order} label="Order By" onChange={(e) => handleFilterChange("order", e.target.value)}><MenuItem value="newest">Newest First</MenuItem><MenuItem value="oldest">Oldest First</MenuItem><MenuItem value="name_asc">Name (A-Z)</MenuItem><MenuItem value="name_desc">Name (Z-A)</MenuItem></Select></FormControl></Grid>
-              <Grid item xs={12}><Button onClick={clearFilters} variant="outlined">Clear Filters</Button></Grid>
+      <Box sx={{ mb: 2 }}>
+        <Button
+          startIcon={<FilterIcon />}
+          onClick={() => setShowFilters(!showFilters)}
+          sx={{
+            mb: 2,
+            transition: 'all 0.2s ease-in-out',
+            '&:hover': {
+              transform: 'translateY(-2px)',
+            },
+            '& .MuiSvgIcon-root': {
+              transition: 'transform 0.3s ease-in-out',
+            },
+            '&:hover .MuiSvgIcon-root': {
+              transform: 'rotate(180deg)',
+            },
+          }}
+        >
+          {showFilters ? "Hide Filters" : "Show Filters"}
+        </Button>
+        <Collapse in={showFilters}>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} sm={6} md={3}><TextField fullWidth label="Search" value={filters.search} onChange={(e) => handleFilterChange("search", e.target.value)} placeholder="Name, email, phone..." InputProps={{ startAdornment: (<SearchIcon sx={{ mr: 1, color: "action.active" }} />) }}/></Grid>
+            <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Lead Type</InputLabel><Select value={filters.leadType} label="Lead Type" onChange={(e) => handleFilterChange("leadType", e.target.value)}><MenuItem value="">All</MenuItem>{Object.values(LEAD_TYPES).map(type => <MenuItem key={type} value={type}>{type.toUpperCase()}</MenuItem>)}</Select></FormControl></Grid>
+            {isAdminOrManager && <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Assignment</InputLabel><Select value={filters.isAssigned} label="Assignment" onChange={(e) => handleFilterChange("isAssigned", e.target.value)}><MenuItem value="">All</MenuItem><MenuItem value="true">Assigned</MenuItem><MenuItem value="false">Unassigned</MenuItem></Select></FormControl></Grid>}
+            <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Status</InputLabel><Select value={filters.status} label="Status" onChange={(e) => handleFilterChange("status", e.target.value)}><MenuItem value="">All</MenuItem>{Object.values(LEAD_STATUSES).map(status => <MenuItem key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</MenuItem>)}</Select></FormControl></Grid>
+            {isAdminOrManager && <Grid item xs={12} sm={6} md={2}><FormControlLabel control={<Switch checked={filters.includeConverted} onChange={(e) => handleFilterChange("includeConverted", e.target.checked)} color="primary" />} label="Show Converted"/></Grid>}
+            <Grid item xs={12} sm={6} md={2}>
+              <FormControl fullWidth>
+                <InputLabel>Country</InputLabel>
+                <Select
+                  value={filters.country}
+                  label="Country"
+                  onChange={(e) => handleFilterChange("country", e.target.value)}
+                >
+                  <MenuItem value="">All Countries</MenuItem>
+                  {getSortedCountries().map((country) => (
+                    <MenuItem key={country.code} value={country.name}>
+                      {country.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
-          </Collapse>
-        </CardContent>
-      </Card>
+            <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Gender</InputLabel><Select value={filters.gender} label="Gender" onChange={(e) => handleFilterChange("gender", e.target.value)}><MenuItem value="">All</MenuItem><MenuItem value="male">Male</MenuItem><MenuItem value="female">Female</MenuItem><MenuItem value="not_defined">Not Defined</MenuItem></Select></FormControl></Grid>
+            {isAdminOrManager && <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Order Filter</InputLabel><Select value={filters.orderId} label="Order Filter" onChange={(e) => handleFilterChange("orderId", e.target.value)}><MenuItem value="">All Orders</MenuItem>{orders.map(order => <MenuItem key={order._id} value={order._id}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Chip label={`#${order._id.slice(-6)}`} size="small" color={order.status === 'fulfilled' ? 'success' : 'default'} /><Typography variant="body2">{`${Object.values(order.fulfilled).reduce((a, b) => a + b, 0)} leads - ${new Date(order.createdAt).toLocaleDateString()}`}</Typography></Box></MenuItem>)}</Select></FormControl></Grid>}
+            <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Order By</InputLabel><Select value={filters.order} label="Order By" onChange={(e) => handleFilterChange("order", e.target.value)}><MenuItem value="newest">Newest First</MenuItem><MenuItem value="oldest">Oldest First</MenuItem><MenuItem value="name_asc">Name (A-Z)</MenuItem><MenuItem value="name_desc">Name (Z-A)</MenuItem></Select></FormControl></Grid>
+            <Grid item xs={12}><Button onClick={clearFilters} variant="outlined">Clear Filters</Button></Grid>
+          </Grid>
+        </Collapse>
+      </Box>
 
       {/* --- Leads Table (Desktop) --- */}
       <Box sx={{ display: { xs: 'none', md: 'block' } }}>
@@ -952,9 +1245,25 @@ const LeadCard = React.memo(({ lead, canAssignLeads, selectedLeads, expandedRows
             p: 2,
             borderLeft: theme => `4px solid ${theme.palette[getLeadTypeColor(lead.leadType)]?.main || theme.palette.grey.main}`,
             cursor: 'pointer',
+            transition: 'all 0.2s ease-in-out',
             '&:hover': {
-                backgroundColor: 'action.hover'
-            }
+                backgroundColor: 'action.hover',
+                transform: 'translateX(4px)',
+                boxShadow: theme => theme.shadows[4],
+            },
+            '& .MuiChip-root': {
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                    transform: 'scale(1.05)',
+                },
+            },
+            '& .MuiIconButton-root': {
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                    transform: 'scale(1.1)',
+                    backgroundColor: 'action.hover',
+                },
+            },
         }}
     >
         <Grid container spacing={2}>
