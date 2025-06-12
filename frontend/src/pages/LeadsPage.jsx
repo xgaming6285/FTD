@@ -721,14 +721,22 @@ const LeadsPage = () => {
       {/* --- Leads Table (Desktop) --- */}
       <Box sx={{ display: { xs: 'none', md: 'block' } }}>
         <Paper>
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ maxHeight: 'calc(100vh - 180px)' }}>
+            <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>
-                  {canAssignLeads && <TableCell padding="checkbox"><Checkbox indeterminate={numSelected > 0 && numSelected < leads.length} checked={leads.length > 0 && numSelected === leads.length} onChange={handleSelectAll} /></TableCell>}
-                  <TableCell>Name</TableCell><TableCell>Type</TableCell><TableCell>Contact</TableCell><TableCell>Country</TableCell><TableCell>Gender</TableCell><TableCell>Client Info</TableCell>
-                  {isAdminOrManager && <TableCell>Assigned To</TableCell>}
-                  <TableCell>Status</TableCell><TableCell>Order</TableCell><TableCell>Created</TableCell><TableCell>Actions</TableCell>
+                  {canAssignLeads && <TableCell padding="checkbox" sx={{ borderRight: '1px solid rgba(224, 224, 224, 1)', backgroundColor: 'background.paper', fontSize: '0.875rem' }}><Checkbox indeterminate={numSelected > 0 && numSelected < leads.length} checked={leads.length > 0 && numSelected === leads.length} onChange={handleSelectAll} /></TableCell>}
+                  <TableCell sx={{ borderRight: '1px solid rgba(224, 224, 224, 1)', backgroundColor: 'background.paper', fontSize: '0.875rem', py: 1 }}>Name</TableCell>
+                  <TableCell sx={{ borderRight: '1px solid rgba(224, 224, 224, 1)', backgroundColor: 'background.paper', fontSize: '0.875rem', py: 1 }}>Type</TableCell>
+                  <TableCell sx={{ borderRight: '1px solid rgba(224, 224, 224, 1)', backgroundColor: 'background.paper', fontSize: '0.875rem', py: 1 }}>Contact</TableCell>
+                  <TableCell sx={{ borderRight: '1px solid rgba(224, 224, 224, 1)', backgroundColor: 'background.paper', fontSize: '0.875rem', py: 1 }}>Country</TableCell>
+                  <TableCell sx={{ borderRight: '1px solid rgba(224, 224, 224, 1)', backgroundColor: 'background.paper', fontSize: '0.875rem', py: 1 }}>Gender</TableCell>
+                  <TableCell sx={{ borderRight: '1px solid rgba(224, 224, 224, 1)', backgroundColor: 'background.paper', fontSize: '0.875rem', py: 1 }}>Client Info</TableCell>
+                  {isAdminOrManager && <TableCell sx={{ borderRight: '1px solid rgba(224, 224, 224, 1)', backgroundColor: 'background.paper', fontSize: '0.875rem', py: 1 }}>Assigned To</TableCell>}
+                  <TableCell sx={{ borderRight: '1px solid rgba(224, 224, 224, 1)', backgroundColor: 'background.paper', fontSize: '0.875rem', py: 1 }}>Status</TableCell>
+                  <TableCell sx={{ borderRight: '1px solid rgba(224, 224, 224, 1)', backgroundColor: 'background.paper', fontSize: '0.875rem', py: 1 }}>Order</TableCell>
+                  <TableCell sx={{ borderRight: '1px solid rgba(224, 224, 224, 1)', backgroundColor: 'background.paper', fontSize: '0.875rem', py: 1 }}>Created</TableCell>
+                  <TableCell sx={{ backgroundColor: 'background.paper', fontSize: '0.875rem', py: 1 }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -868,11 +876,16 @@ const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadMana
     const isOwner = !isLeadManager || lead.createdBy === userId;
 
     const handleRowClick = (event) => {
-        // Prevent row click when clicking on interactive elements
         if (event.target.closest('button, input, select, [role="combobox"], .MuiSelect-select, .MuiMenuItem-root')) {
             return;
         }
         onToggleExpansion(lead._id);
+    };
+
+    const cellSx = {
+        borderRight: '1px solid rgba(224, 224, 224, 1)',
+        py: 0.5,
+        fontSize: '0.875rem'
     };
 
     return (
@@ -885,62 +898,33 @@ const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadMana
             cursor: 'pointer'
         }}
     >
-      {canAssignLeads && <TableCell padding="checkbox"><Checkbox checked={selectedLeads.has(lead._id)} onChange={onSelectLead(lead._id)} /></TableCell>}
-      <TableCell><Stack direction="row" spacing={2} alignItems="center"><Avatar sx={{ bgcolor: theme => theme.palette[getLeadTypeColor(lead.leadType)]?.light || theme.palette.grey.light, color: theme => theme.palette[getLeadTypeColor(lead.leadType)]?.main || theme.palette.grey.main }}>{(lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()).charAt(0).toUpperCase()}</Avatar><Box><Typography variant="subtitle2" fontWeight="bold">{lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()}</Typography><Typography variant="caption" color="text.secondary">ID: {lead._id.slice(-8)}</Typography></Box></Stack></TableCell>
-      <TableCell><Chip label={(lead.leadType || 'unknown').toUpperCase()} color={getLeadTypeColor(lead.leadType)} size="small" sx={{ fontWeight: 'medium' }} /></TableCell>
-      <TableCell><Stack spacing={0.5}><Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>📧 {lead.newEmail}</Typography><Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>📱 {lead.newPhone || 'N/A'}</Typography></Stack></TableCell>
-      <TableCell><Chip label={lead.country || 'Unknown'} size="small" variant="outlined" /></TableCell>
-      <TableCell><Chip label={lead.gender ? (lead.gender === 'not_defined' ? 'Not Defined' : lead.gender.charAt(0).toUpperCase() + lead.gender.slice(1)) : 'Not Defined'} size="small" variant="outlined" color={lead.gender === 'male' ? 'primary' : lead.gender === 'female' ? 'secondary' : 'default'} /></TableCell>
-      <TableCell>
-        <Stack spacing={0.5}>
-          {lead.client && <Typography variant="body2">Client: {lead.client}</Typography>}
-          {lead.clientBroker && <Typography variant="body2">Broker: {lead.clientBroker}</Typography>}
-          {lead.clientNetwork && <Typography variant="body2">Network: {lead.clientNetwork}</Typography>}
-          {!lead.client && !lead.clientBroker && !lead.clientNetwork && <Typography variant="caption" color="text.secondary">No client info</Typography>}
-        </Stack>
-      </TableCell>
-      {isAdminOrManager && <TableCell>{lead.assignedTo ? <Stack direction="row" spacing={1} alignItems="center"><Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem', bgcolor: 'primary.main' }}>{lead.assignedTo.fullName?.charAt(0) || '?'}</Avatar><Typography variant="body2">{lead.assignedTo.fullName}</Typography></Stack> : <Chip label="Unassigned" size="small" variant="outlined" />}</TableCell>}
-      <TableCell><Chip label={lead.status.charAt(0).toUpperCase() + lead.status.slice(1)} color={getStatusColor(lead.status)} size="small" sx={{ fontWeight: 'medium', minWidth: 80, justifyContent: 'center' }} /></TableCell>
-      <TableCell>{lead.orderId ? <Chip label={`Order #${lead.orderId._id.slice(-6)}`} size="small" color={lead.orderId.status === 'fulfilled' ? 'success' : 'default'} sx={{ cursor: 'pointer' }} onClick={() => onFilterByOrder(lead.orderId._id)} /> : <Typography variant="caption" color="text.secondary">No Order</Typography>}</TableCell>
-      <TableCell><Typography variant="caption" color="text.secondary">{new Date(lead.createdAt).toLocaleDateString()}</Typography></TableCell>
-      <TableCell>
-        <Stack direction="row" spacing={1}>
-          <FormControl size="small" sx={{ minWidth: 120 }}><Select value={lead.status} onChange={(e) => onUpdateStatus(lead._id, e.target.value)} size="small" disabled={!isOwner}>{Object.values(LEAD_STATUSES).map(status => <MenuItem key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</MenuItem>)}</Select></FormControl>
-          <IconButton size="small" onClick={() => onComment(lead)} disabled={!isOwner}><CommentIcon /></IconButton>
+      {canAssignLeads && <TableCell padding="checkbox" sx={cellSx}><Checkbox checked={selectedLeads.has(lead._id)} onChange={onSelectLead(lead._id)} /></TableCell>}
+      <TableCell sx={cellSx}><Stack direction="row" spacing={1} alignItems="center"><Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem', bgcolor: theme => theme.palette[getLeadTypeColor(lead.leadType)]?.light, color: theme => theme.palette[getLeadTypeColor(lead.leadType)]?.main }}>{(lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()).charAt(0).toUpperCase()}</Avatar><Box><Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>{lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()}</Typography><Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>ID: {lead._id.slice(-8)}</Typography></Box></Stack></TableCell>
+      <TableCell sx={cellSx}><Chip label={(lead.leadType || 'unknown').toUpperCase()} color={getLeadTypeColor(lead.leadType)} size="small" sx={{ fontWeight: 'medium', height: '20px', '& .MuiChip-label': { fontSize: '0.75rem', px: 1 } }} /></TableCell>
+      <TableCell sx={cellSx}><Stack spacing={0.5}><Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.875rem' }}>📧 {lead.newEmail}</Typography><Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.875rem' }}>📱 {lead.newPhone || 'N/A'}</Typography></Stack></TableCell>
+      <TableCell sx={cellSx}><Chip label={lead.country || 'Unknown'} size="small" variant="outlined" sx={{ height: '20px', '& .MuiChip-label': { fontSize: '0.75rem', px: 1 } }} /></TableCell>
+      <TableCell sx={cellSx}>{lead.gender || 'N/A'}</TableCell>
+      <TableCell sx={cellSx}>{lead.clientInfo || 'N/A'}</TableCell>
+      {isAdminOrManager && <TableCell sx={cellSx}>{lead.assignedTo ? lead.assignedTo.name : 'Unassigned'}</TableCell>}
+      <TableCell sx={cellSx}><Chip label={lead.status.charAt(0).toUpperCase() + lead.status.slice(1)} color={getStatusColor(lead.status)} size="small" sx={{ height: '20px', '& .MuiChip-label': { fontSize: '0.75rem', px: 1 } }} /></TableCell>
+      <TableCell sx={cellSx}>{lead.orderId ? <Link component="button" onClick={(e) => { e.stopPropagation(); onFilterByOrder(lead.orderId); }} sx={{ fontSize: '0.875rem' }}>{lead.orderId.slice(-8)}</Link> : 'N/A'}</TableCell>
+      <TableCell sx={cellSx}>{new Date(lead.createdAt).toLocaleDateString()}</TableCell>
+      <TableCell sx={{ py: 0.5 }}>
+        <Stack direction="row" spacing={0.5}>
+          <FormControl size="small" sx={{ minWidth: 100 }}><Select value={lead.status} onChange={(e) => onUpdateStatus(lead._id, e.target.value)} size="small" disabled={!isOwner} sx={{ '& .MuiSelect-select': { py: 0.5, fontSize: '0.875rem' } }}>{Object.values(LEAD_STATUSES).map(status => <MenuItem key={status} value={status} sx={{ fontSize: '0.875rem' }}>{status.charAt(0).toUpperCase() + status.slice(1)}</MenuItem>)}</Select></FormControl>
+          <IconButton size="small" onClick={() => onComment(lead)} disabled={!isOwner}><CommentIcon sx={{ fontSize: '1.25rem' }} /></IconButton>
           {(user?.role === ROLES.ADMIN || (isLeadManager && lead.createdBy === user?.id)) && (
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEditLead(lead);
-              }}
-              title="Edit Lead"
-            >
-              <EditIcon />
+            <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleEditLead(lead); }} title="Edit Lead">
+              <EditIcon sx={{ fontSize: '1.25rem' }} />
             </IconButton>
           )}
           {canDeleteLeads && (
-            <IconButton 
-              size="small" 
-              onClick={(e) => {
-                e.stopPropagation();
-                if (window.confirm('Are you sure you want to delete this lead?')) {
-                  onDeleteLead(lead._id);
-                }
-              }}
-              color="error"
-            >
-              <DeleteIcon />
+            <IconButton size="small" onClick={(e) => { e.stopPropagation(); if (window.confirm('Are you sure you want to delete this lead?')) { onDeleteLead(lead._id); } }} color="error">
+              <DeleteIcon sx={{ fontSize: '1.25rem' }} />
             </IconButton>
           )}
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleExpansion(lead._id);
-            }}
-          >
-            {expandedRows.has(lead._id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          <IconButton size="small" onClick={(e) => { e.stopPropagation(); onToggleExpansion(lead._id); }}>
+            {expandedRows.has(lead._id) ? <ExpandLessIcon sx={{ fontSize: '1.25rem' }} /> : <ExpandMoreIcon sx={{ fontSize: '1.25rem' }} />}
           </IconButton>
         </Stack>
       </TableCell>
@@ -950,7 +934,6 @@ const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadMana
 // --- Memoized Card Component for Mobile View ---
 const LeadCard = React.memo(({ lead, canAssignLeads, selectedLeads, expandedRows, onSelectLead, onUpdateStatus, onComment, onToggleExpansion, onDeleteLead, canDeleteLeads, user, isLeadManager, handleEditLead }) => {
     const handleCardClick = (event) => {
-        // Prevent card click when clicking on interactive elements
         if (event.target.closest('button, input, select, [role="combobox"], .MuiSelect-select, .MuiMenuItem-root')) {
             return;
         }
