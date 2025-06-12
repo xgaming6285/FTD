@@ -1,15 +1,15 @@
-const { faker } = require('@faker-js/faker');
+const faker = require('faker');
 const fs = require('fs');
 const path = require('path');
 
-// Set to keep track of used emails to ensure uniqueness
+// Keep track of used emails to ensure uniqueness
 const usedEmails = new Set();
 
 // Function to generate a unique email
 const generateUniqueEmail = () => {
     let email;
     do {
-        email = faker.internet.email();
+        email = faker.internet.email().toLowerCase();
     } while (usedEmails.has(email));
     usedEmails.add(email);
     return email;
@@ -28,52 +28,53 @@ const generateRandomLead = () => {
 
     const lead = {
         leadType,
-        firstName: faker.person.firstName(),
-        lastName: faker.person.lastName(),
+        firstName: faker.name.firstName(),
+        lastName: faker.name.lastName(),
         gender,
-        email: generateUniqueEmail(), // Primary email field for the database
-        newEmail: generateUniqueEmail(),
-        oldEmail: Math.random() > 0.5 ? generateUniqueEmail() : undefined,
-        newPhone: faker.phone.number(),
-        oldPhone: Math.random() > 0.5 ? faker.phone.number() : undefined,
-        country: faker.location.country(),
+        newEmail: generateUniqueEmail(), // Using our unique email generator
+        oldEmail: Math.random() > 0.5 ? generateUniqueEmail() : '', // Also ensure unique old emails
+        newPhone: faker.phone.phoneNumber(),
+        oldPhone: Math.random() > 0.5 ? faker.phone.phoneNumber() : '',
+        country: faker.address.country(),
         isAssigned: false,
-        client: Math.random() > 0.5 ? faker.company.name() : undefined,
-        clientBroker: Math.random() > 0.5 ? faker.company.name() : undefined,
-        clientNetwork: Math.random() > 0.5 ? faker.company.name() : undefined,
+        client: Math.random() > 0.5 ? faker.company.companyName() : '',
+        clientBroker: Math.random() > 0.5 ? faker.company.companyName() : '',
+        clientNetwork: Math.random() > 0.5 ? faker.company.companyName() : '',
         socialMedia: {
-            facebook: Math.random() > 0.5 ? faker.internet.userName() : undefined,
-            twitter: Math.random() > 0.5 ? faker.internet.userName() : undefined,
-            linkedin: Math.random() > 0.5 ? faker.internet.userName() : undefined,
-            instagram: Math.random() > 0.5 ? faker.internet.userName() : undefined,
-            telegram: Math.random() > 0.5 ? faker.internet.userName() : undefined,
-            whatsapp: Math.random() > 0.5 ? faker.phone.number() : undefined,
+            facebook: Math.random() > 0.5 ? `https://facebook.com/${faker.internet.userName()}` : '',
+            twitter: Math.random() > 0.5 ? `https://twitter.com/${faker.internet.userName()}` : '',
+            linkedin: Math.random() > 0.5 ? `https://linkedin.com/in/${faker.internet.userName()}` : '',
+            instagram: Math.random() > 0.5 ? `https://instagram.com/${faker.internet.userName()}` : '',
+            telegram: Math.random() > 0.5 ? `@${faker.internet.userName()}` : '',
+            whatsapp: Math.random() > 0.5 ? faker.phone.phoneNumber() : '',
         },
-        source: faker.helpers.arrayElement(['website', 'referral', 'social_media', 'cold_call']),
+        comments: [],
+        source: faker.helpers.arrayElement(['website', 'referral', 'social_media', 'direct']),
         priority: faker.helpers.arrayElement(priorities),
         status: faker.helpers.arrayElement(statuses),
+        createdAt: faker.date.between('2024-05-01', '2025-05-31').toISOString()
     };
 
-    // Add FTD & Filler specific fields if applicable
+    // Add FTD & Filler specific fields
     if (leadType === 'ftd' || leadType === 'filler') {
-        lead.dob = faker.date.past({ years: 50 });
+        lead.dob = faker.date.between('1960-01-01', '2003-12-31').toISOString().split('T')[0];
         lead.address = {
-            street: faker.location.streetAddress(),
-            city: faker.location.city(),
-            postalCode: faker.location.zipCode(),
+            street: faker.address.streetAddress(),
+            city: faker.address.city(),
+            postalCode: faker.address.zipCode()
         };
     }
 
     // Add FTD specific fields
     if (leadType === 'ftd') {
         lead.documents = {
-            idFrontUrl: faker.image.url(),
-            idBackUrl: faker.image.url(),
-            selfieUrl: faker.image.url(),
-            residenceProofUrl: faker.image.url(),
-            status: faker.helpers.arrayElement(documentStatuses),
+            idFrontUrl: `https://storage.example.com/documents/${faker.datatype.uuid()}/id_front.jpg`,
+            idBackUrl: `https://storage.example.com/documents/${faker.datatype.uuid()}/id_back.jpg`,
+            selfieUrl: `https://storage.example.com/documents/${faker.datatype.uuid()}/selfie.jpg`,
+            residenceProofUrl: `https://storage.example.com/documents/${faker.datatype.uuid()}/residence.jpg`,
+            status: faker.helpers.arrayElement(documentStatuses)
         };
-        lead.sin = faker.string.numeric(9); // Generate a 9-digit SIN number
+        lead.sin = faker.random.number({ min: 100000000, max: 999999999 }).toString();
     }
 
     return lead;
@@ -118,4 +119,9 @@ const generateLeads = (count) => {
 const count = parseInt(process.argv[2]) || 10;
 
 // Run the main function
-generateLeads(count); 
+generateLeads(count);
+
+module.exports = {
+    generateLeads,
+    generateRandomLead
+}; 

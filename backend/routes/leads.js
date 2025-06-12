@@ -253,52 +253,17 @@ router.post(
 
 // @route   PUT /api/leads/:id
 // @desc    Update lead information
-// @access  Private (Admin, Affiliate Manager, Lead Manager)
+// @access  Private (Admin, Lead Manager)
 router.put(
   "/:id",
   [
     protect,
-    authorize("admin", "affiliate_manager", "lead_manager"),
-    body("firstName")
-      .optional()
-      .trim()
-      .isLength({ min: 2 })
-      .withMessage("First name must be at least 2 characters"),
-    body("lastName")
-      .optional()
-      .trim()
-      .isLength({ min: 2 })
-      .withMessage("Last name must be at least 2 characters"),
-    body("gender")
-      .optional()
-      .isIn(["male", "female", "not_defined"])
-      .withMessage("Gender must be male, female, or not_defined"),
-    body("newEmail")
-      .optional()
-      .trim()
-      .isEmail()
-      .withMessage("Please provide a valid new email"),
-    body("oldEmail")
-      .optional()
-      .custom((value) => {
-        // If value is empty string or null/undefined, accept it
-        if (!value || value.trim() === '') {
-          return true;
-        }
-        // Otherwise validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(value)) {
-          throw new Error('Please provide a valid old email');
-        }
-        return true;
-      }),
-    body("newPhone").optional().trim(),
-    body("oldPhone").optional().trim(),
-    body("country")
-      .optional()
-      .trim()
-      .isLength({ min: 2 })
-      .withMessage("Country must be at least 2 characters"),
+    authorize("admin", "lead_manager"),
+    body("firstName").optional().trim().notEmpty().withMessage("First name is required"),
+    body("lastName").optional().trim().notEmpty().withMessage("Last name is required"),
+    body("email").optional().isEmail().withMessage("Please enter a valid email"),
+    body("phone").optional().trim().notEmpty().withMessage("Phone number is required"),
+    body("country").optional().trim().notEmpty().withMessage("Country is required"),
     body("status")
       .optional()
       .isIn(["active", "contacted", "converted", "inactive"])
@@ -307,45 +272,8 @@ router.put(
       .optional()
       .isIn(["ftd", "filler", "cold", "live"])
       .withMessage("Invalid lead type"),
-    body("documents.status")
-      .optional()
-      .isIn(["good", "ok", "pending"])
-      .withMessage("Invalid document status"),
-    body("socialMedia.facebook")
-      .optional()
-      .trim()
-      .isURL()
-      .withMessage("Invalid Facebook URL"),
-    body("socialMedia.twitter")
-      .optional()
-      .trim()
-      .isURL()
-      .withMessage("Invalid Twitter URL"),
-    body("socialMedia.linkedin")
-      .optional()
-      .trim()
-      .isURL()
-      .withMessage("Invalid LinkedIn URL"),
-    body("socialMedia.instagram")
-      .optional()
-      .trim()
-      .isURL()
-      .withMessage("Invalid Instagram URL"),
-    body("socialMedia.telegram").optional().trim(),
-    body("socialMedia.whatsapp").optional().trim(),
-    body("sin")
-      .optional()
-      .trim()
-      .custom((value, { req }) => {
-        if (req.body.leadType === "ftd" && !value) {
-          throw new Error("SIN is required for FTD leads");
-        }
-        return true;
-      }),
-    body("gender")
-      .optional()
-      .isIn(["male", "female", "not_defined"])
-      .withMessage("Gender must be male, female, or not_defined"),
+    body("sin").optional(),
+    body("gender").optional().isIn(["male", "female", "other"]).withMessage("Invalid gender"),
   ],
   updateLead
 );

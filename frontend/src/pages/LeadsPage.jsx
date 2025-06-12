@@ -66,6 +66,7 @@ import api from "../services/api";
 import { selectUser } from "../store/slices/authSlice";
 import { getSortedCountries } from "../constants/countries";
 import ImportLeadsDialog from "../components/ImportLeadsDialog";
+import EditLeadForm from "../components/EditLeadForm";
 
 // --- Constants ---
 const ROLES = {
@@ -327,6 +328,7 @@ const LeadsPage = () => {
   const [selectedLead, setSelectedLead] = useState(null);
   const [selectedLeads, setSelectedLeads] = useState(new Set());
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // Pagination and filtering
   const [page, setPage] = useState(0);
@@ -578,6 +580,16 @@ const LeadsPage = () => {
       setCommentDialogOpen(true);
   }, []);
 
+  const handleEditLead = (lead) => {
+    setSelectedLead(lead);
+    setEditDialogOpen(true);
+  };
+
+  const handleLeadUpdated = (updatedLead) => {
+    setSuccess("Lead updated successfully");
+    fetchLeads();
+  };
+
   // --- Render ---
   return (
     <Box>
@@ -697,7 +709,8 @@ const LeadsPage = () => {
                             canDeleteLeads={canDeleteLeads}
                             isAdminOrManager={isAdminOrManager}
                             isLeadManager={isLeadManager}
-                            userId={user.id}
+                            userId={user?.id}
+                            user={user}
                             selectedLeads={selectedLeads}
                             expandedRows={expandedRows}
                             onSelectLead={handleSelectLead}
@@ -706,6 +719,7 @@ const LeadsPage = () => {
                             onToggleExpansion={toggleRowExpansion}
                             onFilterByOrder={(orderId) => handleFilterChange("orderId", orderId)}
                             onDeleteLead={handleDeleteLead}
+                            handleEditLead={handleEditLead}
                         />
                         {expandedRows.has(lead._id) && (
                             <TableRow>
@@ -742,6 +756,9 @@ const LeadsPage = () => {
                     onComment={handleOpenCommentDialog}
                     onToggleExpansion={toggleRowExpansion}
                     onDeleteLead={handleDeleteLead}
+                    user={user}
+                    isLeadManager={isLeadManager}
+                    handleEditLead={handleEditLead}
                 />
             ))}
             <TablePagination rowsPerPageOptions={[5, 10, 25]} component="div" count={totalLeads} rowsPerPage={rowsPerPage} page={page} onPageChange={handleChangePage} onRowsPerPageChange={handleChangeRowsPerPage} />
@@ -777,12 +794,22 @@ const LeadsPage = () => {
         onClose={() => setImportDialogOpen(false)}
         onImportComplete={fetchLeads}
       />
+
+      <EditLeadForm
+        open={editDialogOpen}
+        onClose={() => {
+          setEditDialogOpen(false);
+          setSelectedLead(null);
+        }}
+        lead={selectedLead}
+        onLeadUpdated={handleLeadUpdated}
+      />
     </Box>
   );
 };
 
 // --- Memoized Row Component for Desktop Table ---
-const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadManager, userId, selectedLeads, expandedRows, onSelectLead, onUpdateStatus, onComment, onToggleExpansion, onFilterByOrder, onDeleteLead, canDeleteLeads }) => {
+const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadManager, userId, selectedLeads, expandedRows, onSelectLead, onUpdateStatus, onComment, onToggleExpansion, onFilterByOrder, onDeleteLead, canDeleteLeads, user, handleEditLead }) => {
     const isOwner = !isLeadManager || lead.createdBy === userId;
 
     const handleRowClick = (event) => {
@@ -825,6 +852,18 @@ const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadMana
         <Stack direction="row" spacing={1}>
           <FormControl size="small" sx={{ minWidth: 120 }}><Select value={lead.status} onChange={(e) => onUpdateStatus(lead._id, e.target.value)} size="small" disabled={!isOwner}>{Object.values(LEAD_STATUSES).map(status => <MenuItem key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</MenuItem>)}</Select></FormControl>
           <IconButton size="small" onClick={() => onComment(lead)} disabled={!isOwner}><CommentIcon /></IconButton>
+          {(user?.role === ROLES.ADMIN || (isLeadManager && lead.createdBy === user?.id)) && (
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEditLead(lead);
+              }}
+              title="Edit Lead"
+            >
+              <EditIcon />
+            </IconButton>
+          )}
           {canDeleteLeads && (
             <IconButton 
               size="small" 
@@ -854,7 +893,7 @@ const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadMana
 )});
 
 // --- Memoized Card Component for Mobile View ---
-const LeadCard = React.memo(({ lead, canAssignLeads, selectedLeads, expandedRows, onSelectLead, onUpdateStatus, onComment, onToggleExpansion, onDeleteLead, canDeleteLeads }) => {
+const LeadCard = React.memo(({ lead, canAssignLeads, selectedLeads, expandedRows, onSelectLead, onUpdateStatus, onComment, onToggleExpansion, onDeleteLead, canDeleteLeads, user, isLeadManager, handleEditLead }) => {
     const handleCardClick = (event) => {
         // Prevent card click when clicking on interactive elements
         if (event.target.closest('button, input, select, [role="combobox"], .MuiSelect-select, .MuiMenuItem-root')) {
@@ -906,6 +945,18 @@ const LeadCard = React.memo(({ lead, canAssignLeads, selectedLeads, expandedRows
                         <ExpandMoreIcon />
                     </IconButton>
                     <IconButton size="small" onClick={() => onComment(lead)} sx={{ color: 'info.main' }}><CommentIcon /></IconButton>
+                    {(user?.role === ROLES.ADMIN || (isLeadManager && lead.createdBy === user?.id)) && (
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditLead(lead);
+                        }}
+                        title="Edit Lead"
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    )}
                     {canDeleteLeads && (
                       <IconButton 
                         size="small" 
