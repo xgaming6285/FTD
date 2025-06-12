@@ -617,6 +617,30 @@ const LeadsPage = () => {
               Assign {numSelected} Lead{numSelected !== 1 ? "s" : ""}
             </Button>
           )}
+          {canDeleteLeads && numSelected > 0 && (
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={() => {
+                if (window.confirm(`Are you sure you want to delete ${numSelected} lead${numSelected !== 1 ? 's' : ''}?`)) {
+                  const selectedLeadIds = Array.from(selectedLeads);
+                  Promise.all(selectedLeadIds.map(id => api.delete(`/leads/${id}`)))
+                    .then(() => {
+                      setSuccess(`Successfully deleted ${numSelected} lead${numSelected !== 1 ? 's' : ''}`);
+                      setSelectedLeads(new Set());
+                      fetchLeads();
+                    })
+                    .catch(err => {
+                      setError(err.response?.data?.message || 'Failed to delete leads');
+                    });
+                }
+              }}
+              sx={{ ml: 2 }}
+            >
+              Delete {numSelected} Lead{numSelected !== 1 ? "s" : ""}
+            </Button>
+          )}
         </Box>
       </Box>
 
