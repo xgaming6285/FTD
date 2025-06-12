@@ -748,7 +748,7 @@ exports.createLead = async (req, res, next) => {
     // Set document status to pending for FTD leads
     if (leadType === "ftd") {
       lead.documents = {
-        status: "pending",
+        status: "good",
       };
     }
 

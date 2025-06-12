@@ -203,7 +203,7 @@ leadSchema.pre("save", function (next) {
 leadSchema.statics.findAvailableLeads = function (
   leadType,
   count,
-  documentStatus = ["good", "ok"]
+  documentStatus = ["good", "ok", "pending"]
 ) {
   const query = {
     leadType,
