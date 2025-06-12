@@ -137,7 +137,7 @@ const getLeadTypeColor = (leadType) => {
 
 // Memoized component for lead details to avoid re-renders
 const LeadDetails = React.memo(({ lead }) => (
-  <Box sx={{ 
+  <Box sx={{
     animation: 'fadeIn 0.3s ease-in-out',
     '@keyframes fadeIn': {
       '0%': {
@@ -153,11 +153,11 @@ const LeadDetails = React.memo(({ lead }) => (
     <Grid container spacing={3}>
       {/* Basic Information */}
       <Grid item xs={12} md={4}>
-        <Paper elevation={0} sx={{ 
-          p: 2, 
-          bgcolor: 'background.paper', 
-          borderRadius: 1, 
-          border: '1px solid', 
+        <Paper elevation={0} sx={{
+          p: 2,
+          bgcolor: 'background.paper',
+          borderRadius: 1,
+          border: '1px solid',
           borderColor: 'divider',
           height: '100%',
           transition: 'all 0.2s ease-in-out',
@@ -609,10 +609,10 @@ const LeadsPage = () => {
   // --- Render ---
   return (
     <Box>
-      <Box 
-        display="flex" 
-        justifyContent="space-between" 
-        alignItems="center" 
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
         mb={3}
         sx={{
           '& .MuiButton-root': {
@@ -624,8 +624,8 @@ const LeadsPage = () => {
           },
         }}
       >
-        <Typography 
-          variant="h4" 
+        <Typography
+          variant="h4"
           gutterBottom
           sx={{
             position: 'relative',
@@ -708,8 +708,8 @@ const LeadsPage = () => {
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
       {isAdminOrManager && (
-        <Card sx={{ 
-          mb: 2, 
+        <Card sx={{
+          mb: 2,
           background: 'linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%)',
           transition: 'all 0.3s ease-in-out',
           '&:hover': {
@@ -719,13 +719,13 @@ const LeadsPage = () => {
         }}>
             <CardContent>
                 <Box sx={{ mb: 2 }}>
-                    <Typography 
-                      variant="h6" 
-                      gutterBottom 
-                      sx={{ 
-                        color: 'primary.main', 
-                        fontWeight: 'bold', 
-                        display: 'flex', 
+                    <Typography
+                      variant="h6"
+                      gutterBottom
+                      sx={{
+                        color: 'primary.main',
+                        fontWeight: 'bold',
+                        display: 'flex',
                         alignItems: 'center',
                         '& .MuiSvgIcon-root': {
                           transition: 'transform 0.3s ease-in-out',
@@ -742,12 +742,12 @@ const LeadsPage = () => {
                 </Box>
                 <Grid container spacing={3}>
                     <Grid item xs={6} sm={3}>
-                        <Paper 
-                          elevation={0} 
-                          sx={{ 
-                            p: 2, 
-                            textAlign: 'center', 
-                            height: '100%', 
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            p: 2,
+                            textAlign: 'center',
+                            height: '100%',
                             background: 'rgba(255, 255, 255, 0.8)',
                             transition: 'all 0.3s ease-in-out',
                             '&:hover': {
@@ -757,10 +757,10 @@ const LeadsPage = () => {
                             },
                           }}
                         >
-                            <Typography 
-                              variant="h4" 
-                              color="primary" 
-                              sx={{ 
+                            <Typography
+                              variant="h4"
+                              color="primary"
+                              sx={{
                                 fontWeight: 'bold',
                                 animation: 'countUp 1s ease-out',
                                 '@keyframes countUp': {
@@ -777,11 +777,11 @@ const LeadsPage = () => {
                             >
                               {totalLeads}
                             </Typography>
-                            <Typography 
-                              variant="subtitle2" 
-                              color="textSecondary" 
-                              sx={{ 
-                                textTransform: 'uppercase', 
+                            <Typography
+                              variant="subtitle2"
+                              color="textSecondary"
+                              sx={{
+                                textTransform: 'uppercase',
                                 letterSpacing: '0.5px',
                                 opacity: 0.8,
                                 transition: 'opacity 0.3s ease-in-out',
@@ -795,12 +795,12 @@ const LeadsPage = () => {
                         </Paper>
                     </Grid>
                     <Grid item xs={6} sm={3}>
-                        <Paper 
-                          elevation={0} 
-                          sx={{ 
-                            p: 2, 
-                            textAlign: 'center', 
-                            height: '100%', 
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            p: 2,
+                            textAlign: 'center',
+                            height: '100%',
                             background: 'rgba(255, 255, 255, 0.8)',
                             transition: 'all 0.3s ease-in-out',
                             '&:hover': {
@@ -810,10 +810,10 @@ const LeadsPage = () => {
                             },
                           }}
                         >
-                            <Typography 
-                              variant="h4" 
-                              color="success.main" 
-                              sx={{ 
+                            <Typography
+                              variant="h4"
+                              color="success.main"
+                              sx={{
                                 fontWeight: 'bold',
                                 animation: 'countUp 1s ease-out',
                                 '@keyframes countUp': {
@@ -830,11 +830,11 @@ const LeadsPage = () => {
                             >
                               {leads.filter(lead => lead.isAssigned).length}
                             </Typography>
-                            <Typography 
-                              variant="subtitle2" 
-                              color="textSecondary" 
-                              sx={{ 
-                                textTransform: 'uppercase', 
+                            <Typography
+                              variant="subtitle2"
+                              color="textSecondary"
+                              sx={{
+                                textTransform: 'uppercase',
                                 letterSpacing: '0.5px',
                                 opacity: 0.8,
                                 transition: 'opacity 0.3s ease-in-out',
@@ -848,12 +848,12 @@ const LeadsPage = () => {
                         </Paper>
                     </Grid>
                     <Grid item xs={6} sm={3}>
-                        <Paper 
-                          elevation={0} 
-                          sx={{ 
-                            p: 2, 
-                            textAlign: 'center', 
-                            height: '100%', 
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            p: 2,
+                            textAlign: 'center',
+                            height: '100%',
                             background: 'rgba(255, 255, 255, 0.8)',
                             transition: 'all 0.3s ease-in-out',
                             '&:hover': {
@@ -863,10 +863,10 @@ const LeadsPage = () => {
                             },
                           }}
                         >
-                            <Typography 
-                              variant="h4" 
-                              color="warning.main" 
-                              sx={{ 
+                            <Typography
+                              variant="h4"
+                              color="warning.main"
+                              sx={{
                                 fontWeight: 'bold',
                                 animation: 'countUp 1s ease-out',
                                 '@keyframes countUp': {
@@ -883,11 +883,11 @@ const LeadsPage = () => {
                             >
                               {leads.filter(lead => !lead.isAssigned).length}
                             </Typography>
-                            <Typography 
-                              variant="subtitle2" 
-                              color="textSecondary" 
-                              sx={{ 
-                                textTransform: 'uppercase', 
+                            <Typography
+                              variant="subtitle2"
+                              color="textSecondary"
+                              sx={{
+                                textTransform: 'uppercase',
                                 letterSpacing: '0.5px',
                                 opacity: 0.8,
                                 transition: 'opacity 0.3s ease-in-out',
@@ -901,12 +901,12 @@ const LeadsPage = () => {
                         </Paper>
                     </Grid>
                     <Grid item xs={6} sm={3}>
-                        <Paper 
-                          elevation={0} 
-                          sx={{ 
-                            p: 2, 
-                            textAlign: 'center', 
-                            height: '100%', 
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            p: 2,
+                            textAlign: 'center',
+                            height: '100%',
                             background: 'rgba(255, 255, 255, 0.8)',
                             transition: 'all 0.3s ease-in-out',
                             '&:hover': {
@@ -916,10 +916,10 @@ const LeadsPage = () => {
                             },
                           }}
                         >
-                            <Typography 
-                              variant="h4" 
-                              color="info.main" 
-                              sx={{ 
+                            <Typography
+                              variant="h4"
+                              color="info.main"
+                              sx={{
                                 fontWeight: 'bold',
                                 animation: 'countUp 1s ease-out',
                                 '@keyframes countUp': {
@@ -936,11 +936,11 @@ const LeadsPage = () => {
                             >
                               {Math.round((leads.filter(lead => lead.isAssigned).length / (leads.length || 1)) * 100)}%
                             </Typography>
-                            <Typography 
-                              variant="subtitle2" 
-                              color="textSecondary" 
-                              sx={{ 
-                                textTransform: 'uppercase', 
+                            <Typography
+                              variant="subtitle2"
+                              color="textSecondary"
+                              sx={{
+                                textTransform: 'uppercase',
                                 letterSpacing: '0.5px',
                                 opacity: 0.8,
                                 transition: 'opacity 0.3s ease-in-out',
@@ -1144,8 +1144,8 @@ const LeadsPage = () => {
         }}
       />
 
-      <Dialog 
-        open={addLeadDialogOpen} 
+      <Dialog
+        open={addLeadDialogOpen}
         onClose={() => setAddLeadDialogOpen(false)}
         maxWidth="md"
         fullWidth
@@ -1157,11 +1157,11 @@ const LeadsPage = () => {
       >
         <DialogTitle>Add New Lead</DialogTitle>
         <DialogContent>
-          <AddLeadForm 
+          <AddLeadForm
             onLeadAdded={(lead) => {
               handleLeadAdded(lead);
               setAddLeadDialogOpen(false);
-            }} 
+            }}
           />
         </DialogContent>
       </Dialog>
@@ -1203,7 +1203,7 @@ const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadMana
       <TableCell sx={cellSx}><Chip label={lead.country || 'Unknown'} size="small" variant="outlined" sx={{ height: '20px', '& .MuiChip-label': { fontSize: '0.75rem', px: 1 } }} /></TableCell>
       <TableCell sx={cellSx}>{lead.gender || 'N/A'}</TableCell>
       <TableCell sx={cellSx}>{lead.clientInfo || 'N/A'}</TableCell>
-      {isAdminOrManager && <TableCell sx={cellSx}>{lead.assignedTo ? lead.assignedTo.name : 'Unassigned'}</TableCell>}
+      {isAdminOrManager && <TableCell sx={cellSx}>{lead.assignedTo ? lead.assignedTo.fullName : 'Unassigned'}</TableCell>}
       <TableCell sx={cellSx}><Chip label={lead.status.charAt(0).toUpperCase() + lead.status.slice(1)} color={getStatusColor(lead.status)} size="small" sx={{ height: '20px', '& .MuiChip-label': { fontSize: '0.75rem', px: 1 } }} /></TableCell>
       <TableCell sx={cellSx}>{lead.orderId ? <Link component="button" onClick={(e) => { e.stopPropagation(); onFilterByOrder(lead.orderId); }} sx={{ fontSize: '0.875rem' }}>{lead.orderId.slice(-8)}</Link> : 'N/A'}</TableCell>
       <TableCell sx={cellSx}>{new Date(lead.createdAt).toLocaleDateString()}</TableCell>
@@ -1310,8 +1310,8 @@ const LeadCard = React.memo(({ lead, canAssignLeads, selectedLeads, expandedRows
                       </IconButton>
                     )}
                     {canDeleteLeads && (
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (window.confirm('Are you sure you want to delete this lead?')) {

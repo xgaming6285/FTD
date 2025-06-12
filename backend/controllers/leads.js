@@ -95,6 +95,22 @@ exports.getLeads = async (req, res, next) => {
 
     console.log("MongoDB Query Results:", JSON.stringify(leads, null, 2));
 
+    // Debug: Check if assignedTo is properly populated
+    leads.forEach((lead, index) => {
+      if (lead.isAssigned && lead.assignedTo) {
+        console.log(`Lead ${index} assignedTo:`, {
+          id: lead.assignedTo._id,
+          fullName: lead.assignedTo.fullName,
+          fourDigitCode: lead.assignedTo.fourDigitCode,
+          email: lead.assignedTo.email,
+        });
+      } else if (lead.isAssigned && !lead.assignedTo) {
+        console.log(
+          `Lead ${index} is assigned but assignedTo is null/undefined`
+        );
+      }
+    });
+
     // Get total count for pagination
     const total = await Lead.countDocuments(filter);
 
@@ -135,6 +151,7 @@ exports.getAssignedLeads = async (req, res, next) => {
 
     // Get assigned leads
     const leads = await Lead.find(filter)
+      .populate("assignedTo", "fullName fourDigitCode email")
       .populate("comments.author", "fullName")
       .populate("orderId", "status priority createdAt") // Add order population
       .sort({ assignedAt: -1 })
@@ -468,6 +485,13 @@ exports.assignLeads = async (req, res, next) => {
     }
 
     // Update leads
+    console.log("Assigning leads with:", {
+      updateCondition,
+      agentId,
+      agentName: agent.fullName,
+      agentCode: agent.fourDigitCode,
+    });
+
     const result = await Lead.updateMany(updateCondition, {
       $set: {
         isAssigned: true,
@@ -475,6 +499,28 @@ exports.assignLeads = async (req, res, next) => {
         assignedAt: new Date(),
       },
     });
+
+    console.log("Assignment result:", result);
+
+    // Verify the assignment worked by checking a few leads
+    const verifyLeads = await Lead.find({ _id: { $in: leadIds } })
+      .populate("assignedTo", "fullName fourDigitCode email")
+      .limit(3);
+
+    console.log(
+      "Verification - First few assigned leads:",
+      verifyLeads.map((lead) => ({
+        id: lead._id,
+        isAssigned: lead.isAssigned,
+        assignedTo: lead.assignedTo
+          ? {
+              id: lead.assignedTo._id,
+              fullName: lead.assignedTo.fullName,
+              fourDigitCode: lead.assignedTo.fourDigitCode,
+            }
+          : null,
+      }))
+    );
 
     res.status(200).json({
       success: true,
@@ -657,18 +703,22 @@ exports.createLead = async (req, res, next) => {
     } = req.body;
 
     // Check if a lead with this email already exists
-    const existingLead = await Lead.findOne({ newEmail: newEmail.toLowerCase() });
+    const existingLead = await Lead.findOne({
+      newEmail: newEmail.toLowerCase(),
+    });
     if (existingLead) {
       return res.status(400).json({
         success: false,
         message: "A lead with this email already exists",
-        errors: [{
-          type: "field",
-          value: newEmail,
-          msg: "This email is already registered in the system",
-          path: "newEmail",
-          location: "body"
-        }]
+        errors: [
+          {
+            type: "field",
+            value: newEmail,
+            msg: "This email is already registered in the system",
+            path: "newEmail",
+            location: "body",
+          },
+        ],
       });
     }
 
@@ -715,13 +765,15 @@ exports.createLead = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: "A lead with this email already exists",
-        errors: [{
-          type: "field",
-          value: error.keyValue.newEmail,
-          msg: "This email is already registered in the system",
-          path: "newEmail",
-          location: "body"
-        }]
+        errors: [
+          {
+            type: "field",
+            value: error.keyValue.newEmail,
+            msg: "This email is already registered in the system",
+            path: "newEmail",
+            location: "body",
+          },
+        ],
       });
     }
     next(error);
