@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -103,6 +103,41 @@ const EditLeadForm = ({ open, onClose, lead, onLeadUpdated, sx }) => {
       }
     },
   });
+
+  useEffect(() => {
+    if (lead) {
+      reset({
+        firstName: lead.firstName || "",
+        lastName: lead.lastName || "",
+        email: lead.email || "",
+        oldEmail: lead.oldEmail || "",
+        phone: lead.phone || "",
+        oldPhone: lead.oldPhone || "",
+        country: lead.country || "",
+        status: lead.status || LEAD_STATUSES.ACTIVE,
+        leadType: lead.leadType || LEAD_TYPES.COLD,
+        sin: lead.sin || "",
+        gender: lead.gender || "other",
+        client: lead.client || "",
+        clientBroker: lead.clientBroker || "",
+        clientNetwork: lead.clientNetwork || "",
+        dob: lead.dob || null,
+        address: {
+          street: lead.address?.street || "",
+          city: lead.address?.city || "",
+          postalCode: lead.address?.postalCode || "",
+        },
+        socialMedia: {
+          facebook: lead.socialMedia?.facebook || "",
+          twitter: lead.socialMedia?.twitter || "",
+          linkedin: lead.socialMedia?.linkedin || "",
+          instagram: lead.socialMedia?.instagram || "",
+          telegram: lead.socialMedia?.telegram || "",
+          whatsapp: lead.socialMedia?.whatsapp || "",
+        }
+      });
+    }
+  }, [lead, reset]);
 
   const leadType = watch("leadType");
 
