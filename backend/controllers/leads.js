@@ -656,6 +656,22 @@ exports.createLead = async (req, res, next) => {
       gender,
     } = req.body;
 
+    // Check if a lead with this email already exists
+    const existingLead = await Lead.findOne({ newEmail: newEmail.toLowerCase() });
+    if (existingLead) {
+      return res.status(400).json({
+        success: false,
+        message: "A lead with this email already exists",
+        errors: [{
+          type: "field",
+          value: newEmail,
+          msg: "This email is already registered in the system",
+          path: "newEmail",
+          location: "body"
+        }]
+      });
+    }
+
     // Create a new lead
     const lead = new Lead({
       firstName,
@@ -694,6 +710,20 @@ exports.createLead = async (req, res, next) => {
       data: lead,
     });
   } catch (error) {
+    // Handle other MongoDB errors
+    if (error.code === 11000 && error.keyPattern?.newEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "A lead with this email already exists",
+        errors: [{
+          type: "field",
+          value: error.keyValue.newEmail,
+          msg: "This email is already registered in the system",
+          path: "newEmail",
+          location: "body"
+        }]
+      });
+    }
     next(error);
   }
 };

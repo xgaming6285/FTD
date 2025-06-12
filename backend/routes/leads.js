@@ -217,9 +217,18 @@ router.post(
       .withMessage("Please provide a valid new email"),
     body("oldEmail")
       .optional()
-      .trim()
-      .isEmail()
-      .withMessage("Please provide a valid old email"),
+      .custom((value) => {
+        // If value is empty string or null/undefined, accept it
+        if (!value || value.trim() === '') {
+          return true;
+        }
+        // Otherwise validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+          throw new Error('Please provide a valid old email');
+        }
+        return true;
+      }),
     body("newPhone").trim().notEmpty().withMessage("New phone is required"),
     body("oldPhone").optional().trim(),
     body("country")
@@ -271,9 +280,18 @@ router.put(
       .withMessage("Please provide a valid new email"),
     body("oldEmail")
       .optional()
-      .trim()
-      .isEmail()
-      .withMessage("Please provide a valid old email"),
+      .custom((value) => {
+        // If value is empty string or null/undefined, accept it
+        if (!value || value.trim() === '') {
+          return true;
+        }
+        // Otherwise validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+          throw new Error('Please provide a valid old email');
+        }
+        return true;
+      }),
     body("newPhone").optional().trim(),
     body("oldPhone").optional().trim(),
     body("country")
