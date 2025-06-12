@@ -1,0 +1,3 @@
+firstName,lastName,newEmail,newPhone,country,leadType,gender,oldEmail,oldPhone,client,clientBroker,clientNetwork
+John,Doe,john.doe@example.com,+1234567890,United States,ftd,male,john.old@example.com,+1987654321,Client A,Broker X,Network 1
+Jane,Smith,jane.smith@example.com,+1987654321,Canada,filler,female,jane.old@example.com,+1234567890,Client B,Broker Y,Network 2
