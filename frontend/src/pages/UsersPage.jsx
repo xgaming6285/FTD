@@ -6,8 +6,9 @@ import {
   TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
   TablePagination, IconButton, FormControl, InputLabel, Select,
   MenuItem, Alert, CircularProgress, Switch, FormControlLabel, Stack,
-  Avatar, Tooltip,
+  Avatar, Tooltip, Fade, Grow, useTheme, alpha,
 } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Person as PersonIcon,
   AdminPanelSettings as AdminIcon, Support as AgentIcon, CheckCircle as CheckCircleIcon,
@@ -19,6 +20,46 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import api from '../services/api';
 import { selectUser } from '../store/slices/authSlice';
+
+// --- Styled Components ---
+const StyledCard = styled(Card)(({ theme }) => ({
+  background: alpha(theme.palette.background.paper, 0.8),
+  backdropFilter: 'blur(10px)',
+  transition: 'all 0.3s ease-in-out',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: theme.shadows[8],
+  },
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  transition: 'all 0.2s ease-in-out',
+  '&:hover': {
+    backgroundColor: alpha(theme.palette.primary.main, 0.05),
+    transform: 'scale(1.001)',
+  },
+}));
+
+const AnimatedIconButton = styled(IconButton)(({ theme }) => ({
+  transition: 'all 0.2s ease-in-out',
+  '&:hover': {
+    transform: 'scale(1.1)',
+  },
+}));
+
+const StyledAvatar = styled(Avatar)(({ theme }) => ({
+  transition: 'all 0.2s ease-in-out',
+  '&:hover': {
+    transform: 'scale(1.1) rotate(5deg)',
+  },
+}));
+
+const StyledChip = styled(Chip)(({ theme }) => ({
+  transition: 'all 0.2s ease-in-out',
+  '&:hover': {
+    transform: 'scale(1.05)',
+  },
+}));
 
 // --- Constants for Roles and Statuses for better maintainability ---
 const ROLES = {
@@ -60,69 +101,172 @@ const userSchema = yup.object({
 
 // --- Memoized User Dialog Component ---
 const UserDialog = React.memo(({ open, onClose, onSubmit, isEditing, control, errors, isSubmitting, watchedRole }) => (
-  <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+  <Dialog 
+    open={open} 
+    onClose={onClose} 
+    maxWidth="sm" 
+    fullWidth
+    TransitionComponent={Grow}
+    TransitionProps={{ timeout: 300 }}
+  >
     <DialogTitle>{isEditing ? 'Edit User' : 'Create User'}</DialogTitle>
     <form onSubmit={onSubmit}>
       <DialogContent>
         <Grid container spacing={2} sx={{ pt: 1 }}>
-          <Grid item xs={12}>
-            <Controller name="fullName" control={control} render={({ field }) => (
-                <TextField {...field} label="Full Name" fullWidth error={!!errors.fullName} helperText={errors.fullName?.message} />
-            )}/>
-          </Grid>
-          <Grid item xs={12}>
-             <Controller name="email" control={control} render={({ field }) => (
-                <TextField {...field} label="Email" fullWidth error={!!errors.email} helperText={errors.email?.message} disabled={isEditing} />
-            )}/>
-          </Grid>
+          <Fade in timeout={500}>
+            <Grid item xs={12}>
+              <Controller name="fullName" control={control} render={({ field }) => (
+                <TextField 
+                  {...field} 
+                  label="Full Name" 
+                  fullWidth 
+                  error={!!errors.fullName} 
+                  helperText={errors.fullName?.message}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': {
+                        transform: 'translateY(-1px)',
+                      },
+                    },
+                  }}
+                />
+              )}/>
+            </Grid>
+          </Fade>
+          <Fade in timeout={500}>
+            <Grid item xs={12}>
+              <Controller name="email" control={control} render={({ field }) => (
+                <TextField 
+                  {...field} 
+                  label="Email" 
+                  fullWidth 
+                  error={!!errors.email} 
+                  helperText={errors.email?.message}
+                  disabled={isEditing}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': {
+                        transform: 'translateY(-1px)',
+                      },
+                    },
+                  }}
+                />
+              )}/>
+            </Grid>
+          </Fade>
           {!isEditing && (
+            <Fade in timeout={500}>
+              <Grid item xs={12}>
+                <Controller name="password" control={control} render={({ field }) => (
+                  <TextField 
+                    {...field} 
+                    type="password" 
+                    label="Password" 
+                    fullWidth 
+                    error={!!errors.password} 
+                    helperText={errors.password?.message}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        transition: 'all 0.2s ease-in-out',
+                        '&:hover': {
+                          transform: 'translateY(-1px)',
+                        },
+                      },
+                    }}
+                  />
+                )}/>
+              </Grid>
+            </Fade>
+          )}
+          <Fade in timeout={500}>
             <Grid item xs={12}>
-              <Controller name="password" control={control} render={({ field }) => (
-                  <TextField {...field} type="password" label="Password" fullWidth error={!!errors.password} helperText={errors.password?.message} />
+              <Controller name="role" control={control} render={({ field }) => (
+                <FormControl fullWidth error={!!errors.role}>
+                  <InputLabel>Role</InputLabel>
+                  <Select {...field} label="Role">
+                    {Object.entries(ROLES).filter(([key]) => key !== 'pending_approval').map(([key, { label }]) => (
+                      <MenuItem key={key} value={key}>{label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               )}/>
             </Grid>
-          )}
-          <Grid item xs={12}>
-            <Controller name="role" control={control} render={({ field }) => (
-              <FormControl fullWidth error={!!errors.role}>
-                <InputLabel>Role</InputLabel>
-                <Select {...field} label="Role">
-                  {Object.entries(ROLES).filter(([key]) => key !== 'pending_approval').map(([key, { label }]) => (
-                    <MenuItem key={key} value={key}>{label}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}/>
-          </Grid>
+          </Fade>
           {watchedRole === 'agent' && (
-            <Grid item xs={12}>
-              <Controller name="fourDigitCode" control={control} render={({ field }) => (
-                <TextField {...field} label="Four Digit Code" fullWidth error={!!errors.fourDigitCode} helperText={errors.fourDigitCode?.message} />
-              )}/>
-            </Grid>
+            <Fade in timeout={500}>
+              <Grid item xs={12}>
+                <Controller name="fourDigitCode" control={control} render={({ field }) => (
+                  <TextField 
+                    {...field} 
+                    label="Four Digit Code" 
+                    fullWidth 
+                    error={!!errors.fourDigitCode} 
+                    helperText={errors.fourDigitCode?.message}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        transition: 'all 0.2s ease-in-out',
+                        '&:hover': {
+                          transform: 'translateY(-1px)',
+                        },
+                      },
+                    }}
+                  />
+                )}/>
+              </Grid>
+            </Fade>
           )}
-           <Grid item xs={12} sm={6}>
+          <Fade in timeout={500}>
+            <Grid item xs={12} sm={6}>
               <Controller name="isActive" control={control} render={({ field: { value, onChange } }) => (
                 <FormControlLabel control={<Switch checked={!!value} onChange={e => onChange(e.target.checked)} />} label="Active" />
               )}/>
             </Grid>
+          </Fade>
+          <Fade in timeout={500}>
             <Grid item xs={12} sm={6}>
               <Controller name="permissions.canCreateOrders" control={control} render={({ field: { value, onChange } }) => (
                 <FormControlLabel control={<Switch checked={!!value} onChange={e => onChange(e.target.checked)} />} label="Can Create Orders" />
               )}/>
             </Grid>
-            {(watchedRole === 'lead_manager' || watchedRole === 'admin') && (
+          </Fade>
+          {(watchedRole === 'lead_manager' || watchedRole === 'admin') && (
+            <Fade in timeout={500}>
               <Grid item xs={12} sm={6}>
                 <Controller name="permissions.canManageLeads" control={control} render={({ field: { value, onChange } }) => (
                    <FormControlLabel control={<Switch checked={!!value} onChange={e => onChange(e.target.checked)} />} label="Can Manage Leads" />
                 )}/>
               </Grid>
-            )}
+            </Fade>
+          )}
         </Grid>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button type="submit" variant="contained" disabled={isSubmitting}>
+        <Button 
+          type="submit" 
+          variant="contained" 
+          disabled={isSubmitting}
+          sx={{
+            position: 'relative',
+            overflow: 'hidden',
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              background: 'linear-gradient(45deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)',
+              transform: 'translateX(-100%)',
+              transition: 'transform 0.3s ease-in-out',
+            },
+            '&:hover::after': {
+              transform: 'translateX(100%)',
+            },
+          }}
+        >
           {isSubmitting ? <CircularProgress size={24} /> : (isEditing ? 'Update' : 'Create')}
         </Button>
       </DialogActions>
@@ -131,6 +275,7 @@ const UserDialog = React.memo(({ open, onClose, onSubmit, isEditing, control, er
 ));
 
 const UsersPage = () => {
+  const theme = useTheme();
   const currentUser = useSelector(selectUser);
 
   const [users, setUsers] = useState([]);
@@ -327,79 +472,307 @@ const UsersPage = () => {
 
   return (
     <Box p={3}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">User Management</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialogState({ type: 'user', user: null })}>
-          Add User
-        </Button>
-      </Stack>
+      <Fade in timeout={800}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography 
+            variant="h4"
+            sx={{
+              position: 'relative',
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: -4,
+                left: 0,
+                width: '50%',
+                height: 2,
+                backgroundColor: theme.palette.primary.main,
+                transition: 'width 0.3s ease-in-out',
+              },
+              '&:hover::after': {
+                width: '100%',
+              },
+            }}
+          >
+            User Management
+          </Typography>
+          <Button 
+            variant="contained" 
+            startIcon={<AddIcon />} 
+            onClick={() => setDialogState({ type: 'user', user: null })}
+            sx={{
+              background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+              transition: 'all 0.3s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: theme.shadows[8],
+              },
+            }}
+          >
+            Add User
+          </Button>
+        </Stack>
+      </Fade>
 
-      {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+      {success && (
+        <Grow in timeout={500}>
+          <Alert 
+            severity="success" 
+            sx={{ 
+              mb: 2,
+              animation: 'slideIn 0.5s ease-out',
+              '@keyframes slideIn': {
+                from: { transform: 'translateX(-100%)' },
+                to: { transform: 'translateX(0)' },
+              },
+            }} 
+            onClose={() => setSuccess(null)}
+          >
+            {success}
+          </Alert>
+        </Grow>
+      )}
+      
+      {error && (
+        <Grow in timeout={500}>
+          <Alert 
+            severity="error" 
+            sx={{ mb: 2 }} 
+            onClose={() => setError(null)}
+          >
+            {error}
+          </Alert>
+        </Grow>
+      )}
 
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>Filters</Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={4} md={3}><FormControl fullWidth><InputLabel>Role</InputLabel><Select value={filters.role} label="Role" onChange={handleFilterChange('role')}><MenuItem value="">All Roles</MenuItem>{Object.entries(ROLES).map(([key, { label }]) => (<MenuItem key={key} value={key}>{label}</MenuItem>))}</Select></FormControl></Grid>
-            <Grid item xs={12} sm={4} md={3}><FormControl fullWidth><InputLabel>Status</InputLabel><Select value={filters.status} label="Status" onChange={handleFilterChange('status')}><MenuItem value="">All Statuses</MenuItem>{Object.entries(STATUSES).map(([key, { label }]) => (<MenuItem key={key} value={key}>{label}</MenuItem>))}</Select></FormControl></Grid>
-            <Grid item xs={12} sm={4} md={3}><FormControl fullWidth><InputLabel>Activity</InputLabel><Select value={filters.isActive} label="Activity" onChange={handleFilterChange('isActive')}><MenuItem value="">All</MenuItem><MenuItem value="true">Active</MenuItem><MenuItem value="false">Inactive</MenuItem></Select></FormControl></Grid>
-            <Grid item xs={12} sm={12} md={3}><Button onClick={clearFilters} variant="outlined" fullWidth sx={{ height: '100%' }}>Clear Filters</Button></Grid>
-          </Grid>
-        </CardContent>
-      </Card>
+      <Fade in timeout={1000}>
+        <StyledCard sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>Filters</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={4} md={3}><FormControl fullWidth><InputLabel>Role</InputLabel><Select value={filters.role} label="Role" onChange={handleFilterChange('role')}><MenuItem value="">All Roles</MenuItem>{Object.entries(ROLES).map(([key, { label }]) => (<MenuItem key={key} value={key}>{label}</MenuItem>))}</Select></FormControl></Grid>
+              <Grid item xs={12} sm={4} md={3}><FormControl fullWidth><InputLabel>Status</InputLabel><Select value={filters.status} label="Status" onChange={handleFilterChange('status')}><MenuItem value="">All Statuses</MenuItem>{Object.entries(STATUSES).map(([key, { label }]) => (<MenuItem key={key} value={key}>{label}</MenuItem>))}</Select></FormControl></Grid>
+              <Grid item xs={12} sm={4} md={3}><FormControl fullWidth><InputLabel>Activity</InputLabel><Select value={filters.isActive} label="Activity" onChange={handleFilterChange('isActive')}><MenuItem value="">All</MenuItem><MenuItem value="true">Active</MenuItem><MenuItem value="false">Inactive</MenuItem></Select></FormControl></Grid>
+              <Grid item xs={12} sm={12} md={3}><Button onClick={clearFilters} variant="outlined" fullWidth sx={{ height: '100%' }}>Clear Filters</Button></Grid>
+            </Grid>
+          </CardContent>
+        </StyledCard>
+      </Fade>
       
-      <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>User</TableCell><TableCell>Role</TableCell><TableCell>Status</TableCell>
-                <TableCell>Permissions</TableCell><TableCell>Agent Code</TableCell><TableCell>Activity</TableCell>
-                <TableCell>Created</TableCell><TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={8} align="center" sx={{ py: 5 }}><CircularProgress /></TableCell></TableRow>
-              ) : users.length === 0 ? (
-                <TableRow><TableCell colSpan={8} align="center" sx={{ py: 5 }}>No users found.</TableCell></TableRow>
-              ) : (
-                users.map((user) => {
-                  const roleInfo = ROLES[user.role] || ROLES.pending_approval;
-                  const statusInfo = STATUSES[user.status] || STATUSES.pending;
-                  return (
-                    <TableRow key={user._id} hover>
-                      <TableCell><Stack direction="row" alignItems="center" spacing={1.5}><Avatar sx={{ bgcolor: `${roleInfo.color}.lighter`, color: `${roleInfo.color}.dark` }}>{roleInfo.icon}</Avatar><Box><Typography variant="body2" fontWeight={500}>{user.fullName}</Typography><Typography variant="caption" color="text.secondary">{user.email}</Typography></Box></Stack></TableCell>
-                      <TableCell><Chip label={roleInfo.label} color={roleInfo.color} size="small" /></TableCell>
-                      <TableCell><Chip label={statusInfo.label} color={statusInfo.color} size="small" icon={statusInfo.icon} /></TableCell>
-                      <TableCell><Stack direction="row" spacing={1}>{user.permissions?.canCreateOrders && <Chip label="Orders" size="small" variant="outlined" />}{user.permissions?.canManageLeads && <Chip label="Leads" size="small" variant="outlined" />}</Stack></TableCell>
-                      <TableCell>{user.fourDigitCode ? <Chip label={user.fourDigitCode} variant="outlined" size="small" /> : '—'}</TableCell>
-                      <TableCell><Chip label={user.isActive ? 'Active' : 'Inactive'} color={user.isActive ? 'success' : 'error'} size="small" variant="outlined" /></TableCell>
-                      <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <Stack direction="row" spacing={0.5}>
-                          {user.status === 'pending' && <Tooltip title="Approve User"><IconButton size="small" onClick={() => setDialogState({ type: 'approve', user })} color="success"><CheckCircleIcon /></IconButton></Tooltip>}
-                          <Tooltip title="Edit User"><IconButton size="small" onClick={() => setDialogState({ type: 'user', user })}><EditIcon /></IconButton></Tooltip>
-                          {user._id !== currentUser?.id && <Tooltip title="Deactivate User"><IconButton size="small" onClick={() => setDialogState({ type: 'delete', user })} color="error"><DeleteIcon /></IconButton></Tooltip>}
-                          {user.role !== 'admin' && user.leadManagerStatus === 'not_applicable' && <Tooltip title="Assign as Lead Manager"><IconButton size="small" onClick={() => setDialogState({ type: 'assignLeadManager', user })} color="secondary"><LeadManagerIcon /></IconButton></Tooltip>}
-                          {user.leadManagerStatus === 'pending' && <Tooltip title="Approve Lead Manager Request"><IconButton size="small" onClick={() => setDialogState({ type: 'approveLeadManager', user })} color="warning"><CheckCircleIcon /></IconButton></Tooltip>}
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination rowsPerPageOptions={[5, 10, 25]} component="div" count={totalUsers} rowsPerPage={rowsPerPage} page={page} onPageChange={handleChangePage} onRowsPerPageChange={handleChangeRowsPerPage} />
-      </Paper>
+      <Fade in timeout={1200}>
+        <Paper 
+          elevation={3}
+          sx={{
+            background: alpha(theme.palette.background.paper, 0.8),
+            backdropFilter: 'blur(10px)',
+          }}
+        >
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>User</TableCell>
+                  <TableCell>Role</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Permissions</TableCell>
+                  <TableCell>Agent Code</TableCell>
+                  <TableCell>Activity</TableCell>
+                  <TableCell>Created</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                      <CircularProgress 
+                        sx={{
+                          animation: 'pulse 1.5s ease-in-out infinite',
+                          '@keyframes pulse': {
+                            '0%': { transform: 'scale(0.95)' },
+                            '50%': { transform: 'scale(1.05)' },
+                            '100%': { transform: 'scale(0.95)' },
+                          },
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ) : users.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                      <Typography variant="body1" color="text.secondary">
+                        No users found.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  users.map((user, index) => {
+                    const roleInfo = ROLES[user.role] || ROLES.pending_approval;
+                    const statusInfo = STATUSES[user.status] || STATUSES.pending;
+                    return (
+                      <Grow
+                        in
+                        timeout={500 + index * 100}
+                        key={user._id}
+                      >
+                        <StyledTableRow hover>
+                          <TableCell>
+                            <Stack direction="row" alignItems="center" spacing={1.5}>
+                              <StyledAvatar sx={{ bgcolor: `${roleInfo.color}.lighter`, color: `${roleInfo.color}.dark` }}>
+                                {roleInfo.icon}
+                              </StyledAvatar>
+                              <Box>
+                                <Typography variant="body2" fontWeight={500}>{user.fullName}</Typography>
+                                <Typography variant="caption" color="text.secondary">{user.email}</Typography>
+                              </Box>
+                            </Stack>
+                          </TableCell>
+                          <TableCell>
+                            <StyledChip label={roleInfo.label} color={roleInfo.color} size="small" />
+                          </TableCell>
+                          <TableCell>
+                            <StyledChip label={statusInfo.label} color={statusInfo.color} size="small" icon={statusInfo.icon} />
+                          </TableCell>
+                          <TableCell>
+                            <Stack direction="row" spacing={1}>
+                              {user.permissions?.canCreateOrders && (
+                                <StyledChip label="Orders" size="small" variant="outlined" />
+                              )}
+                              {user.permissions?.canManageLeads && (
+                                <StyledChip label="Leads" size="small" variant="outlined" />
+                              )}
+                            </Stack>
+                          </TableCell>
+                          <TableCell>
+                            {user.fourDigitCode ? (
+                              <StyledChip label={user.fourDigitCode} variant="outlined" size="small" />
+                            ) : '—'}
+                          </TableCell>
+                          <TableCell>
+                            <StyledChip 
+                              label={user.isActive ? 'Active' : 'Inactive'} 
+                              color={user.isActive ? 'success' : 'error'} 
+                              size="small" 
+                              variant="outlined" 
+                            />
+                          </TableCell>
+                          <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <Stack direction="row" spacing={0.5}>
+                              {user.status === 'pending' && (
+                                <Tooltip title="Approve User" arrow>
+                                  <AnimatedIconButton 
+                                    size="small" 
+                                    onClick={() => setDialogState({ type: 'approve', user })} 
+                                    color="success"
+                                  >
+                                    <CheckCircleIcon />
+                                  </AnimatedIconButton>
+                                </Tooltip>
+                              )}
+                              <Tooltip title="Edit User" arrow>
+                                <AnimatedIconButton 
+                                  size="small" 
+                                  onClick={() => setDialogState({ type: 'user', user })}
+                                >
+                                  <EditIcon />
+                                </AnimatedIconButton>
+                              </Tooltip>
+                              {user._id !== currentUser?.id && (
+                                <Tooltip title="Deactivate User" arrow>
+                                  <AnimatedIconButton 
+                                    size="small" 
+                                    onClick={() => setDialogState({ type: 'delete', user })} 
+                                    color="error"
+                                  >
+                                    <DeleteIcon />
+                                  </AnimatedIconButton>
+                                </Tooltip>
+                              )}
+                              {user.role !== 'admin' && user.leadManagerStatus === 'not_applicable' && (
+                                <Tooltip title="Assign as Lead Manager" arrow>
+                                  <AnimatedIconButton 
+                                    size="small" 
+                                    onClick={() => setDialogState({ type: 'assignLeadManager', user })} 
+                                    color="secondary"
+                                  >
+                                    <LeadManagerIcon />
+                                  </AnimatedIconButton>
+                                </Tooltip>
+                              )}
+                              {user.leadManagerStatus === 'pending' && (
+                                <Tooltip title="Approve Lead Manager Request" arrow>
+                                  <AnimatedIconButton 
+                                    size="small" 
+                                    onClick={() => setDialogState({ type: 'approveLeadManager', user })} 
+                                    color="warning"
+                                  >
+                                    <CheckCircleIcon />
+                                  </AnimatedIconButton>
+                                </Tooltip>
+                              )}
+                            </Stack>
+                          </TableCell>
+                        </StyledTableRow>
+                      </Grow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination 
+            rowsPerPageOptions={[5, 10, 25]} 
+            component="div" 
+            count={totalUsers} 
+            rowsPerPage={rowsPerPage} 
+            page={page} 
+            onPageChange={handleChangePage} 
+            onRowsPerPageChange={handleChangeRowsPerPage} 
+          />
+        </Paper>
+      </Fade>
       
-      {/* --- Dialogs --- */}
-      <UserDialog open={dialogState.type === 'user'} onClose={handleDialogClose} onSubmit={handleSubmit(onSubmitUser)} isEditing={!!dialogState.user} control={control} errors={errors} isSubmitting={isSubmitting} watchedRole={watchedRole}/>
+      {/* Dialogs with enhanced animations */}
+      <UserDialog 
+        open={dialogState.type === 'user'} 
+        onClose={handleDialogClose} 
+        onSubmit={handleSubmit(onSubmitUser)} 
+        isEditing={!!dialogState.user} 
+        control={control} 
+        errors={errors} 
+        isSubmitting={isSubmitting} 
+        watchedRole={watchedRole}
+      />
       
-      <Dialog open={dialogState.type === 'delete'} onClose={handleDialogClose} maxWidth="xs"><DialogTitle>Confirm Deactivation</DialogTitle><DialogContent><Typography>Are you sure you want to deactivate "{dialogState.user?.fullName}"?</Typography></DialogContent><DialogActions><Button onClick={handleDialogClose}>Cancel</Button><Button onClick={handleDeleteUser} color="error" variant="contained">Deactivate</Button></DialogActions></Dialog>
+      <Dialog 
+        open={dialogState.type === 'delete'} 
+        onClose={handleDialogClose} 
+        maxWidth="xs"
+        TransitionComponent={Grow}
+        TransitionProps={{ timeout: 300 }}
+      >
+        <DialogTitle>Confirm Deactivation</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to deactivate "{dialogState.user?.fullName}"?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDialogClose}>Cancel</Button>
+          <Button 
+            onClick={handleDeleteUser} 
+            color="error" 
+            variant="contained"
+            sx={{
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                transform: 'scale(1.05)',
+              },
+            }}
+          >
+            Deactivate
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog open={dialogState.type === 'approve'} onClose={handleDialogClose} maxWidth="xs"><DialogTitle>Approve User</DialogTitle><DialogContent><Typography>Approve "{dialogState.user?.fullName}" and assign a role:</Typography><Stack spacing={1} sx={{ mt: 2 }}>{Object.entries(ROLES).filter(([key]) => !['pending_approval'].includes(key)).map(([key, { label, icon }]) => (<Button key={key} variant="outlined" onClick={() => handleApproveUser(key)} startIcon={icon}>{label}</Button>))}</Stack></DialogContent><DialogActions><Button onClick={handleDialogClose}>Cancel</Button></DialogActions></Dialog>
       <Dialog open={dialogState.type === 'assignLeadManager'} onClose={handleDialogClose} maxWidth="xs"><DialogTitle>Assign Lead Manager</DialogTitle><DialogContent><Typography>Assign "{dialogState.user?.fullName}" to be a Lead Manager? This will require admin approval.</Typography></DialogContent><DialogActions><Button onClick={handleDialogClose}>Cancel</Button><Button onClick={handleAssignLeadManager} color="secondary" variant="contained">Assign</Button></DialogActions></Dialog>
       <Dialog open={dialogState.type === 'approveLeadManager'} onClose={handleDialogClose} maxWidth="xs"><DialogTitle>Approve Lead Manager</DialogTitle><DialogContent><Typography>Approve or reject "{dialogState.user?.fullName}"'s request to be a Lead Manager.</Typography></DialogContent><DialogActions><Button onClick={handleDialogClose}>Cancel</Button><Button onClick={() => handleApproveLeadManager(false, 'Rejected by admin')} color="error">Reject</Button><Button onClick={() => handleApproveLeadManager(true)} color="success" variant="contained">Approve</Button></DialogActions></Dialog>
