@@ -19,6 +19,7 @@ const {
   updateLead,
   createLead,
   deleteLead,
+  importLeads,
 } = require("../controllers/leads");
 
 const router = express.Router();
