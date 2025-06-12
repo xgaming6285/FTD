@@ -54,6 +54,9 @@ import {
   FilterList as FilterIcon,
   Description as DescriptionIcon,
   FileUpload as ImportIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
 } from "@mui/icons-material";
 
 // Project Components & Services
@@ -296,6 +299,7 @@ const LeadsPage = () => {
   const isLeadManager = useMemo(() => user?.role === ROLES.LEAD_MANAGER, [user?.role]);
   const isAgent = useMemo(() => user?.role === ROLES.AGENT, [user?.role]);
   const canAssignLeads = useMemo(() => isAdminOrManager, [isAdminOrManager]);
+  const canDeleteLeads = useMemo(() => user?.role === ROLES.ADMIN, [user?.role]);
   const numSelected = useMemo(() => selectedLeads.size, [selectedLeads]);
 
   // --- Forms ---
@@ -423,6 +427,16 @@ const LeadsPage = () => {
     }
   }, [fetchLeads, isLeadManager, user?.id, leads]);
 
+  const handleDeleteLead = useCallback(async (leadId) => {
+    try {
+      await api.delete(`/leads/${leadId}`);
+      showSuccess('Lead deleted successfully');
+      fetchLeads();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete lead');
+    }
+  }, [fetchLeads]);
+
   // --- Effects ---
   useEffect(() => {
     fetchLeads();
@@ -532,7 +546,7 @@ const LeadsPage = () => {
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
-      {isLeadManager && <Box sx={{ mb: 3 }}><AddLeadForm onLeadAdded={handleLeadAdded} /></Box>}
+      {(isLeadManager || user?.role === ROLES.ADMIN) && <Box sx={{ mb: 3 }}><AddLeadForm onLeadAdded={handleLeadAdded} /></Box>}
 
       {isAdminOrManager && (
         <Card sx={{ mb: 2, background: 'linear-gradient(to right, #f5f7fa, #ffffff)' }}>

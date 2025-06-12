@@ -11,7 +11,8 @@ const {
   assignLeads,
   unassignLeads,
   updateLead,
-  createLead
+  createLead,
+  deleteLead
 } = require("../controllers/leads");
 
 const router = express.Router();
@@ -245,5 +246,8 @@ router.put(
   ],
   updateLead
 );
+
+// Delete lead (Admin only)
+router.delete("/:id", [protect, isAdmin], deleteLead);
 
 module.exports = router;
