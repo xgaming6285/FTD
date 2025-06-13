@@ -14,8 +14,22 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Collapse,
+  Chip,
 } from '@mui/material';
-import { FileUpload as ImportIcon } from '@mui/icons-material';
+import { 
+  FileUpload as ImportIcon, 
+  Preview as PreviewIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon 
+} from '@mui/icons-material';
 import api from '../services/api';
 
 const LEAD_TYPES = {
@@ -32,6 +46,9 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [importResults, setImportResults] = useState(null);
+  const [csvPreview, setCsvPreview] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -66,9 +83,42 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
       setError(null);
       setSuccess(null);
       setImportResults(null);
+      setCsvPreview(null);
+      
+      // Generate preview
+      generatePreview(file);
     } else {
       setSelectedFile(null);
+      setCsvPreview(null);
     }
+  };
+
+  const generatePreview = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const csvData = e.target.result;
+        const rows = csvData.split('\n').map(row => row.trim()).filter(row => row.length > 0);
+        
+        if (rows.length > 0) {
+          const headers = rows[0].split(',').map(header => header.trim().replace(/"/g, ''));
+          const dataRows = rows.slice(1, Math.min(6, rows.length)); // Show first 5 data rows
+          
+          setCsvPreview({
+            headers,
+            dataRows: dataRows.map(row => {
+              // Simple CSV parsing for preview
+              const fields = row.split(',').map(field => field.trim().replace(/"/g, ''));
+              return fields;
+            }),
+            totalRows: rows.length - 1 // Subtract header row
+          });
+        }
+      } catch (error) {
+        console.error('Error generating preview:', error);
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleImport = async () => {
@@ -113,10 +163,12 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
         if (onImportComplete) {
           onImportComplete();
         }
-        // Close dialog after a short delay to show success message
-        setTimeout(() => {
-          onClose();
-        }, 2000);
+        // Don't auto-close if there are errors to show
+        if (!response.data.data.errors || response.data.data.errors.length === 0) {
+          setTimeout(() => {
+            onClose();
+          }, 2000);
+        }
       } else {
         setError(response.data.message || "Import failed");
       }
@@ -138,11 +190,14 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
     setError(null);
     setSuccess(null);
     setImportResults(null);
+    setCsvPreview(null);
+    setShowPreview(false);
+    setShowErrors(false);
     onClose();
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle>Import Leads</DialogTitle>
       <DialogContent>
         <Box sx={{ my: 2 }}>
@@ -182,6 +237,53 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
           </FormControl>
         </Box>
 
+        {/* CSV Preview */}
+        {csvPreview && (
+          <Box sx={{ my: 2 }}>
+            <Button
+              onClick={() => setShowPreview(!showPreview)}
+              startIcon={<PreviewIcon />}
+              endIcon={showPreview ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              variant="outlined"
+              size="small"
+            >
+              {showPreview ? 'Hide Preview' : `Preview CSV (${csvPreview.totalRows} rows)`}
+            </Button>
+            
+            <Collapse in={showPreview}>
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  CSV Preview - First 5 rows:
+                </Typography>
+                <TableContainer component={Paper} sx={{ maxHeight: 300 }}>
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        {csvPreview.headers.map((header, index) => (
+                          <TableCell key={index} sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
+                            {header}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {csvPreview.dataRows.map((row, rowIndex) => (
+                        <TableRow key={rowIndex}>
+                          {row.map((cell, cellIndex) => (
+                            <TableCell key={cellIndex} sx={{ fontSize: '0.75rem', maxWidth: 100 }}>
+                              {cell || '-'}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            </Collapse>
+          </Box>
+        )}
+
         {error && (
           <Alert severity="error" sx={{ mt: 2 }}>
             {error}
@@ -194,9 +296,18 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
             {importResults && (
               <Box sx={{ mt: 1 }}>
                 <Typography variant="body2">
-                  Successfully imported {importResults.imported} leads
+                  Successfully imported {importResults.imported} out of {importResults.total} leads
                   {importResults.errors?.length > 0 && (
-                    <> with {importResults.errors.length} errors</>
+                    <>
+                      {' with '}
+                      <Chip 
+                        size="small" 
+                        label={`${importResults.errors.length} errors`}
+                        color="warning"
+                        onClick={() => setShowErrors(!showErrors)}
+                        sx={{ cursor: 'pointer' }}
+                      />
+                    </>
                   )}
                 </Typography>
               </Box>
@@ -204,8 +315,36 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
           </Alert>
         )}
 
+        {/* Error Details */}
+        {importResults?.errors?.length > 0 && (
+          <Box sx={{ mt: 2 }}>
+            <Collapse in={showErrors}>
+              <Alert severity="warning">
+                <Typography variant="subtitle2" gutterBottom>
+                  Import Errors:
+                </Typography>
+                <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
+                  {importResults.errors.slice(0, 10).map((error, index) => (
+                    <Typography key={index} variant="caption" display="block">
+                      Row {error.row}: {error.error}
+                    </Typography>
+                  ))}
+                  {importResults.errors.length > 10 && (
+                    <Typography variant="caption" color="text.secondary">
+                      ... and {importResults.errors.length - 10} more errors
+                    </Typography>
+                  )}
+                </Box>
+              </Alert>
+            </Collapse>
+          </Box>
+        )}
+
         <Box sx={{ mt: 2 }}>
           <Typography variant="body2" color="text.secondary">
+            Expected CSV format: gender, first name, last name, old email, new email, prefix, old phone, new phone, agent, Extension, Date of birth, address, Facebook, Twitter, Linkedin, Instagram, Telegram, ID front, ID back, Selfie front, Selfie back, ID remark, GEO
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Download a{" "}
             <Link
               href="/sample-leads.csv"

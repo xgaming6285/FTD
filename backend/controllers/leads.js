@@ -957,20 +957,20 @@ function createColumnMapping(headers) {
     oldPhone: ['old phone', 'oldphone', 'old_phone', 'phone_old'],
     newPhone: ['new phone', 'newphone', 'new_phone', 'phone'],
     agent: ['agent'],
-    extension: ['extension', 'ext'],
+    extension: ['extension', 'ext', 'Extension'], // Added capital E variant
     dateOfBirth: ['date of birth', 'dateofbirth', 'date_of_birth', 'dob'],
     address: ['address'],
-    facebook: ['facebook', 'fb'],
-    twitter: ['twitter'],
-    linkedin: ['linkedin'],
-    instagram: ['instagram', 'ig'],
-    telegram: ['telegram'],
-    idFront: ['id front', 'idfront', 'id_front'],
-    idBack: ['id back', 'idback', 'id_back'],
-    selfieFront: ['selfie front', 'selfiefront', 'selfie_front'],
-    selfieBack: ['selfie back', 'selfieback', 'selfie_back'],
-    idRemark: ['id remark', 'idremark', 'id_remark'],
-    geo: ['geo', 'country', 'location']
+    facebook: ['facebook', 'fb', 'Facebook'], // Added capital variant
+    twitter: ['twitter', 'Twitter'], // Added capital variant
+    linkedin: ['linkedin', 'Linkedin'], // Added capital variant
+    instagram: ['instagram', 'ig', 'Instagram'], // Added capital variant
+    telegram: ['telegram', 'Telegram'], // Added capital variant
+    idFront: ['id front', 'idfront', 'id_front', 'ID front'],
+    idBack: ['id back', 'idback', 'id_back', 'ID back'],
+    selfieFront: ['selfie front', 'selfiefront', 'selfie_front', 'Selfie front'],
+    selfieBack: ['selfie back', 'selfieback', 'selfie_back', 'Selfie back'],
+    idRemark: ['id remark', 'idremark', 'id_remark', 'ID remark'],
+    geo: ['geo', 'GEO', 'country', 'location'] // Added capital GEO variant
   };
 
   // Initialize all columns to -1 (not found)
@@ -990,6 +990,10 @@ function createColumnMapping(headers) {
     }
   });
 
+  // Log the mapping for debugging
+  console.log('Column mapping created:', columnMap);
+  console.log('Headers found:', headers);
+
   return columnMap;
 }
 
@@ -1000,19 +1004,26 @@ function parseCSVRow(row) {
   let inQuotes = false;
   let i = 0;
 
+  // Handle empty row
+  if (!row || row.trim().length === 0) {
+    return [];
+  }
+
   while (i < row.length) {
     const char = row[i];
     
     if (char === '"') {
-      if (inQuotes && row[i + 1] === '"') {
-        // Handle escaped quotes
+      if (inQuotes && i + 1 < row.length && row[i + 1] === '"') {
+        // Handle escaped quotes (double quotes)
         current += '"';
         i += 2;
         continue;
       } else {
+        // Toggle quote state
         inQuotes = !inQuotes;
       }
     } else if (char === ',' && !inQuotes) {
+      // Field separator found outside quotes
       result.push(current.trim());
       current = '';
     } else {
@@ -1024,7 +1035,14 @@ function parseCSVRow(row) {
   // Add the last field
   result.push(current.trim());
   
-  return result;
+  // Clean up any remaining quotes from field values
+  return result.map(field => {
+    // Remove surrounding quotes if present
+    if (field.startsWith('"') && field.endsWith('"') && field.length > 1) {
+      return field.slice(1, -1);
+    }
+    return field;
+  });
 }
 
 // Helper function to map row data to lead object
@@ -1036,81 +1054,149 @@ function mapRowToLead(rowData, columnMap, leadType, userId) {
     documents: []
   };
 
+  // Helper function to get value from row data
+  const getValue = (field) => {
+    if (columnMap[field] !== -1 && columnMap[field] < rowData.length) {
+      const value = rowData[columnMap[field]];
+      return value && value.trim() !== '' ? value.trim() : '';
+    }
+    return '';
+  };
+
   // Map basic fields
-  if (columnMap.gender !== -1 && rowData[columnMap.gender]) {
-    const gender = rowData[columnMap.gender].toLowerCase();
+  const genderValue = getValue('gender');
+  if (genderValue) {
+    const gender = genderValue.toLowerCase();
     if (['male', 'female', 'not_defined'].includes(gender)) {
       lead.gender = gender;
+    } else {
+      lead.gender = 'not_defined'; // Default for invalid values
     }
+  } else {
+    lead.gender = 'not_defined'; // Default when no gender provided
   }
 
-  if (columnMap.firstName !== -1) lead.firstName = rowData[columnMap.firstName] || '';
-  if (columnMap.lastName !== -1) lead.lastName = rowData[columnMap.lastName] || '';
-  if (columnMap.newEmail !== -1) lead.newEmail = (rowData[columnMap.newEmail] || '').toLowerCase();
-  if (columnMap.oldEmail !== -1) lead.oldEmail = (rowData[columnMap.oldEmail] || '').toLowerCase();
-  if (columnMap.newPhone !== -1) lead.newPhone = rowData[columnMap.newPhone] || '';
-  if (columnMap.oldPhone !== -1) lead.oldPhone = rowData[columnMap.oldPhone] || '';
-  if (columnMap.prefix !== -1) lead.prefix = rowData[columnMap.prefix] || '';
-  if (columnMap.agent !== -1) lead.agent = rowData[columnMap.agent] || '';
-  if (columnMap.extension !== -1) lead.extension = rowData[columnMap.extension] || '';
-  if (columnMap.address !== -1) lead.address = rowData[columnMap.address] || '';
+  lead.firstName = getValue('firstName');
+  lead.lastName = getValue('lastName');
+  lead.newEmail = getValue('newEmail').toLowerCase();
+  
+  const oldEmailValue = getValue('oldEmail');
+  if (oldEmailValue) {
+    lead.oldEmail = oldEmailValue.toLowerCase();
+  }
 
-  // Map country (try geo column first, then country)
-  if (columnMap.geo !== -1 && rowData[columnMap.geo]) {
-    lead.country = rowData[columnMap.geo];
-  } else if (columnMap.country !== -1 && rowData[columnMap.country]) {
-    lead.country = rowData[columnMap.country];
+  lead.newPhone = getValue('newPhone');
+  
+  const oldPhoneValue = getValue('oldPhone');
+  if (oldPhoneValue) {
+    lead.oldPhone = oldPhoneValue;
+  }
+
+  const prefixValue = getValue('prefix');
+  if (prefixValue) {
+    lead.prefix = prefixValue;
+  }
+
+  const agentValue = getValue('agent');
+  if (agentValue) {
+    lead.agent = agentValue;
+  }
+
+  const extensionValue = getValue('extension');
+  if (extensionValue) {
+    lead.extension = extensionValue;
+  }
+
+  const addressValue = getValue('address');
+  if (addressValue) {
+    lead.address = addressValue;
+  }
+
+  // Map country (try geo column first)
+  const geoValue = getValue('geo');
+  if (geoValue) {
+    lead.country = geoValue;
   } else {
     lead.country = 'Unknown'; // Default fallback
   }
 
   // Parse date of birth
-  if (columnMap.dateOfBirth !== -1 && rowData[columnMap.dateOfBirth]) {
-    lead.dob = parseDateOfBirth(rowData[columnMap.dateOfBirth]);
+  const dobValue = getValue('dateOfBirth');
+  if (dobValue) {
+    const parsedDob = parseDateOfBirth(dobValue);
+    if (parsedDob) {
+      lead.dob = parsedDob;
+    }
   }
 
-  // Map social media
-  if (columnMap.facebook !== -1 && rowData[columnMap.facebook]) {
-    lead.socialMedia.facebook = rowData[columnMap.facebook];
+  // Map social media (only if values exist)
+  const facebookValue = getValue('facebook');
+  if (facebookValue) {
+    lead.socialMedia.facebook = facebookValue;
   }
-  if (columnMap.twitter !== -1 && rowData[columnMap.twitter]) {
-    lead.socialMedia.twitter = rowData[columnMap.twitter];
+
+  const twitterValue = getValue('twitter');
+  if (twitterValue) {
+    lead.socialMedia.twitter = twitterValue;
   }
-  if (columnMap.linkedin !== -1 && rowData[columnMap.linkedin]) {
-    lead.socialMedia.linkedin = rowData[columnMap.linkedin];
+
+  const linkedinValue = getValue('linkedin');
+  if (linkedinValue) {
+    lead.socialMedia.linkedin = linkedinValue;
   }
-  if (columnMap.instagram !== -1 && rowData[columnMap.instagram]) {
-    lead.socialMedia.instagram = rowData[columnMap.instagram];
+
+  const instagramValue = getValue('instagram');
+  if (instagramValue) {
+    lead.socialMedia.instagram = instagramValue;
   }
-  if (columnMap.telegram !== -1 && rowData[columnMap.telegram]) {
-    lead.socialMedia.telegram = rowData[columnMap.telegram];
+
+  const telegramValue = getValue('telegram');
+  if (telegramValue) {
+    lead.socialMedia.telegram = telegramValue;
   }
 
   // Map document URLs for FTD leads
   if (leadType === 'ftd') {
-    if (columnMap.idFront !== -1 && rowData[columnMap.idFront]) {
+    const idFrontValue = getValue('idFront');
+    if (idFrontValue) {
       lead.documents.push({
-        url: rowData[columnMap.idFront],
+        url: idFrontValue,
         description: 'ID Front'
       });
     }
-    if (columnMap.idBack !== -1 && rowData[columnMap.idBack]) {
+
+    const idBackValue = getValue('idBack');
+    if (idBackValue) {
       lead.documents.push({
-        url: rowData[columnMap.idBack],
+        url: idBackValue,
         description: 'ID Back'
       });
     }
-    if (columnMap.selfieFront !== -1 && rowData[columnMap.selfieFront]) {
+
+    const selfieFrontValue = getValue('selfieFront');
+    if (selfieFrontValue) {
       lead.documents.push({
-        url: rowData[columnMap.selfieFront],
+        url: selfieFrontValue,
         description: 'Selfie Front'
       });
     }
-    if (columnMap.selfieBack !== -1 && rowData[columnMap.selfieBack]) {
+
+    const selfieBackValue = getValue('selfieBack');
+    if (selfieBackValue) {
       lead.documents.push({
-        url: rowData[columnMap.selfieBack],
+        url: selfieBackValue,
         description: 'Selfie Back'
       });
+    }
+
+    // Add ID remark as a comment if it exists
+    const idRemarkValue = getValue('idRemark');
+    if (idRemarkValue) {
+      lead.comments = [{
+        text: `ID Remark: ${idRemarkValue}`,
+        author: userId,
+        createdAt: new Date()
+      }];
     }
   }
 
