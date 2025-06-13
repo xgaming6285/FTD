@@ -861,22 +861,35 @@ exports.importLeads = async (req, res, next) => {
 
           // Try to find email field (should contain @)
           let emailValue = '';
-          const emailFields = ['email', 'newemail', 'new email', 'e-mail', 'emailaddress'];
-          for (const field of emailFields) {
-            if (row[field] && row[field].toString().includes('@')) {
-              emailValue = row[field].toString().trim().toLowerCase();
+          // Check all fields for something that looks like an email
+          for (const [key, value] of Object.entries(row)) {
+            if (value && value.toString().includes('@') && value.toString().includes('.')) {
+              emailValue = value.toString().trim().toLowerCase();
+              console.log(`Found email in column '${key}':`, emailValue);
               break;
             }
           }
 
-          // Try to find address field (should not contain @)
-          let addressValue = '';
-          const addressFields = ['address', 'newemail', 'new email', 'addr', 'location'];
-          for (const field of addressFields) {
-            if (row[field] && row[field].toString().trim() && !row[field].toString().includes('@')) {
-              addressValue = row[field].toString().trim();
-              break;
+          // If no email found, try to use old email as new email
+          if (!emailValue) {
+            const oldEmailValue = findField(['oldemail', 'old email', 'previous email', 'old_email']);
+            if (oldEmailValue && oldEmailValue.includes('@')) {
+              emailValue = oldEmailValue.toLowerCase();
+              console.log(`Using old email as new email for row ${rowNumber}:`, emailValue);
             }
+          }
+
+          // If still no email found, skip this row
+          if (!emailValue) {
+            console.log(`Skipping row ${rowNumber} - no valid email found. Available data:`, row);
+            return;
+          }
+
+          // Try to find address field (should not contain @)
+          let addressValue = findField(['address', 'newemail', 'addr', 'location']);
+          // If the address field contains @, it's probably an email, so clear it
+          if (addressValue && addressValue.includes('@')) {
+            addressValue = '';
           }
 
           const lead = {
@@ -886,7 +899,7 @@ exports.importLeads = async (req, res, next) => {
             lastName: findField(['lastname', 'last name', 'lname', 'last_name']),
             newEmail: emailValue,
             newPhone: findField(['newphone', 'new phone', 'phone', 'telephone', 'mobile']),
-            country: findField(['geo', 'country', 'nation', 'location']),
+            country: findField(['geo', 'country', 'nation', 'location']) || 'Unknown',
             gender: (findField(['gender', 'sex']) || 'not_defined').toLowerCase(),
             oldEmail: findField(['oldemail', 'old email', 'previous email', 'old_email']).toLowerCase(),
             oldPhone: findField(['oldphone', 'old phone', 'previous phone', 'old_phone']),
@@ -910,14 +923,13 @@ exports.importLeads = async (req, res, next) => {
           }
 
           // Only add if we have minimum required data
-          if (lead.firstName && lead.lastName && lead.newEmail && lead.newEmail.includes('@')) {
+          if (lead.firstName && lead.lastName && lead.newEmail) {
             leads.push(lead);
           } else {
             console.log(`Skipping row ${rowNumber} - missing required data:`, {
               firstName: !!lead.firstName,
               lastName: !!lead.lastName,
-              newEmail: !!lead.newEmail,
-              hasAtSymbol: lead.newEmail.includes('@')
+              newEmail: !!lead.newEmail
             });
           }
         })
