@@ -39,7 +39,7 @@ exports.createOrder = async (req, res, next) => {
       const ftdLeads = await Lead.find({
         leadType: "ftd",
         isAssigned: false,
-        "documents.status": { $in: ["good", "ok", "pending"] },
+        // Removed documents.status restriction to allow FTD leads regardless of document status
         ...countryFilter,
         ...genderFilter,
       }).limit(ftd);

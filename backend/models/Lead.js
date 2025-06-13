@@ -197,15 +197,15 @@ leadSchema.pre("save", function (next) {
 leadSchema.statics.findAvailableLeads = function (
   leadType,
   count,
-  documentStatus = ["good", "ok", "pending"]
+  documentStatus = null // Made optional - if null, no document status filtering
 ) {
   const query = {
     leadType,
     isAssigned: false,
   };
 
-  // Add document status filter for FTD leads
-  if (leadType === "ftd") {
+  // Add document status filter for FTD leads only if documentStatus is provided
+  if (leadType === "ftd" && documentStatus && Array.isArray(documentStatus)) {
     query["documents.status"] = { $in: documentStatus };
   }
 
