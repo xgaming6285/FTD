@@ -247,23 +247,15 @@ const LeadDetails = React.memo(({ lead }) => (
                 <Box key={index} sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
                   {doc?.url && doc.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                     <Box sx={{ mb: 1 }}>
-                      <img 
-                        src={doc.url} 
-                        alt={doc.description || `Document ${index + 1}`}
-                        style={{ 
-                          maxWidth: '100%', 
-                          height: 'auto', 
-                          borderRadius: '4px',
-                          display: 'block',
-                          marginBottom: '8px'
-                        }} 
+                      <DocumentPreview 
+                        url={doc.url} 
+                        type={doc.description || `Document ${index + 1}`}
                       />
                     </Box>
                   ) : (
                     <Link 
                       href={doc?.url || '#'} 
                       target="_blank" 
-                      rel="noopener noreferrer"
                       sx={{ 
                         display: 'flex', 
                         alignItems: 'center', 
