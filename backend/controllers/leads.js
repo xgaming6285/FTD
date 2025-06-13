@@ -514,10 +514,10 @@ exports.assignLeads = async (req, res, next) => {
         isAssigned: lead.isAssigned,
         assignedTo: lead.assignedTo
           ? {
-              id: lead.assignedTo._id,
-              fullName: lead.assignedTo.fullName,
-              fourDigitCode: lead.assignedTo.fourDigitCode,
-            }
+            id: lead.assignedTo._id,
+            fullName: lead.assignedTo.fullName,
+            fourDigitCode: lead.assignedTo.fourDigitCode,
+          }
           : null,
       }))
     );
@@ -650,10 +650,9 @@ exports.updateLead = async (req, res, next) => {
       };
     }
 
-    // Update documents status if provided
-    if (documents && documents.status) {
-      if (!lead.documents) lead.documents = {};
-      lead.documents.status = documents.status;
+    // Update documents if provided
+    if (documents) {
+      lead.documents = documents;
     }
 
     await lead.save();
@@ -704,6 +703,7 @@ exports.createLead = async (req, res, next) => {
       dob,
       address,
       gender,
+      documents,
     } = req.body;
 
     // Check if a lead with this email already exists
@@ -744,6 +744,7 @@ exports.createLead = async (req, res, next) => {
       dob,
       address,
       gender,
+      documents,
       createdBy: req.user.id,
       isAssigned: false,
       status: "active",
@@ -1170,7 +1171,7 @@ exports.importLeads = async (req, res, next) => {
               const excelEpoch = new Date(1900, 0, 1);
               dobDate = new Date(
                 excelEpoch.getTime() +
-                  (parseInt(dobString) - 2) * 24 * 60 * 60 * 1000
+                (parseInt(dobString) - 2) * 24 * 60 * 60 * 1000
               );
             } else if (dobString.includes("/")) {
               // Handle DD/MM/YYYY format
@@ -1191,8 +1192,7 @@ exports.importLeads = async (req, res, next) => {
             }
           } catch (error) {
             console.log(
-              `Warning: Could not parse date of birth "${
-                leadData.dateofbirth
+              `Warning: Could not parse date of birth "${leadData.dateofbirth
               }" for row ${i + 2}`
             );
           }
@@ -1215,16 +1215,34 @@ exports.importLeads = async (req, res, next) => {
           leadObject.socialMedia = socialMedia;
         }
 
-        // Handle document fields for FTD leads
-        if (leadType === "ftd") {
-          const documents = { status: "pending" };
+        // Handle document fields
+        const documents = [];
+        if (leadData.idfront) {
+          documents.push({
+            url: leadData.idfront,
+            description: 'ID Front'
+          });
+        }
+        if (leadData.idback) {
+          documents.push({
+            url: leadData.idback,
+            description: 'ID Back'
+          });
+        }
+        if (leadData.selfiefront) {
+          documents.push({
+            url: leadData.selfiefront,
+            description: 'Selfie'
+          });
+        }
+        if (leadData.residenceproof) {
+          documents.push({
+            url: leadData.residenceproof,
+            description: 'Proof of Residence'
+          });
+        }
 
-          if (leadData.idfront) documents.idFrontUrl = leadData.idfront;
-          if (leadData.idback) documents.idBackUrl = leadData.idback;
-          if (leadData.selfiefront) documents.selfieUrl = leadData.selfiefront;
-          if (leadData.selfieback)
-            documents.selfieBackUrl = leadData.selfieback;
-
+        if (documents.length > 0) {
           leadObject.documents = documents;
         }
 
@@ -1243,9 +1261,8 @@ exports.importLeads = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: `Successfully imported ${leads.length} leads${
-        errors.length > 0 ? ` with ${errors.length} errors` : ""
-      }`,
+      message: `Successfully imported ${leads.length} leads${errors.length > 0 ? ` with ${errors.length} errors` : ""
+        }`,
       data: {
         imported: leads.length,
         errors: errors,

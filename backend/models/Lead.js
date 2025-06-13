@@ -121,17 +121,13 @@ const leadSchema = new mongoose.Schema(
     },
 
     // FTD Only Fields
-    documents: {
-      idFrontUrl: String,
-      idBackUrl: String,
-      selfieUrl: String,
-      residenceProofUrl: String,
-      status: {
+    documents: [{
+      url: {
         type: String,
-        enum: ["good", "ok", "pending"],
-        default: "pending",
+        required: true
       },
-    },
+      description: String
+    }],
     sin: {
       type: String,
       trim: true,

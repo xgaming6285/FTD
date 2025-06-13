@@ -11,13 +11,16 @@ import {
     Typography,
     Paper,
     Alert,
-    CircularProgress
+    CircularProgress,
+    IconButton
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import api from '../services/api';
 import { getSortedCountries } from '../constants/countries';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 // Validation schema for adding a lead
 const addLeadSchema = yup.object({
@@ -48,13 +51,20 @@ const addLeadSchema = yup.object({
     'socialMedia.linkedin': yup.string().nullable().url('Invalid LinkedIn URL'),
     'socialMedia.instagram': yup.string().nullable().url('Invalid Instagram URL'),
     'socialMedia.telegram': yup.string().nullable(),
-    'socialMedia.whatsapp': yup.string().nullable()
+    'socialMedia.whatsapp': yup.string().nullable(),
+    documents: yup.array().of(
+        yup.object().shape({
+            url: yup.string().required('Document URL is required').url('Invalid document URL'),
+            description: yup.string().nullable()
+        })
+    ).nullable().default([])
 });
 
 const AddLeadForm = ({ onLeadAdded }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+    const [documents, setDocuments] = useState([{ url: '', description: '' }]);
 
     const {
         control,
@@ -91,7 +101,8 @@ const AddLeadForm = ({ onLeadAdded }) => {
                 instagram: '',
                 telegram: '',
                 whatsapp: ''
-            }
+            },
+            documents: [{ url: '', description: '' }]
         }
     });
 
@@ -466,63 +477,75 @@ const AddLeadForm = ({ onLeadAdded }) => {
                             )}
                         />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
-                        <Controller
-                            name="socialMedia.linkedin"
-                            control={control}
-                            render={({ field }) => (
-                                <TextField
-                                    {...field}
-                                    label="LinkedIn"
-                                    fullWidth
-                                    error={!!errors['socialMedia.linkedin']}
-                                    helperText={errors['socialMedia.linkedin']?.message}
-                                />
-                            )}
-                        />
+
+                    {/* Documents Section */}
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle1" gutterBottom>
+                            Documents
+                        </Typography>
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid item xs={12}>
                         <Controller
-                            name="socialMedia.instagram"
+                            name="documents"
                             control={control}
                             render={({ field }) => (
-                                <TextField
-                                    {...field}
-                                    label="Instagram"
-                                    fullWidth
-                                    error={!!errors['socialMedia.instagram']}
-                                    helperText={errors['socialMedia.instagram']?.message}
-                                />
-                            )}
-                        />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                        <Controller
-                            name="socialMedia.telegram"
-                            control={control}
-                            render={({ field }) => (
-                                <TextField
-                                    {...field}
-                                    label="Telegram"
-                                    fullWidth
-                                    error={!!errors['socialMedia.telegram']}
-                                    helperText={errors['socialMedia.telegram']?.message}
-                                />
-                            )}
-                        />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                        <Controller
-                            name="socialMedia.whatsapp"
-                            control={control}
-                            render={({ field }) => (
-                                <TextField
-                                    {...field}
-                                    label="WhatsApp"
-                                    fullWidth
-                                    error={!!errors['socialMedia.whatsapp']}
-                                    helperText={errors['socialMedia.whatsapp']?.message}
-                                />
+                                <Box>
+                                    {field.value.map((doc, index) => (
+                                        <Grid container spacing={2} key={index} sx={{ mb: 2 }}>
+                                            <Grid item xs={12} sm={5}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Document URL"
+                                                    value={doc.url}
+                                                    onChange={(e) => {
+                                                        const newDocs = [...field.value];
+                                                        newDocs[index] = { ...doc, url: e.target.value };
+                                                        field.onChange(newDocs);
+                                                    }}
+                                                    error={!!errors.documents?.[index]?.url}
+                                                    helperText={errors.documents?.[index]?.url?.message}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} sm={5}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Description"
+                                                    value={doc.description}
+                                                    onChange={(e) => {
+                                                        const newDocs = [...field.value];
+                                                        newDocs[index] = { ...doc, description: e.target.value };
+                                                        field.onChange(newDocs);
+                                                    }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} sm={2}>
+                                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                                    {index === field.value.length - 1 && (
+                                                        <IconButton
+                                                            color="primary"
+                                                            onClick={() => {
+                                                                field.onChange([...field.value, { url: '', description: '' }]);
+                                                            }}
+                                                        >
+                                                            <AddIcon />
+                                                        </IconButton>
+                                                    )}
+                                                    {field.value.length > 1 && (
+                                                        <IconButton
+                                                            color="error"
+                                                            onClick={() => {
+                                                                const newDocs = field.value.filter((_, i) => i !== index);
+                                                                field.onChange(newDocs);
+                                                            }}
+                                                        >
+                                                            <DeleteIcon />
+                                                        </IconButton>
+                                                    )}
+                                                </Box>
+                                            </Grid>
+                                        </Grid>
+                                    ))}
+                                </Box>
                             )}
                         />
                     </Grid>
