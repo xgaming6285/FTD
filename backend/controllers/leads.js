@@ -837,7 +837,26 @@ exports.importLeads = async (req, res, next) => {
     const parsePromise = new Promise((resolve, reject) => {
       stream
         .pipe(csvParser({
-          mapHeaders: ({ header }) => header.trim().toLowerCase(),
+          mapHeaders: ({ header, index }) => {
+            // Custom header mapping to avoid conflicts
+            const normalized = header.trim().toLowerCase();
+            if (normalized === 'new email') return 'newemail';
+            if (normalized === 'old email') return 'oldemail';
+            if (normalized === 'first name') return 'firstname';
+            if (normalized === 'last name') return 'lastname';
+            if (normalized === 'new phone') return 'newphone';
+            if (normalized === 'old phone') return 'oldphone';
+            if (normalized === 'date of birth') return 'dateofbirth';
+            if (normalized === 'id front') return 'idfront';
+            if (normalized === 'id back') return 'idback';
+            if (normalized === 'selfie front') return 'selfiefront';
+            if (normalized === 'selfie back') return 'selfieback';
+            if (normalized === 'id remark') return 'idremark';
+            if (normalized === 'address') return 'address';
+            if (normalized === 'geo') return 'geo';
+            // Remove spaces and convert to lowercase for other fields
+            return normalized.replace(/\s+/g, '');
+          },
           skipEmptyLines: true
         }))
         .on('data', (row) => {
@@ -849,7 +868,7 @@ exports.importLeads = async (req, res, next) => {
             console.log('First row data:', row);
           }
           
-          // More flexible field detection
+          // More flexible field detection using the correctly mapped headers
           const findField = (possibleNames) => {
             for (const name of possibleNames) {
               if (row[name] && row[name].toString().trim()) {
@@ -859,53 +878,45 @@ exports.importLeads = async (req, res, next) => {
             return '';
           };
 
-          // Try to find email field (should contain @)
-          let emailValue = '';
-          // Check all fields for something that looks like an email
-          for (const [key, value] of Object.entries(row)) {
-            if (value && value.toString().includes('@') && value.toString().includes('.')) {
-              emailValue = value.toString().trim().toLowerCase();
-              console.log(`Found email in column '${key}':`, emailValue);
-              break;
-            }
+          // Get email and address from the correctly mapped fields
+          const emailValue = (row['newemail'] || '').toLowerCase();
+          const addressValue = row['address'] || '';
+
+          // Debug: Show what we found
+          if (rowNumber <= 3) {
+            console.log(`Row ${rowNumber} - Email: "${emailValue}", Address: "${addressValue}"`);
           }
 
           // If no email found, try to use old email as new email
-          if (!emailValue) {
-            const oldEmailValue = findField(['oldemail', 'old email', 'previous email', 'old_email']);
+          let finalEmailValue = emailValue;
+          if (!finalEmailValue || !finalEmailValue.includes('@')) {
+            const oldEmailValue = (row['oldemail'] || '').toLowerCase();
             if (oldEmailValue && oldEmailValue.includes('@')) {
-              emailValue = oldEmailValue.toLowerCase();
-              console.log(`Using old email as new email for row ${rowNumber}:`, emailValue);
+              finalEmailValue = oldEmailValue;
+              console.log(`Using old email as new email for row ${rowNumber}:`, finalEmailValue);
             }
           }
 
           // If still no email found, skip this row
-          if (!emailValue) {
-            console.log(`Skipping row ${rowNumber} - no valid email found. Available data:`, row);
+          if (!finalEmailValue || !finalEmailValue.includes('@')) {
+            console.log(`Skipping row ${rowNumber} - no valid email found. Available data:`, Object.keys(row));
             return;
-          }
-
-          // Try to find address field (should not contain @)
-          let addressValue = findField(['address', 'newemail', 'addr', 'location']);
-          // If the address field contains @, it's probably an email, so clear it
-          if (addressValue && addressValue.includes('@')) {
-            addressValue = '';
           }
 
           const lead = {
             leadType,
             createdBy: req.user.id,
-            firstName: findField(['firstname', 'first name', 'fname', 'first_name']),
-            lastName: findField(['lastname', 'last name', 'lname', 'last_name']),
-            newEmail: emailValue,
-            newPhone: findField(['newphone', 'new phone', 'phone', 'telephone', 'mobile']),
-            country: findField(['geo', 'country', 'nation', 'location']) || 'Unknown',
-            gender: (findField(['gender', 'sex']) || 'not_defined').toLowerCase(),
-            oldEmail: findField(['oldemail', 'old email', 'previous email', 'old_email']).toLowerCase(),
-            oldPhone: findField(['oldphone', 'old phone', 'previous phone', 'old_phone']),
-            prefix: findField(['prefix', 'title', 'mr', 'mrs']),
-            agent: findField(['agent', 'rep', 'representative']),
-            extension: findField(['extension', 'ext']),
+            firstName: findField(['firstname']),
+            lastName: findField(['lastname']),
+            newEmail: finalEmailValue,
+            newPhone: findField(['newphone']),
+            country: findField(['geo']) || 'Unknown',
+            gender: (findField(['gender']) || 'not_defined').toLowerCase(),
+            oldEmail: (findField(['oldemail']) || '').toLowerCase(),
+            oldPhone: findField(['oldphone']),
+            prefix: findField(['prefix']),
+            agent: findField(['agent']),
+            extension: findField(['extension']),
             address: addressValue,
             socialMedia: {},
             documents: []
