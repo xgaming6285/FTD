@@ -1,3 +1,2 @@
-firstName,lastName,newEmail,newPhone,country,leadType,gender,oldEmail,oldPhone,client,clientBroker,clientNetwork
-John,Doe,john.doe@example.com,+1234567890,United States,ftd,male,john.old@example.com,+1987654321,Client A,Broker X,Network 1
-Jane,Smith,jane.smith@example.com,+1987654321,Canada,filler,female,jane.old@example.com,+1234567890,Client B,Broker Y,Network 2
+gender,first name,last name,old email,new email,prefix,old phone,new phone,agent,Extension,Date of birth,Address,Facebook,Twitter,Linkedin,Instagram,Telegram,ID front,ID back,Selfie front,Selfie back,ID remark,GEO
+male,kiro,dimitrov,,newdemo@abv.bg,,,12312323111,,,01/03/1999,2279 Ridgeway ST Abbotsford BC V2T 3H4,,,,,,htttp://example.com,htttp://example.com,htttp://example.com,htttp://example.com,,Canada
