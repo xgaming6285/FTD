@@ -994,6 +994,9 @@ exports.importLeads = async (req, res, next) => {
       selfieback: ["selfieback", "selfie_back", "backselfie"],
       selfiefront: ["selfiefront", "selfie_front", "frontselfie"],
 
+      // Address field
+      address: ["address", "full_address", "fulladdress", "street_address", "streetaddress", "location_address"],
+
       // Geographic field
       geo: ["geo", "country", "location", "region"],
     };
@@ -1202,6 +1205,7 @@ exports.importLeads = async (req, res, next) => {
         if (leadData.prefix) leadObject.prefix = leadData.prefix;
         if (leadData.agent) leadObject.agent = leadData.agent;
         if (leadData.extension) leadObject.extension = leadData.extension;
+        if (leadData.address) leadObject.address = leadData.address;
 
         // Handle social media fields
         const socialMedia = {};
