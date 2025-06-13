@@ -1010,6 +1010,25 @@ exports.importLeads = async (req, res, next) => {
             })()
           };
 
+          // Handle documents
+          const documentFields = {
+            idfront: { description: 'ID Front' },
+            idback: { description: 'ID Back' },
+            selfiefront: { description: 'Selfie Front' },
+            selfieback: { description: 'Selfie Back' }
+          };
+
+          // Add documents that have URLs
+          Object.entries(documentFields).forEach(([field, metadata]) => {
+            const url = findField([field]);
+            if (url) {
+              lead.documents.push({
+                url: url,
+                description: metadata.description
+              });
+            }
+          });
+
           // Clean up social media fields - handle both URL and non-URL formats
           Object.keys(lead.socialMedia).forEach(platform => {
             const value = lead.socialMedia[platform];
