@@ -212,23 +212,10 @@ const LeadDetails = React.memo(({ lead }) => (
               </Typography>
             )}
             {lead.address && (
-              <>
-                {lead.address.street && (
-                  <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <span style={{ color: 'text.secondary' }}>🏠</span> {lead.address.street}
-                  </Typography>
-                )}
-                {lead.address.city && (
-                  <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <span style={{ color: 'text.secondary' }}>🏙️</span> {lead.address.city}
-                  </Typography>
-                )}
-                {lead.address.postalCode && (
-                  <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <span style={{ color: 'text.secondary' }}>📮</span> {lead.address.postalCode}
-                  </Typography>
-                )}
-              </>
+              <Typography variant="body2" sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                <span style={{ color: 'text.secondary' }}>🏠</span> 
+                <span style={{ whiteSpace: 'pre-line' }}>{lead.address}</span>
+              </Typography>
             )}
           </Stack>
         </Paper>
