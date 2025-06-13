@@ -891,22 +891,34 @@ exports.importLeads = async (req, res, next) => {
       .map((row) => row.trim())
       .filter((row) => row.length > 0) // Remove empty lines
       .map((row) => {
-        // Split by comma and handle quoted values
+        // Improved CSV parsing with better quote handling
         const cells = [];
         let currentCell = "";
         let inQuotes = false;
+        let i = 0;
 
-        for (let i = 0; i < row.length; i++) {
+        while (i < row.length) {
           const char = row[i];
 
           if (char === '"') {
-            inQuotes = !inQuotes;
+            // Check for escaped quotes ("")
+            if (inQuotes && i + 1 < row.length && row[i + 1] === '"') {
+              currentCell += '"'; // Add literal quote
+              i += 2; // Skip both quotes
+              continue;
+            } else {
+              inQuotes = !inQuotes;
+            }
           } else if (char === "," && !inQuotes) {
             cells.push(currentCell.trim());
             currentCell = "";
           } else {
-            currentCell += char;
+            // Only add non-quote characters or quotes that are inside quoted strings
+            if (char !== '"' || inQuotes) {
+              currentCell += char;
+            }
           }
+          i++;
         }
 
         // Add the last cell
@@ -918,7 +930,17 @@ exports.importLeads = async (req, res, next) => {
       totalRows: rows.length,
       firstRow: rows[0],
       secondRow: rows[1],
+      firstRowCellCount: rows[0]?.length,
+      secondRowCellCount: rows[1]?.length,
     });
+
+    // Add detailed debugging for the first few rows
+    console.log("Detailed row analysis:");
+    for (let i = 0; i < Math.min(3, rows.length); i++) {
+      console.log(`Row ${i}:`, rows[i]);
+      console.log(`Row ${i} cell count:`, rows[i].length);
+      console.log(`Row ${i} cells:`, rows[i].map((cell, idx) => `[${idx}]: "${cell}"`));
+    }
 
     if (rows.length < 2) {
       return res.status(400).json({
