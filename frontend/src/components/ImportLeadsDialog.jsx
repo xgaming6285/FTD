@@ -46,8 +46,6 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
   const [success, setSuccess] = useState(null);
   const [csvPreview, setCsvPreview] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [backendPreview, setBackendPreview] = useState(null);
-  const [showBackendPreview, setShowBackendPreview] = useState(false);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -72,14 +70,12 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
       setError(null);
       setSuccess(null);
       setCsvPreview(null);
-      setBackendPreview(null);
       
       // Generate frontend preview
       generatePreview(file);
     } else {
       setSelectedFile(null);
       setCsvPreview(null);
-      setBackendPreview(null);
     }
   };
 
@@ -108,43 +104,6 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
       }
     };
     reader.readAsText(file);
-  };
-
-  const generateBackendPreview = async () => {
-    if (!selectedFile) {
-      setError("Please select a file first");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-
-      const response = await api.post("/leads/import/preview", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        }
-      });
-
-      if (response.data.success) {
-        setBackendPreview(response.data.data);
-        setShowBackendPreview(true);
-      } else {
-        setError(response.data.message || "Preview failed");
-      }
-    } catch (error) {
-      console.error("Preview error:", error);
-      setError(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to generate preview"
-      );
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleImport = async () => {
@@ -199,8 +158,6 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
     setSuccess(null);
     setCsvPreview(null);
     setShowPreview(false);
-    setBackendPreview(null);
-    setShowBackendPreview(false);
     onClose();
   };
 
@@ -258,16 +215,6 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
               >
                 {showPreview ? 'Hide Preview' : `Preview CSV (${csvPreview.totalRows} rows)`}
               </Button>
-              
-              <Button
-                onClick={generateBackendPreview}
-                variant="contained"
-                size="small"
-                disabled={loading}
-                color="secondary"
-              >
-                Test Field Mapping
-              </Button>
             </Box>
             
             <Collapse in={showPreview}>
@@ -301,78 +248,6 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
                 </TableContainer>
               </Box>
             </Collapse>
-          </Box>
-        )}
-
-        {backendPreview && (
-          <Box sx={{ my: 2 }}>
-            <Button
-              onClick={() => setShowBackendPreview(!showBackendPreview)}
-              startIcon={<PreviewIcon />}
-              endIcon={showBackendPreview ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              variant="outlined"
-              size="small"
-            >
-              {showBackendPreview ? 'Hide Backend Preview' : 'Show Backend Preview'}
-            </Button>
-            
-                         <Collapse in={showBackendPreview}>
-               <Box sx={{ mt: 2 }}>
-                 <Typography variant="subtitle2" gutterBottom>
-                   Backend Field Mapping:
-                 </Typography>
-                 
-                 {/* Field Mapping Table */}
-                 <TableContainer component={Paper} sx={{ mb: 2, maxHeight: 200 }}>
-                   <Table size="small" stickyHeader>
-                     <TableHead>
-                       <TableRow>
-                         <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Original Header</TableCell>
-                         <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Mapped To</TableCell>
-                       </TableRow>
-                     </TableHead>
-                     <TableBody>
-                       {backendPreview.originalHeaders.map((originalHeader, index) => (
-                         <TableRow key={index}>
-                           <TableCell sx={{ fontSize: '0.75rem' }}>{originalHeader}</TableCell>
-                           <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'primary.main' }}>
-                             {backendPreview.mappedHeaders[index]}
-                           </TableCell>
-                         </TableRow>
-                       ))}
-                     </TableBody>
-                   </Table>
-                 </TableContainer>
-
-                 <Typography variant="subtitle2" gutterBottom>
-                   Sample Data ({backendPreview.totalRows} total rows):
-                 </Typography>
-                 <TableContainer component={Paper} sx={{ maxHeight: 300 }}>
-                   <Table size="small" stickyHeader>
-                     <TableHead>
-                       <TableRow>
-                         {backendPreview.mappedHeaders.map((header, index) => (
-                           <TableCell key={index} sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
-                             {header}
-                           </TableCell>
-                         ))}
-                       </TableRow>
-                     </TableHead>
-                     <TableBody>
-                       {backendPreview.sampleRows.map((row, rowIndex) => (
-                         <TableRow key={rowIndex}>
-                           {backendPreview.mappedHeaders.map((header, cellIndex) => (
-                             <TableCell key={cellIndex} sx={{ fontSize: '0.75rem', maxWidth: 100 }}>
-                               {row[header] || '-'}
-                             </TableCell>
-                           ))}
-                         </TableRow>
-                       ))}
-                     </TableBody>
-                   </Table>
-                 </TableContainer>
-               </Box>
-             </Collapse>
           </Box>
         )}
 
