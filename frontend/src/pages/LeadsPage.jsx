@@ -133,6 +133,19 @@ const getLeadTypeColor = (leadType) => {
   }
 };
 
+const getDocumentStatusColor = (status) => {
+  switch (status) {
+    case "good":
+      return "success";
+    case "ok":
+      return "warning";
+    case "pending":
+      return "error";
+    default:
+      return "default";
+  }
+};
+
 // --- Sub-components ---
 
 // Memoized component for lead details to avoid re-renders
@@ -221,7 +234,8 @@ const LeadDetails = React.memo(({ lead }) => (
         </Paper>
       </Grid>
 
-      {lead.leadType === LEAD_TYPES.FTD && lead.documents && Object.values(lead.documents).some(v => v) && (
+      {/* Documents Section */}
+      {lead.documents && lead.documents.length > 0 && (
         <Grid item xs={12} md={4}>
           <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider', height: '100%' }}>
             <Typography variant="subtitle2" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -229,27 +243,56 @@ const LeadDetails = React.memo(({ lead }) => (
               Documents
             </Typography>
             <Stack spacing={2}>
-              <Grid container spacing={1}>
-                {Object.entries(lead.documents).map(([key, url]) => url && (
-                  <Grid item xs={6} key={key}>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      {key.replace('Url', '').replace(/([A-Z])/g, ' $1').trim()}
+              {lead.documents.map((doc, index) => (
+                <Box key={index} sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
+                  {doc?.url && doc.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                    <Box sx={{ mb: 1 }}>
+                      <img 
+                        src={doc.url} 
+                        alt={doc.description || `Document ${index + 1}`}
+                        style={{ 
+                          maxWidth: '100%', 
+                          height: 'auto', 
+                          borderRadius: '4px',
+                          display: 'block',
+                          marginBottom: '8px'
+                        }} 
+                      />
+                    </Box>
+                  ) : (
+                    <Link 
+                      href={doc?.url || '#'} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        color: 'primary.main',
+                        textDecoration: 'none',
+                        '&:hover': {
+                          textDecoration: 'underline'
+                        }
+                      }}
+                    >
+                      <DescriptionIcon fontSize="small" />
+                      {doc?.description || 'View Document'}
+                    </Link>
+                  )}
+                  {doc?.description && doc?.url && !doc.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) && (
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                      {doc.description}
                     </Typography>
-                    <DocumentPreview url={url} type={key}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', cursor: 'pointer' }}>
-                        <DescriptionIcon fontSize="small" />
-                        View
-                      </Box>
-                    </DocumentPreview>
-                  </Grid>
-                ))}
-              </Grid>
+                  )}
+                </Box>
+              ))}
             </Stack>
           </Paper>
         </Grid>
       )}
 
-      <Grid item xs={12} md={lead.leadType === LEAD_TYPES.FTD ? 4 : 8}>
+      {/* Comments Section */}
+      <Grid item xs={12} md={lead.documents && lead.documents.length > 0 ? 4 : 8}>
         <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider', height: '100%' }}>
           <Typography variant="subtitle2" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <CommentIcon fontSize="small" />
@@ -323,6 +366,7 @@ const LeadsPage = () => {
   const [leads, setLeads] = useState([]);
   const [agents, setAgents] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [leadStats, setLeadStats] = useState(null);
 
   // Dialog states
   const [commentDialogOpen, setCommentDialogOpen] = useState(false);
@@ -396,7 +440,7 @@ const LeadsPage = () => {
       });
 
       // For admins/managers, if isAssigned filter is empty, remove it to show all leads
-      if ( (isAdminOrManager || isLeadManager) && filters.isAssigned === "") {
+      if ((isAdminOrManager || isLeadManager) && filters.isAssigned === "") {
         params.delete("isAssigned");
       }
 
@@ -422,7 +466,7 @@ const LeadsPage = () => {
       const response = await api.get("/users?role=agent&isActive=true");
       setAgents(response.data.data);
     } catch (err) {
-       setError(err.response?.data?.message || "Failed to fetch agents");
+      setError(err.response?.data?.message || "Failed to fetch agents");
     }
   }, []);
 
@@ -432,6 +476,17 @@ const LeadsPage = () => {
       setOrders(response.data.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch orders');
+    }
+  }, []);
+
+  const fetchLeadStats = useCallback(async () => {
+    try {
+      const response = await api.get('/leads/stats');
+      if (response.data.success) {
+        setLeadStats(response.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch lead stats:', err);
     }
   }, []);
 
@@ -465,10 +520,11 @@ const LeadsPage = () => {
       resetAssign();
       setSelectedLeads(new Set());
       fetchLeads();
+      fetchLeadStats(); // Refresh lead stats after assignment
     } catch (err) {
       setError(err.response?.data?.message || "Failed to assign leads.");
     }
-  }, [selectedLeads, fetchLeads, resetAssign, setSuccess, setError]);
+  }, [selectedLeads, fetchLeads, fetchLeadStats, resetAssign, setSuccess, setError]);
 
   const updateLeadStatus = useCallback(async (leadId, status) => {
     try {
@@ -493,10 +549,11 @@ const LeadsPage = () => {
       await api.delete(`/leads/${leadId}`);
       setSuccess('Lead deleted successfully');
       fetchLeads();
+      fetchLeadStats(); // Refresh lead stats after deletion
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete lead');
     }
-  }, [fetchLeads, setSuccess, setError]);
+  }, [fetchLeads, fetchLeadStats, setSuccess, setError]);
 
   // --- Effects ---
   useEffect(() => {
@@ -507,14 +564,15 @@ const LeadsPage = () => {
     if (isAdminOrManager) {
       fetchAgents();
       fetchOrders();
+      fetchLeadStats();
     }
-  }, [isAdminOrManager, fetchAgents, fetchOrders]);
+  }, [isAdminOrManager, fetchAgents, fetchOrders, fetchLeadStats]);
 
   // Clear success message after a delay
   useEffect(() => {
-    if(success) {
-        const timer = setTimeout(() => setSuccess(null), 4000);
-        return () => clearTimeout(timer);
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 4000);
+      return () => clearTimeout(timer);
     }
   }, [success]);
 
@@ -522,7 +580,8 @@ const LeadsPage = () => {
   // --- Handlers (Memoized) ---
   const handleLeadAdded = useCallback((lead) => {
     fetchLeads();
-  }, [fetchLeads]);
+    fetchLeadStats(); // Refresh lead stats after adding a new lead
+  }, [fetchLeads, fetchLeadStats]);
 
   const handleChangePage = useCallback((_, newPage) => {
     setPage(newPage);
@@ -579,8 +638,8 @@ const LeadsPage = () => {
   }, []);
 
   const handleOpenCommentDialog = useCallback((lead) => {
-      setSelectedLead(lead);
-      setCommentDialogOpen(true);
+    setSelectedLead(lead);
+    setCommentDialogOpen(true);
   }, []);
 
   const handleEditLead = (lead) => {
@@ -592,6 +651,8 @@ const LeadsPage = () => {
     setSuccess("Lead updated successfully");
     fetchLeads();
   };
+
+
 
   // --- Render ---
   return (
@@ -704,244 +765,190 @@ const LeadsPage = () => {
             boxShadow: theme => theme.shadows[8],
           },
         }}>
-            <CardContent>
-                <Box sx={{ mb: 2 }}>
-                    <Typography
-                      variant="h6"
-                      gutterBottom
-                      sx={{
-                        color: 'primary.main',
-                        fontWeight: 'bold',
-                        display: 'flex',
-                        alignItems: 'center',
-                        '& .MuiSvgIcon-root': {
-                          transition: 'transform 0.3s ease-in-out',
+          <CardContent>
+            <Box sx={{ mb: 2 }}>
+              <Typography
+                variant="h6"
+                gutterBottom
+                sx={{
+                  color: 'primary.main',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  '& .MuiSvgIcon-root': {
+                    transition: 'transform 0.3s ease-in-out',
+                  },
+                  '&:hover .MuiSvgIcon-root': {
+                    transform: 'rotate(360deg)',
+                  },
+                }}
+              >
+                <AssignmentIcon sx={{ mr: 1 }} />
+                Lead Assignment Summary
+              </Typography>
+              <Divider />
+            </Box>
+            <Grid container spacing={3}>
+              <Grid item xs={6} sm={3}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    textAlign: 'center',
+                    height: '100%',
+                    background: 'rgba(255, 255, 255, 0.8)',
+                    transition: 'all 0.3s ease-in-out',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: theme => theme.shadows[4],
+                      background: 'rgba(255, 255, 255, 0.95)',
+                    },
+                  }}
+                >
+                  <Typography
+                    variant="h4"
+                    color="primary"
+                    sx={{
+                      fontWeight: 'bold',
+                      animation: 'countUp 1s ease-out',
+                      '@keyframes countUp': {
+                        '0%': {
+                          opacity: 0,
+                          transform: 'translateY(20px)',
                         },
-                        '&:hover .MuiSvgIcon-root': {
-                          transform: 'rotate(360deg)',
+                        '100%': {
+                          opacity: 1,
+                          transform: 'translateY(0)',
                         },
-                      }}
-                    >
-                        <AssignmentIcon sx={{ mr: 1 }} />
-                        Lead Assignment Summary
-                    </Typography>
-                    <Divider />
-                </Box>
-                <Grid container spacing={3}>
-                    <Grid item xs={6} sm={3}>
-                        <Paper
-                          elevation={0}
-                          sx={{
-                            p: 2,
-                            textAlign: 'center',
-                            height: '100%',
-                            background: 'rgba(255, 255, 255, 0.8)',
-                            transition: 'all 0.3s ease-in-out',
-                            '&:hover': {
-                              transform: 'translateY(-4px)',
-                              boxShadow: theme => theme.shadows[4],
-                              background: 'rgba(255, 255, 255, 0.95)',
-                            },
-                          }}
-                        >
-                            <Typography
-                              variant="h4"
-                              color="primary"
-                              sx={{
-                                fontWeight: 'bold',
-                                animation: 'countUp 1s ease-out',
-                                '@keyframes countUp': {
-                                  '0%': {
-                                    opacity: 0,
-                                    transform: 'translateY(20px)',
-                                  },
-                                  '100%': {
-                                    opacity: 1,
-                                    transform: 'translateY(0)',
-                                  },
-                                },
-                              }}
-                            >
-                              {totalLeads}
-                            </Typography>
-                            <Typography
-                              variant="subtitle2"
-                              color="textSecondary"
-                              sx={{
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.5px',
-                                opacity: 0.8,
-                                transition: 'opacity 0.3s ease-in-out',
-                                '&:hover': {
-                                  opacity: 1,
-                                },
-                              }}
-                            >
-                              Total Leads
-                            </Typography>
-                        </Paper>
-                    </Grid>
-                    <Grid item xs={6} sm={3}>
-                        <Paper
-                          elevation={0}
-                          sx={{
-                            p: 2,
-                            textAlign: 'center',
-                            height: '100%',
-                            background: 'rgba(255, 255, 255, 0.8)',
-                            transition: 'all 0.3s ease-in-out',
-                            '&:hover': {
-                              transform: 'translateY(-4px)',
-                              boxShadow: theme => theme.shadows[4],
-                              background: 'rgba(255, 255, 255, 0.95)',
-                            },
-                          }}
-                        >
-                            <Typography
-                              variant="h4"
-                              color="success.main"
-                              sx={{
-                                fontWeight: 'bold',
-                                animation: 'countUp 1s ease-out',
-                                '@keyframes countUp': {
-                                  '0%': {
-                                    opacity: 0,
-                                    transform: 'translateY(20px)',
-                                  },
-                                  '100%': {
-                                    opacity: 1,
-                                    transform: 'translateY(0)',
-                                  },
-                                },
-                              }}
-                            >
-                              {leads.filter(lead => lead.isAssigned).length}
-                            </Typography>
-                            <Typography
-                              variant="subtitle2"
-                              color="textSecondary"
-                              sx={{
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.5px',
-                                opacity: 0.8,
-                                transition: 'opacity 0.3s ease-in-out',
-                                '&:hover': {
-                                  opacity: 1,
-                                },
-                              }}
-                            >
-                              Assigned
-                            </Typography>
-                        </Paper>
-                    </Grid>
-                    <Grid item xs={6} sm={3}>
-                        <Paper
-                          elevation={0}
-                          sx={{
-                            p: 2,
-                            textAlign: 'center',
-                            height: '100%',
-                            background: 'rgba(255, 255, 255, 0.8)',
-                            transition: 'all 0.3s ease-in-out',
-                            '&:hover': {
-                              transform: 'translateY(-4px)',
-                              boxShadow: theme => theme.shadows[4],
-                              background: 'rgba(255, 255, 255, 0.95)',
-                            },
-                          }}
-                        >
-                            <Typography
-                              variant="h4"
-                              color="warning.main"
-                              sx={{
-                                fontWeight: 'bold',
-                                animation: 'countUp 1s ease-out',
-                                '@keyframes countUp': {
-                                  '0%': {
-                                    opacity: 0,
-                                    transform: 'translateY(20px)',
-                                  },
-                                  '100%': {
-                                    opacity: 1,
-                                    transform: 'translateY(0)',
-                                  },
-                                },
-                              }}
-                            >
-                              {leads.filter(lead => !lead.isAssigned).length}
-                            </Typography>
-                            <Typography
-                              variant="subtitle2"
-                              color="textSecondary"
-                              sx={{
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.5px',
-                                opacity: 0.8,
-                                transition: 'opacity 0.3s ease-in-out',
-                                '&:hover': {
-                                  opacity: 1,
-                                },
-                              }}
-                            >
-                              Unassigned
-                            </Typography>
-                        </Paper>
-                    </Grid>
-                    <Grid item xs={6} sm={3}>
-                        <Paper
-                          elevation={0}
-                          sx={{
-                            p: 2,
-                            textAlign: 'center',
-                            height: '100%',
-                            background: 'rgba(255, 255, 255, 0.8)',
-                            transition: 'all 0.3s ease-in-out',
-                            '&:hover': {
-                              transform: 'translateY(-4px)',
-                              boxShadow: theme => theme.shadows[4],
-                              background: 'rgba(255, 255, 255, 0.95)',
-                            },
-                          }}
-                        >
-                            <Typography
-                              variant="h4"
-                              color="info.main"
-                              sx={{
-                                fontWeight: 'bold',
-                                animation: 'countUp 1s ease-out',
-                                '@keyframes countUp': {
-                                  '0%': {
-                                    opacity: 0,
-                                    transform: 'translateY(20px)',
-                                  },
-                                  '100%': {
-                                    opacity: 1,
-                                    transform: 'translateY(0)',
-                                  },
-                                },
-                              }}
-                            >
-                              {Math.round((leads.filter(lead => lead.isAssigned).length / (leads.length || 1)) * 100)}%
-                            </Typography>
-                            <Typography
-                              variant="subtitle2"
-                              color="textSecondary"
-                              sx={{
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.5px',
-                                opacity: 0.8,
-                                transition: 'opacity 0.3s ease-in-out',
-                                '&:hover': {
-                                  opacity: 1,
-                                },
-                              }}
-                            >
-                              Assignment Rate
-                            </Typography>
-                        </Paper>
-                    </Grid>
-                </Grid>
-            </CardContent>
+                      },
+                    }}
+                  >
+                    {leadStats?.leads?.overall?.total || 0}
+                  </Typography>
+                  <Typography variant="subtitle2" color="textSecondary">Total Leads</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    textAlign: 'center',
+                    height: '100%',
+                    background: 'rgba(255, 255, 255, 0.8)',
+                    transition: 'all 0.3s ease-in-out',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: theme => theme.shadows[4],
+                      background: 'rgba(255, 255, 255, 0.95)',
+                    },
+                  }}
+                >
+                  <Typography
+                    variant="h4"
+                    color="success.main"
+                    sx={{
+                      fontWeight: 'bold',
+                      animation: 'countUp 1s ease-out',
+                      '@keyframes countUp': {
+                        '0%': {
+                          opacity: 0,
+                          transform: 'translateY(20px)',
+                        },
+                        '100%': {
+                          opacity: 1,
+                          transform: 'translateY(0)',
+                        },
+                      },
+                    }}
+                  >
+                    {leadStats?.leads?.overall?.assigned || 0}
+                  </Typography>
+                  <Typography variant="subtitle2" color="textSecondary">Assigned</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    textAlign: 'center',
+                    height: '100%',
+                    background: 'rgba(255, 255, 255, 0.8)',
+                    transition: 'all 0.3s ease-in-out',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: theme => theme.shadows[4],
+                      background: 'rgba(255, 255, 255, 0.95)',
+                    },
+                  }}
+                >
+                  <Typography
+                    variant="h4"
+                    color="warning.main"
+                    sx={{
+                      fontWeight: 'bold',
+                      animation: 'countUp 1s ease-out',
+                      '@keyframes countUp': {
+                        '0%': {
+                          opacity: 0,
+                          transform: 'translateY(20px)',
+                        },
+                        '100%': {
+                          opacity: 1,
+                          transform: 'translateY(0)',
+                        },
+                      },
+                    }}
+                  >
+                    {leadStats?.leads?.overall?.available || 0}
+                  </Typography>
+                  <Typography variant="subtitle2" color="textSecondary">Unassigned</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    textAlign: 'center',
+                    height: '100%',
+                    background: 'rgba(255, 255, 255, 0.8)',
+                    transition: 'all 0.3s ease-in-out',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: theme => theme.shadows[4],
+                      background: 'rgba(255, 255, 255, 0.95)',
+                    },
+                  }}
+                >
+                  <Typography
+                    variant="h4"
+                    color="info.main"
+                    sx={{
+                      fontWeight: 'bold',
+                      animation: 'countUp 1s ease-out',
+                      '@keyframes countUp': {
+                        '0%': {
+                          opacity: 0,
+                          transform: 'translateY(20px)',
+                        },
+                        '100%': {
+                          opacity: 1,
+                          transform: 'translateY(0)',
+                        },
+                      },
+                    }}
+                  >
+                    {leadStats?.leads?.overall?.total > 0
+                      ? Math.round((leadStats.leads.overall.assigned / leadStats.leads.overall.total) * 100)
+                      : 0}%
+                  </Typography>
+                  <Typography variant="subtitle2" color="textSecondary">Assignment Rate</Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+          </CardContent>
         </Card>
       )}
 
@@ -968,11 +975,11 @@ const LeadsPage = () => {
         </Button>
         <Collapse in={showFilters}>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6} md={3}><TextField fullWidth label="Search" value={filters.search} onChange={(e) => handleFilterChange("search", e.target.value)} placeholder="Name, email, phone..." InputProps={{ startAdornment: (<SearchIcon sx={{ mr: 1, color: "action.active" }} />) }}/></Grid>
+            <Grid item xs={12} sm={6} md={3}><TextField fullWidth label="Search" value={filters.search} onChange={(e) => handleFilterChange("search", e.target.value)} placeholder="Name, email, phone..." InputProps={{ startAdornment: (<SearchIcon sx={{ mr: 1, color: "action.active" }} />) }} /></Grid>
             <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Lead Type</InputLabel><Select value={filters.leadType} label="Lead Type" onChange={(e) => handleFilterChange("leadType", e.target.value)}><MenuItem value="">All</MenuItem>{Object.values(LEAD_TYPES).map(type => <MenuItem key={type} value={type}>{type.toUpperCase()}</MenuItem>)}</Select></FormControl></Grid>
             {isAdminOrManager && <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Assignment</InputLabel><Select value={filters.isAssigned} label="Assignment" onChange={(e) => handleFilterChange("isAssigned", e.target.value)}><MenuItem value="">All</MenuItem><MenuItem value="true">Assigned</MenuItem><MenuItem value="false">Unassigned</MenuItem></Select></FormControl></Grid>}
             <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Status</InputLabel><Select value={filters.status} label="Status" onChange={(e) => handleFilterChange("status", e.target.value)}><MenuItem value="">All</MenuItem>{Object.values(LEAD_STATUSES).map(status => <MenuItem key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</MenuItem>)}</Select></FormControl></Grid>
-            {isAdminOrManager && <Grid item xs={12} sm={6} md={2}><FormControlLabel control={<Switch checked={filters.includeConverted} onChange={(e) => handleFilterChange("includeConverted", e.target.checked)} color="primary" />} label="Show Converted"/></Grid>}
+            {isAdminOrManager && <Grid item xs={12} sm={6} md={2}><FormControlLabel control={<Switch checked={filters.includeConverted} onChange={(e) => handleFilterChange("includeConverted", e.target.checked)} color="primary" />} label="Show Converted" /></Grid>}
             <Grid item xs={12} sm={6} md={2}>
               <FormControl fullWidth>
                 <InputLabel>Country</InputLabel>
@@ -1021,36 +1028,36 @@ const LeadsPage = () => {
               </TableHead>
               <TableBody>
                 {loading ? <TableRow><TableCell colSpan={isAdminOrManager ? 12 : 11} align="center"><CircularProgress /></TableCell></TableRow>
-                 : leads.length === 0 ? <TableRow><TableCell colSpan={isAdminOrManager ? 12 : 11} align="center">No leads found</TableCell></TableRow>
-                 : leads.map(lead => (
-                    <React.Fragment key={lead._id}>
+                  : leads.length === 0 ? <TableRow><TableCell colSpan={isAdminOrManager ? 12 : 11} align="center">No leads found</TableCell></TableRow>
+                    : leads.map(lead => (
+                      <React.Fragment key={lead._id}>
                         <LeadRow
-                            lead={lead}
-                            canAssignLeads={canAssignLeads}
-                            canDeleteLeads={canDeleteLeads}
-                            isAdminOrManager={isAdminOrManager}
-                            isLeadManager={isLeadManager}
-                            userId={user?.id}
-                            user={user}
-                            selectedLeads={selectedLeads}
-                            expandedRows={expandedRows}
-                            onSelectLead={handleSelectLead}
-                            onUpdateStatus={updateLeadStatus}
-                            onComment={handleOpenCommentDialog}
-                            onToggleExpansion={toggleRowExpansion}
-                            onFilterByOrder={(orderId) => handleFilterChange("orderId", orderId)}
-                            onDeleteLead={handleDeleteLead}
-                            handleEditLead={handleEditLead}
+                          lead={lead}
+                          canAssignLeads={canAssignLeads}
+                          canDeleteLeads={canDeleteLeads}
+                          isAdminOrManager={isAdminOrManager}
+                          isLeadManager={isLeadManager}
+                          userId={user?.id}
+                          user={user}
+                          selectedLeads={selectedLeads}
+                          expandedRows={expandedRows}
+                          onSelectLead={handleSelectLead}
+                          onUpdateStatus={updateLeadStatus}
+                          onComment={handleOpenCommentDialog}
+                          onToggleExpansion={toggleRowExpansion}
+                          onFilterByOrder={(orderId) => handleFilterChange("orderId", orderId)}
+                          onDeleteLead={handleDeleteLead}
+                          handleEditLead={handleEditLead}
                         />
                         {expandedRows.has(lead._id) && (
-                            <TableRow>
-                                <TableCell colSpan={isAdminOrManager ? 12 : 11} sx={{ bgcolor: 'background.default', borderBottom: '2px solid', borderColor: 'divider', py: 3 }}>
-                                    <LeadDetails lead={lead} />
-                                </TableCell>
-                            </TableRow>
+                          <TableRow>
+                            <TableCell colSpan={isAdminOrManager ? 12 : 11} sx={{ bgcolor: 'background.default', borderBottom: '2px solid', borderColor: 'divider', py: 3 }}>
+                              <LeadDetails lead={lead} />
+                            </TableCell>
+                          </TableRow>
                         )}
-                    </React.Fragment>
-                ))}
+                      </React.Fragment>
+                    ))}
               </TableBody>
             </Table>
           </TableContainer>
@@ -1061,11 +1068,11 @@ const LeadsPage = () => {
       {/* --- Leads Cards (Mobile/Tablet) --- */}
       <Box sx={{ display: { xs: 'block', md: 'none' } }}>
         {loading ? <Box display="flex" justifyContent="center" p={3}><CircularProgress /></Box>
-         : leads.length === 0 ? <Paper sx={{ p: 3, textAlign: 'center' }}><Typography color="text.secondary">No leads found</Typography></Paper>
-         : (
-          <Stack spacing={2}>
-            {leads.map(lead => (
-                <LeadCard
+          : leads.length === 0 ? <Paper sx={{ p: 3, textAlign: 'center' }}><Typography color="text.secondary">No leads found</Typography></Paper>
+            : (
+              <Stack spacing={2}>
+                {leads.map(lead => (
+                  <LeadCard
                     key={lead._id}
                     lead={lead}
                     canAssignLeads={canAssignLeads}
@@ -1080,11 +1087,11 @@ const LeadsPage = () => {
                     user={user}
                     isLeadManager={isLeadManager}
                     handleEditLead={handleEditLead}
-                />
-            ))}
-            <TablePagination rowsPerPageOptions={[5, 10, 25]} component="div" count={totalLeads} rowsPerPage={rowsPerPage} page={page} onPageChange={handleChangePage} onRowsPerPageChange={handleChangeRowsPerPage} />
-          </Stack>
-        )}
+                  />
+                ))}
+                <TablePagination rowsPerPageOptions={[5, 10, 25]} component="div" count={totalLeads} rowsPerPage={rowsPerPage} page={page} onPageChange={handleChangePage} onRowsPerPageChange={handleChangeRowsPerPage} />
+              </Stack>
+            )}
       </Box>
 
       {/* --- Dialogs --- */}
@@ -1093,7 +1100,7 @@ const LeadsPage = () => {
         <form onSubmit={handleCommentSubmit(onSubmitComment)}>
           <DialogContent>
             {selectedLead && <Box mb={2}><Typography variant="subtitle2">Lead: {selectedLead.firstName} {selectedLead.lastName}</Typography><Typography variant="caption" color="textSecondary">{selectedLead.email} • {selectedLead.leadType.toUpperCase()}</Typography></Box>}
-            <Controller name="text" control={commentControl} render={({ field }) => (<TextField {...field} fullWidth label="Comment" multiline rows={4} error={!!commentErrors.text} helperText={commentErrors.text?.message} placeholder="Add your comment about this lead..."/>)}/>
+            <Controller name="text" control={commentControl} render={({ field }) => (<TextField {...field} fullWidth label="Comment" multiline rows={4} error={!!commentErrors.text} helperText={commentErrors.text?.message} placeholder="Add your comment about this lead..." />)} />
           </DialogContent>
           <DialogActions><Button onClick={() => setCommentDialogOpen(false)}>Cancel</Button><Button type="submit" variant="contained" disabled={isCommentSubmitting}>{isCommentSubmitting ? <CircularProgress size={24} /> : "Add Comment"}</Button></DialogActions>
         </form>
@@ -1103,7 +1110,7 @@ const LeadsPage = () => {
         <form onSubmit={handleAssignSubmit(onSubmitAssignment)}>
           <DialogContent>
             <Typography variant="body2" sx={{ mb: 2 }}>Assigning {numSelected} lead{numSelected !== 1 ? "s" : ""} to an agent:</Typography>
-            <Controller name="agentId" control={assignControl} render={({ field }) => (<FormControl fullWidth error={!!assignErrors.agentId}><InputLabel>Select Agent</InputLabel><Select {...field} label="Select Agent">{agents.map(agent => (<MenuItem key={agent._id} value={agent._id}><Box display="flex" alignItems="center"><Avatar sx={{ width: 24, height: 24, mr: 1, fontSize: "0.75rem" }}>{agent.fourDigitCode || agent.fullName[0]}</Avatar>{agent.fullName} ({agent.fourDigitCode})</Box></MenuItem>))}</Select>{assignErrors.agentId && <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>{assignErrors.agentId.message}</Typography>}</FormControl>)}/>
+            <Controller name="agentId" control={assignControl} render={({ field }) => (<FormControl fullWidth error={!!assignErrors.agentId}><InputLabel>Select Agent</InputLabel><Select {...field} label="Select Agent">{agents.map(agent => (<MenuItem key={agent._id} value={agent._id}><Box display="flex" alignItems="center"><Avatar sx={{ width: 24, height: 24, mr: 1, fontSize: "0.75rem" }}>{agent.fourDigitCode || agent.fullName[0]}</Avatar>{agent.fullName} ({agent.fourDigitCode})</Box></MenuItem>))}</Select>{assignErrors.agentId && <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>{assignErrors.agentId.message}</Typography>}</FormControl>)} />
           </DialogContent>
           <DialogActions><Button onClick={() => setAssignDialogOpen(false)}>Cancel</Button><Button type="submit" variant="contained" disabled={isAssignSubmitting}>{isAssignSubmitting ? <CircularProgress size={24} /> : "Assign Leads"}</Button></DialogActions>
         </form>
@@ -1158,30 +1165,30 @@ const LeadsPage = () => {
 
 // --- Memoized Row Component for Desktop Table ---
 const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadManager, userId, selectedLeads, expandedRows, onSelectLead, onUpdateStatus, onComment, onToggleExpansion, onFilterByOrder, onDeleteLead, canDeleteLeads, user, handleEditLead }) => {
-    const isOwner = !isLeadManager || lead.createdBy === userId;
+  const isOwner = !isLeadManager || lead.createdBy === userId;
 
-    const handleRowClick = (event) => {
-        if (event.target.closest('button, input, select, [role="combobox"], .MuiSelect-select, .MuiMenuItem-root')) {
-            return;
-        }
-        onToggleExpansion(lead._id);
-    };
+  const handleRowClick = (event) => {
+    if (event.target.closest('button, input, select, [role="combobox"], .MuiSelect-select, .MuiMenuItem-root')) {
+      return;
+    }
+    onToggleExpansion(lead._id);
+  };
 
-    const cellSx = {
-        borderRight: '1px solid rgba(224, 224, 224, 1)',
-        py: 0.5,
-        fontSize: '0.875rem'
-    };
+  const cellSx = {
+    borderRight: '1px solid rgba(224, 224, 224, 1)',
+    py: 0.5,
+    fontSize: '0.875rem'
+  };
 
-    return (
+  return (
     <TableRow
-        hover
-        onClick={handleRowClick}
-        sx={{
-            '&:hover': { backgroundColor: 'action.hover' },
-            borderLeft: theme => `4px solid ${theme.palette[getLeadTypeColor(lead.leadType)]?.main || theme.palette.grey.main}`,
-            cursor: 'pointer'
-        }}
+      hover
+      onClick={handleRowClick}
+      sx={{
+        '&:hover': { backgroundColor: 'action.hover' },
+        borderLeft: theme => `4px solid ${theme.palette[getLeadTypeColor(lead.leadType)]?.main || theme.palette.grey.main}`,
+        cursor: 'pointer'
+      }}
     >
       {canAssignLeads && <TableCell padding="checkbox" sx={cellSx}><Checkbox checked={selectedLeads.has(lead._id)} onChange={onSelectLead(lead._id)} /></TableCell>}
       <TableCell sx={cellSx}><Stack direction="row" spacing={1} alignItems="center"><Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem', bgcolor: theme => theme.palette[getLeadTypeColor(lead.leadType)]?.light, color: theme => theme.palette[getLeadTypeColor(lead.leadType)]?.main }}>{(lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()).charAt(0).toUpperCase()}</Avatar><Box><Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>{lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()}</Typography><Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>ID: {lead._id.slice(-8)}</Typography></Box></Stack></TableCell>
@@ -1214,115 +1221,117 @@ const LeadRow = React.memo(({ lead, canAssignLeads, isAdminOrManager, isLeadMana
         </Stack>
       </TableCell>
     </TableRow>
-)});
+  )
+});
 
 // --- Memoized Card Component for Mobile View ---
 const LeadCard = React.memo(({ lead, canAssignLeads, selectedLeads, expandedRows, onSelectLead, onUpdateStatus, onComment, onToggleExpansion, onDeleteLead, canDeleteLeads, user, isLeadManager, handleEditLead }) => {
-    const handleCardClick = (event) => {
-        if (event.target.closest('button, input, select, [role="combobox"], .MuiSelect-select, .MuiMenuItem-root')) {
-            return;
-        }
-        onToggleExpansion(lead._id);
-    };
+  const handleCardClick = (event) => {
+    if (event.target.closest('button, input, select, [role="combobox"], .MuiSelect-select, .MuiMenuItem-root')) {
+      return;
+    }
+    onToggleExpansion(lead._id);
+  };
 
-    return (
+  return (
     <Paper
-        onClick={handleCardClick}
-        sx={{
-            p: 2,
-            borderLeft: theme => `4px solid ${theme.palette[getLeadTypeColor(lead.leadType)]?.main || theme.palette.grey.main}`,
-            cursor: 'pointer',
-            transition: 'all 0.2s ease-in-out',
-            '&:hover': {
-                backgroundColor: 'action.hover',
-                transform: 'translateX(4px)',
-                boxShadow: theme => theme.shadows[4],
-            },
-            '& .MuiChip-root': {
-                transition: 'all 0.2s ease-in-out',
-                '&:hover': {
-                    transform: 'scale(1.05)',
-                },
-            },
-            '& .MuiIconButton-root': {
-                transition: 'all 0.2s ease-in-out',
-                '&:hover': {
-                    transform: 'scale(1.1)',
-                    backgroundColor: 'action.hover',
-                },
-            },
-        }}
+      onClick={handleCardClick}
+      sx={{
+        p: 2,
+        borderLeft: theme => `4px solid ${theme.palette[getLeadTypeColor(lead.leadType)]?.main || theme.palette.grey.main}`,
+        cursor: 'pointer',
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': {
+          backgroundColor: 'action.hover',
+          transform: 'translateX(4px)',
+          boxShadow: theme => theme.shadows[4],
+        },
+        '& .MuiChip-root': {
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'scale(1.05)',
+          },
+        },
+        '& .MuiIconButton-root': {
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'scale(1.1)',
+            backgroundColor: 'action.hover',
+          },
+        },
+      }}
     >
-        <Grid container spacing={2}>
-            <Grid item xs={12}>
-                <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                        <Avatar sx={{ bgcolor: theme => theme.palette[getLeadTypeColor(lead.leadType)]?.light, color: theme => theme.palette[getLeadTypeColor(lead.leadType)]?.main }}>{(lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()).charAt(0).toUpperCase()}</Avatar>
-                        <Box>
-                            <Typography variant="subtitle1" fontWeight="bold">{lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()}</Typography>
-                            <Typography variant="caption" color="text.secondary">ID: {lead._id.slice(-8)}</Typography>
-                        </Box>
-                    </Stack>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                        <Chip label={(lead.leadType || 'unknown').toUpperCase()} color={getLeadTypeColor(lead.leadType)} size="small" />
-                        <Chip label={lead.status.charAt(0).toUpperCase() + lead.status.slice(1)} color={getStatusColor(lead.status)} size="small" />
-                    </Stack>
-                </Stack>
-            </Grid>
-            <Grid item xs={12}><Divider /></Grid>
-            <Grid item xs={12}><FormControl size="small" fullWidth><InputLabel>Status</InputLabel><Select value={lead.status} label="Status" onChange={(e) => onUpdateStatus(lead._id, e.target.value)} size="small">{Object.values(LEAD_STATUSES).map(status => <MenuItem key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</MenuItem>)}</Select></FormControl></Grid>
-            <Grid item xs={12}>
-                <Stack direction="row" spacing={1} justifyContent="flex-end">
-                    <IconButton
-                        size="small"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleExpansion(lead._id);
-                        }}
-                        sx={{ transform: expandedRows.has(lead._id) ? 'rotate(180deg)' : 'none' }}
-                    >
-                        <ExpandMoreIcon />
-                    </IconButton>
-                    <IconButton size="small" onClick={() => onComment(lead)} sx={{ color: 'info.main' }}><CommentIcon /></IconButton>
-                    {(user?.role === ROLES.ADMIN || (isLeadManager && lead.createdBy === user?.id)) && (
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditLead(lead);
-                        }}
-                        title="Edit Lead"
-                      >
-                        <EditIcon />
-                      </IconButton>
-                    )}
-                    {canDeleteLeads && (
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (window.confirm('Are you sure you want to delete this lead?')) {
-                            onDeleteLead(lead._id);
-                          }
-                        }}
-                        color="error"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    )}
-                    {canAssignLeads && <Checkbox checked={selectedLeads.has(lead._id)} onChange={onSelectLead(lead._id)} size="small" />}
-                </Stack>
-            </Grid>
-            <Collapse in={expandedRows.has(lead._id)} sx={{ width: '100%' }}>
-                <Grid item xs={12}>
-                    <Box sx={{ mt: 2, pb: 2, overflowX: 'hidden' }}>
-                        <LeadDetails lead={lead} />
-                    </Box>
-                </Grid>
-            </Collapse>
+      <Grid container spacing={2}>
+        <Grid item xs={12}>
+          <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Avatar sx={{ bgcolor: theme => theme.palette[getLeadTypeColor(lead.leadType)]?.light, color: theme => theme.palette[getLeadTypeColor(lead.leadType)]?.main }}>{(lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()).charAt(0).toUpperCase()}</Avatar>
+              <Box>
+                <Typography variant="subtitle1" fontWeight="bold">{lead.fullName || `${lead.firstName} ${lead.lastName || ""}`.trim()}</Typography>
+                <Typography variant="caption" color="text.secondary">ID: {lead._id.slice(-8)}</Typography>
+              </Box>
+            </Stack>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Chip label={(lead.leadType || 'unknown').toUpperCase()} color={getLeadTypeColor(lead.leadType)} size="small" />
+              <Chip label={lead.status.charAt(0).toUpperCase() + lead.status.slice(1)} color={getStatusColor(lead.status)} size="small" />
+            </Stack>
+          </Stack>
         </Grid>
+        <Grid item xs={12}><Divider /></Grid>
+        <Grid item xs={12}><FormControl size="small" fullWidth><InputLabel>Status</InputLabel><Select value={lead.status} label="Status" onChange={(e) => onUpdateStatus(lead._id, e.target.value)} size="small">{Object.values(LEAD_STATUSES).map(status => <MenuItem key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</MenuItem>)}</Select></FormControl></Grid>
+        <Grid item xs={12}>
+          <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpansion(lead._id);
+              }}
+              sx={{ transform: expandedRows.has(lead._id) ? 'rotate(180deg)' : 'none' }}
+            >
+              <ExpandMoreIcon />
+            </IconButton>
+            <IconButton size="small" onClick={() => onComment(lead)} sx={{ color: 'info.main' }}><CommentIcon /></IconButton>
+            {(user?.role === ROLES.ADMIN || (isLeadManager && lead.createdBy === user?.id)) && (
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditLead(lead);
+                }}
+                title="Edit Lead"
+              >
+                <EditIcon />
+              </IconButton>
+            )}
+            {canDeleteLeads && (
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (window.confirm('Are you sure you want to delete this lead?')) {
+                    onDeleteLead(lead._id);
+                  }
+                }}
+                color="error"
+              >
+                <DeleteIcon />
+              </IconButton>
+            )}
+            {canAssignLeads && <Checkbox checked={selectedLeads.has(lead._id)} onChange={onSelectLead(lead._id)} size="small" />}
+          </Stack>
+        </Grid>
+        <Collapse in={expandedRows.has(lead._id)} sx={{ width: '100%' }}>
+          <Grid item xs={12}>
+            <Box sx={{ mt: 2, pb: 2, overflowX: 'hidden' }}>
+              <LeadDetails lead={lead} />
+            </Box>
+          </Grid>
+        </Collapse>
+      </Grid>
     </Paper>
-)});
+  )
+});
 
 
 
