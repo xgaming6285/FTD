@@ -344,6 +344,9 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
           <Typography variant="body2" color="text.secondary">
             Expected CSV format: gender, first name, last name, old email, new email, prefix, old phone, new phone, agent, Extension, Date of birth, address, Facebook, Twitter, Linkedin, Instagram, Telegram, ID front, ID back, Selfie front, Selfie back, ID remark, GEO
           </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontWeight: 'bold' }}>
+            Note: Use exact column names - agent, Extension, Date of birth, address, Facebook, Twitter, Linkedin, Instagram, Telegram, ID front, ID back, Selfie front, Selfie back, ID remark, GEO
+          </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Download a{" "}
             <Link

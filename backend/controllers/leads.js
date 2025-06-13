@@ -994,7 +994,7 @@ function mapRowToLead(row, leadType, userId) {
     lead.agent = agentValue;
   }
 
-  const extensionValue = getValue(['extension', 'ext']);
+  const extensionValue = getValue(['extension']);
   if (extensionValue) {
     lead.extension = extensionValue;
   }
@@ -1004,8 +1004,8 @@ function mapRowToLead(row, leadType, userId) {
     lead.address = addressValue;
   }
 
-  // Map country (try geo column first)
-  const geoValue = getValue(['geo', 'country', 'location']);
+  // Map country using GEO column
+  const geoValue = getValue(['geo']);
   if (geoValue) {
     lead.country = geoValue;
   } else {
@@ -1013,7 +1013,7 @@ function mapRowToLead(row, leadType, userId) {
   }
 
   // Parse date of birth
-  const dobValue = getValue(['date of birth', 'dateofbirth', 'date_of_birth', 'dob']);
+  const dobValue = getValue(['date of birth']);
   if (dobValue) {
     const parsedDob = parseDateOfBirth(dobValue);
     if (parsedDob) {
@@ -1022,7 +1022,7 @@ function mapRowToLead(row, leadType, userId) {
   }
 
   // Map social media (only if values exist)
-  const facebookValue = getValue(['facebook', 'fb']);
+  const facebookValue = getValue(['facebook']);
   if (facebookValue) {
     lead.socialMedia.facebook = facebookValue;
   }
@@ -1037,7 +1037,7 @@ function mapRowToLead(row, leadType, userId) {
     lead.socialMedia.linkedin = linkedinValue;
   }
 
-  const instagramValue = getValue(['instagram', 'ig']);
+  const instagramValue = getValue(['instagram']);
   if (instagramValue) {
     lead.socialMedia.instagram = instagramValue;
   }
@@ -1049,7 +1049,7 @@ function mapRowToLead(row, leadType, userId) {
 
   // Map document URLs for FTD leads
   if (leadType === 'ftd') {
-    const idFrontValue = getValue(['id front', 'idfront', 'id_front']);
+    const idFrontValue = getValue(['id front']);
     if (idFrontValue) {
       lead.documents.push({
         url: idFrontValue,
@@ -1057,7 +1057,7 @@ function mapRowToLead(row, leadType, userId) {
       });
     }
 
-    const idBackValue = getValue(['id back', 'idback', 'id_back']);
+    const idBackValue = getValue(['id back']);
     if (idBackValue) {
       lead.documents.push({
         url: idBackValue,
@@ -1065,7 +1065,7 @@ function mapRowToLead(row, leadType, userId) {
       });
     }
 
-    const selfieFrontValue = getValue(['selfie front', 'selfiefront', 'selfie_front']);
+    const selfieFrontValue = getValue(['selfie front']);
     if (selfieFrontValue) {
       lead.documents.push({
         url: selfieFrontValue,
@@ -1073,7 +1073,7 @@ function mapRowToLead(row, leadType, userId) {
       });
     }
 
-    const selfieBackValue = getValue(['selfie back', 'selfieback', 'selfie_back']);
+    const selfieBackValue = getValue(['selfie back']);
     if (selfieBackValue) {
       lead.documents.push({
         url: selfieBackValue,
@@ -1082,7 +1082,7 @@ function mapRowToLead(row, leadType, userId) {
     }
 
     // Add ID remark as a comment if it exists
-    const idRemarkValue = getValue(['id remark', 'idremark', 'id_remark']);
+    const idRemarkValue = getValue(['id remark']);
     if (idRemarkValue) {
       lead.comments = [{
         text: `ID Remark: ${idRemarkValue}`,
