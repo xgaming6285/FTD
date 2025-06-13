@@ -121,6 +121,8 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
       formData.append("file", selectedFile);
       formData.append("leadType", selectedLeadType);
 
+      console.log(formData);
+
       const response = await api.post("/leads/import", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
