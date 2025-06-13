@@ -69,6 +69,10 @@ router.get(
       .optional()
       .isMongoId()
       .withMessage("Invalid order ID format"),
+    query("assignedToMe")
+      .optional()
+      .isBoolean()
+      .withMessage("assignedToMe must be a boolean"),
   ],
   getLeads
 );
@@ -219,13 +223,13 @@ router.post(
       .optional()
       .custom((value) => {
         // If value is empty string or null/undefined, accept it
-        if (!value || value.trim() === '') {
+        if (!value || value.trim() === "") {
           return true;
         }
         // Otherwise validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) {
-          throw new Error('Please provide a valid old email');
+          throw new Error("Please provide a valid old email");
         }
         return true;
       }),
@@ -259,11 +263,30 @@ router.put(
   [
     protect,
     authorize("admin", "lead_manager"),
-    body("firstName").optional().trim().notEmpty().withMessage("First name is required"),
-    body("lastName").optional().trim().notEmpty().withMessage("Last name is required"),
-    body("email").optional().isEmail().withMessage("Please enter a valid email"),
-    body("phone").optional().trim().notEmpty().withMessage("Phone number is required"),
-    body("country").optional().trim().notEmpty().withMessage("Country is required"),
+    body("firstName")
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage("First name is required"),
+    body("lastName")
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage("Last name is required"),
+    body("email")
+      .optional()
+      .isEmail()
+      .withMessage("Please enter a valid email"),
+    body("phone")
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage("Phone number is required"),
+    body("country")
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage("Country is required"),
     body("status")
       .optional()
       .isIn(["active", "contacted", "converted", "inactive"])
@@ -273,7 +296,10 @@ router.put(
       .isIn(["ftd", "filler", "cold", "live"])
       .withMessage("Invalid lead type"),
     body("sin").optional(),
-    body("gender").optional().isIn(["male", "female", "other"]).withMessage("Invalid gender"),
+    body("gender")
+      .optional()
+      .isIn(["male", "female", "other"])
+      .withMessage("Invalid gender"),
   ],
   updateLead
 );

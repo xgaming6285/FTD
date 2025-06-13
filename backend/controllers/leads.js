@@ -23,6 +23,7 @@ exports.getLeads = async (req, res, next) => {
       includeConverted = "true", // New parameter to control visibility of converted leads
       order = "newest", // Add order parameter with default value
       orderId, // Add orderId parameter
+      assignedToMe, // New parameter to filter leads assigned to the current user
     } = req.query;
 
     // Build filter object
@@ -52,7 +53,12 @@ exports.getLeads = async (req, res, next) => {
 
     // Role-based filtering
     if (req.user.role === "affiliate_manager") {
-      // Affiliate managers can see all leads to manage assignments
+      // Check if affiliate manager wants to see only leads assigned to them
+      if (assignedToMe === "true") {
+        filter.assignedTo = req.user.id;
+        filter.isAssigned = true;
+      }
+      // Otherwise, affiliate managers can see all leads to manage assignments
       // No additional filtering needed - they can see all leads for management purposes
     } else if (req.user.role === "lead_manager") {
       // Lead managers can only see leads they added

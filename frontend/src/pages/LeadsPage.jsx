@@ -226,7 +226,7 @@ const LeadDetails = React.memo(({ lead }) => (
             )}
             {lead.address && (
               <Typography variant="body2" sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                <span style={{ color: 'text.secondary' }}>🏠</span> 
+                <span style={{ color: 'text.secondary' }}>🏠</span>
                 <span style={{ whiteSpace: 'pre-line' }}>{lead.address}</span>
               </Typography>
             )}
@@ -247,18 +247,18 @@ const LeadDetails = React.memo(({ lead }) => (
                 <Box key={index} sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
                   {doc?.url && doc.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                     <Box sx={{ mb: 1 }}>
-                      <DocumentPreview 
-                        url={doc.url} 
+                      <DocumentPreview
+                        url={doc.url}
                         type={doc.description || `Document ${index + 1}`}
                       />
                     </Box>
                   ) : (
-                    <Link 
-                      href={doc?.url || '#'} 
-                      target="_blank" 
-                      sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
+                    <Link
+                      href={doc?.url || '#'}
+                      target="_blank"
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
                         gap: 1,
                         color: 'primary.main',
                         textDecoration: 'none',
@@ -384,6 +384,7 @@ const LeadsPage = () => {
     includeConverted: true,
     order: "newest",
     orderId: "",
+    assignedToMe: false,
   });
   const [showFilters, setShowFilters] = useState(false);
   const [expandedRows, setExpandedRows] = useState(new Set());
@@ -393,6 +394,7 @@ const LeadsPage = () => {
     () => user?.role === ROLES.ADMIN || user?.role === ROLES.AFFILIATE_MANAGER,
     [user?.role]
   );
+  const isAffiliateManager = useMemo(() => user?.role === ROLES.AFFILIATE_MANAGER, [user?.role]);
   const isLeadManager = useMemo(() => user?.role === ROLES.LEAD_MANAGER, [user?.role]);
   const isAgent = useMemo(() => user?.role === ROLES.AGENT, [user?.role]);
   const canAssignLeads = useMemo(() => isAdminOrManager, [isAdminOrManager]);
@@ -970,6 +972,7 @@ const LeadsPage = () => {
             <Grid item xs={12} sm={6} md={3}><TextField fullWidth label="Search" value={filters.search} onChange={(e) => handleFilterChange("search", e.target.value)} placeholder="Name, email, phone..." InputProps={{ startAdornment: (<SearchIcon sx={{ mr: 1, color: "action.active" }} />) }} /></Grid>
             <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Lead Type</InputLabel><Select value={filters.leadType} label="Lead Type" onChange={(e) => handleFilterChange("leadType", e.target.value)}><MenuItem value="">All</MenuItem>{Object.values(LEAD_TYPES).map(type => <MenuItem key={type} value={type}>{type.toUpperCase()}</MenuItem>)}</Select></FormControl></Grid>
             {isAdminOrManager && <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Assignment</InputLabel><Select value={filters.isAssigned} label="Assignment" onChange={(e) => handleFilterChange("isAssigned", e.target.value)}><MenuItem value="">All</MenuItem><MenuItem value="true">Assigned</MenuItem><MenuItem value="false">Unassigned</MenuItem></Select></FormControl></Grid>}
+            {isAffiliateManager && <Grid item xs={12} sm={6} md={2}><FormControlLabel control={<Switch checked={filters.assignedToMe} onChange={(e) => handleFilterChange("assignedToMe", e.target.checked)} color="primary" />} label="My Assigned Leads" /></Grid>}
             <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Status</InputLabel><Select value={filters.status} label="Status" onChange={(e) => handleFilterChange("status", e.target.value)}><MenuItem value="">All</MenuItem>{Object.values(LEAD_STATUSES).map(status => <MenuItem key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</MenuItem>)}</Select></FormControl></Grid>
             {isAdminOrManager && <Grid item xs={12} sm={6} md={2}><FormControlLabel control={<Switch checked={filters.includeConverted} onChange={(e) => handleFilterChange("includeConverted", e.target.checked)} color="primary" />} label="Show Converted" /></Grid>}
             <Grid item xs={12} sm={6} md={2}>
