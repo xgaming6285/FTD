@@ -115,7 +115,9 @@ const leadSchema = new mongoose.Schema(
     // FTD & Filler Specific Fields
     dob: { type: Date },
     address: {
-      type: String,
+      street: String,
+      city: String,
+      postalCode: String,
     },
 
     // FTD Only Fields

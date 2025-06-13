@@ -54,7 +54,11 @@ const schema = yup.object().shape({
   clientBroker: yup.string().nullable(),
   clientNetwork: yup.string().nullable(),
   dob: yup.date().nullable(),
-  address: yup.string().nullable(),
+  address: yup.object().shape({
+    street: yup.string().nullable(),
+    city: yup.string().nullable(),
+    postalCode: yup.string().nullable(),
+  }),
   socialMedia: yup.object().shape({
     facebook: yup.string().nullable().url('Invalid Facebook URL'),
     twitter: yup.string().nullable().url('Invalid Twitter URL'),
@@ -439,21 +443,50 @@ const EditLeadForm = ({ open, onClose, lead, onLeadUpdated, sx }) => {
                 </Typography>
               </Typography>
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <Controller
-                name="address"
+                name="address.street"
                 control={control}
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    value={field.value ?? ""}
                     fullWidth
-                    label="Address"
-                    multiline
-                    rows={3}
+                    label="Street Address"
                     disabled
-                    error={!!errors.address}
-                    helperText={errors.address?.message}
+                    error={!!errors.address?.street}
+                    helperText={errors.address?.street?.message}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="address.city"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label="City"
+                    disabled
+                    error={!!errors.address?.city}
+                    helperText={errors.address?.city?.message}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="address.postalCode"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label="Postal Code"
+                    disabled
+                    error={!!errors.address?.postalCode}
+                    helperText={errors.address?.postalCode?.message}
                   />
                 )}
               />
