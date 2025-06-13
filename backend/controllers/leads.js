@@ -840,22 +840,73 @@ exports.importLeads = async (req, res, next) => {
           mapHeaders: ({ header, index }) => {
             // Custom header mapping to avoid conflicts
             const normalized = header.trim().toLowerCase();
-            if (normalized === 'new email') return 'newemail';
-            if (normalized === 'old email') return 'oldemail';
-            if (normalized === 'first name') return 'firstname';
-            if (normalized === 'last name') return 'lastname';
-            if (normalized === 'new phone') return 'newphone';
-            if (normalized === 'old phone') return 'oldphone';
-            if (normalized === 'date of birth') return 'dateofbirth';
-            if (normalized === 'id front') return 'idfront';
-            if (normalized === 'id back') return 'idback';
-            if (normalized === 'selfie front') return 'selfiefront';
-            if (normalized === 'selfie back') return 'selfieback';
-            if (normalized === 'id remark') return 'idremark';
-            if (normalized === 'address') return 'address';
-            if (normalized === 'geo') return 'geo';
+            console.log(`Mapping header "${header}" (index ${index}) -> normalized: "${normalized}"`);
+            
+            if (normalized === 'new email') {
+              console.log(`  -> mapping to: newemail`);
+              return 'newemail';
+            }
+            if (normalized === 'old email') {
+              console.log(`  -> mapping to: oldemail`);
+              return 'oldemail';
+            }
+            if (normalized === 'first name') {
+              console.log(`  -> mapping to: firstname`);
+              return 'firstname';
+            }
+            if (normalized === 'last name') {
+              console.log(`  -> mapping to: lastname`);
+              return 'lastname';
+            }
+            if (normalized === 'new phone') {
+              console.log(`  -> mapping to: newphone`);
+              return 'newphone';
+            }
+            if (normalized === 'old phone') {
+              console.log(`  -> mapping to: oldphone`);
+              return 'oldphone';
+            }
+            if (normalized === 'date of birth') {
+              console.log(`  -> mapping to: dateofbirth`);
+              return 'dateofbirth';
+            }
+            if (normalized === 'id front') {
+              console.log(`  -> mapping to: idfront`);
+              return 'idfront';
+            }
+            if (normalized === 'id back') {
+              console.log(`  -> mapping to: idback`);
+              return 'idback';
+            }
+            if (normalized === 'selfie front') {
+              console.log(`  -> mapping to: selfiefront`);
+              return 'selfiefront';
+            }
+            if (normalized === 'selfie back') {
+              console.log(`  -> mapping to: selfieback`);
+              return 'selfieback';
+            }
+            if (normalized === 'id remark') {
+              console.log(`  -> mapping to: idremark`);
+              return 'idremark';
+            }
+            if (normalized === 'address') {
+              console.log(`  -> mapping to: address`);
+              return 'address';
+            }
+            if (normalized === 'geo') {
+              console.log(`  -> mapping to: geo`);
+              return 'geo';
+            }
+            if (normalized === 'extension') {
+              console.log(`  -> mapping to: extension`);
+              return 'extension';
+            }
+            
             // Remove spaces and convert to lowercase for other fields
-            return normalized.replace(/\s+/g, '');
+            const result = normalized.replace(/\s+/g, '');
+            console.log(`  -> default mapping to: ${result}`);
+            return result;
           },
           skipEmptyLines: true
         }))
