@@ -23,11 +23,11 @@ import {
   Paper,
   Collapse,
 } from '@mui/material';
-import { 
-  FileUpload as ImportIcon, 
+import {
+  FileUpload as ImportIcon,
   Preview as PreviewIcon,
   ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon 
+  ExpandLess as ExpandLessIcon
 } from '@mui/icons-material';
 import api from '../services/api';
 
@@ -70,7 +70,7 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
       setError(null);
       setSuccess(null);
       setCsvPreview(null);
-      
+
       // Generate frontend preview
       generatePreview(file);
     } else {
@@ -85,11 +85,11 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
       try {
         const csvData = e.target.result;
         const rows = csvData.split('\n').map(row => row.trim()).filter(row => row.length > 0);
-        
+
         if (rows.length > 0) {
           const headers = rows[0].split(',').map(header => header.trim().replace(/"/g, ''));
           const dataRows = rows.slice(1, Math.min(6, rows.length)); // Show first 5 data rows
-          
+
           setCsvPreview({
             headers,
             dataRows: dataRows.map(row => {
@@ -216,7 +216,7 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
                 {showPreview ? 'Hide Preview' : `Preview CSV (${csvPreview.totalRows} rows)`}
               </Button>
             </Box>
-            
+
             <Collapse in={showPreview}>
               <Box sx={{ mt: 2 }}>
                 <Typography variant="subtitle2" gutterBottom>
@@ -265,18 +265,19 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
 
         <Box sx={{ mt: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            Expected CSV format: first name, last name, email, phone, geo, gender, old email, old phone, prefix, agent, extension, address
+            Expected CSV format: First name, Last name, Email, Phone number, GEO, Gender, Prefix
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Download a{" "}
             <Link
-              href="/sample-leads.csv"
+              href="/sample-cold-leads.csv"
               download
               target="_blank"
               rel="noopener noreferrer"
             >
               sample CSV template
             </Link>
+            {" "}(Cold Leads format)
           </Typography>
         </Box>
       </DialogContent>

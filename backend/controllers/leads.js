@@ -2,8 +2,8 @@ const { validationResult } = require("express-validator");
 const mongoose = require("mongoose");
 const Lead = require("../models/Lead");
 const User = require("../models/User");
-const csvParser = require('csv-parser');
-const { Readable } = require('stream');
+const csvParser = require("csv-parser");
+const { Readable } = require("stream");
 
 // @desc    Get all leads with filtering and pagination
 // @route   GET /api/leads
@@ -511,10 +511,10 @@ exports.assignLeads = async (req, res, next) => {
         isAssigned: lead.isAssigned,
         assignedTo: lead.assignedTo
           ? {
-            id: lead.assignedTo._id,
-            fullName: lead.assignedTo.fullName,
-            fourDigitCode: lead.assignedTo.fourDigitCode,
-          }
+              id: lead.assignedTo._id,
+              fullName: lead.assignedTo.fullName,
+              fourDigitCode: lead.assignedTo.fourDigitCode,
+            }
           : null,
       }))
     );
@@ -821,7 +821,7 @@ exports.importLeads = async (req, res, next) => {
     }
 
     // Create a readable stream from the file buffer
-    const csvData = file.data.toString('utf8');
+    const csvData = file.data.toString("utf8");
     const stream = Readable.from([csvData]);
 
     const leads = [];
@@ -830,103 +830,108 @@ exports.importLeads = async (req, res, next) => {
     // Parse CSV using csv-parser
     const parsePromise = new Promise((resolve, reject) => {
       stream
-        .pipe(csvParser({
-          mapHeaders: ({ header, index }) => {
-            // Custom header mapping to avoid conflicts
-            const normalized = header.trim().toLowerCase();
-            console.log(`Mapping header "${header}" (index ${index}) -> normalized: "${normalized}"`);
+        .pipe(
+          csvParser({
+            mapHeaders: ({ header, index }) => {
+              // Custom header mapping to avoid conflicts
+              const normalized = header.trim().toLowerCase();
+              console.log(
+                `Mapping header "${header}" (index ${index}) -> normalized: "${normalized}"`
+              );
 
-            // Explicit mapping for known headers
-            switch (normalized) {
-              case 'new email':
-              case 'email':
-                console.log(`  -> mapping to: newemail`);
-                return 'newemail';
-              case 'old email':
-                console.log(`  -> mapping to: oldemail`);
-                return 'oldemail';
-              case 'first name':
-                console.log(`  -> mapping to: firstname`);
-                return 'firstname';
-              case 'last name':
-                console.log(`  -> mapping to: lastname`);
-                return 'lastname';
-              case 'new phone':
-              case 'phone':
-                console.log(`  -> mapping to: newphone`);
-                return 'newphone';
-              case 'old phone':
-                console.log(`  -> mapping to: oldphone`);
-                return 'oldphone';
-              case 'date of birth':
-              case 'dob':
-                console.log(`  -> mapping to: dateofbirth`);
-                return 'dateofbirth';
-              case 'id front':
-                console.log(`  -> mapping to: idfront`);
-                return 'idfront';
-              case 'id back':
-                console.log(`  -> mapping to: idback`);
-                return 'idback';
-              case 'selfie front':
-                console.log(`  -> mapping to: selfiefront`);
-                return 'selfiefront';
-              case 'selfie back':
-                console.log(`  -> mapping to: selfieback`);
-                return 'selfieback';
-              case 'id remark':
-                console.log(`  -> mapping to: idremark`);
-                return 'idremark';
-              case 'address':
-                console.log(`  -> mapping to: address`);
-                return 'address';
-              case 'geo':
-              case 'country':
-                console.log(`  -> mapping to: geo`);
-                return 'geo';
-              case 'extension':
-                console.log(`  -> mapping to: extension`);
-                return 'extension';
-              case 'gender':
-                console.log(`  -> mapping to: gender`);
-                return 'gender';
-              case 'prefix':
-                console.log(`  -> mapping to: prefix`);
-                return 'prefix';
-              case 'agent':
-                console.log(`  -> mapping to: agent`);
-                return 'agent';
-              case 'facebook':
-                console.log(`  -> mapping to: facebook`);
-                return 'facebook';
-              case 'twitter':
-                console.log(`  -> mapping to: twitter`);
-                return 'twitter';
-              case 'linkedin':
-                console.log(`  -> mapping to: linkedin`);
-                return 'linkedin';
-              case 'instagram':
-                console.log(`  -> mapping to: instagram`);
-                return 'instagram';
-              case 'telegram':
-                console.log(`  -> mapping to: telegram`);
-                return 'telegram';
-              default:
-                // Remove spaces and convert to lowercase for other fields
-                const result = normalized.replace(/\s+/g, '');
-                console.log(`  -> default mapping to: ${result}`);
-                return result;
-            }
-          },
-          skipEmptyLines: true
-        }))
-        .on('data', (row) => {
+              // Explicit mapping for known headers
+              switch (normalized) {
+                case "new email":
+                case "email":
+                  console.log(`  -> mapping to: newemail`);
+                  return "newemail";
+                case "old email":
+                  console.log(`  -> mapping to: oldemail`);
+                  return "oldemail";
+                case "first name":
+                  console.log(`  -> mapping to: firstname`);
+                  return "firstname";
+                case "last name":
+                  console.log(`  -> mapping to: lastname`);
+                  return "lastname";
+                case "new phone":
+                case "phone":
+                case "phone number":
+                  console.log(`  -> mapping to: newphone`);
+                  return "newphone";
+                case "old phone":
+                  console.log(`  -> mapping to: oldphone`);
+                  return "oldphone";
+                case "date of birth":
+                case "dob":
+                  console.log(`  -> mapping to: dateofbirth`);
+                  return "dateofbirth";
+                case "id front":
+                  console.log(`  -> mapping to: idfront`);
+                  return "idfront";
+                case "id back":
+                  console.log(`  -> mapping to: idback`);
+                  return "idback";
+                case "selfie front":
+                  console.log(`  -> mapping to: selfiefront`);
+                  return "selfiefront";
+                case "selfie back":
+                  console.log(`  -> mapping to: selfieback`);
+                  return "selfieback";
+                case "id remark":
+                  console.log(`  -> mapping to: idremark`);
+                  return "idremark";
+                case "address":
+                  console.log(`  -> mapping to: address`);
+                  return "address";
+                case "geo":
+                case "country":
+                  console.log(`  -> mapping to: geo`);
+                  return "geo";
+                case "extension":
+                  console.log(`  -> mapping to: extension`);
+                  return "extension";
+                case "gender":
+                  console.log(`  -> mapping to: gender`);
+                  return "gender";
+                case "prefix":
+                  console.log(`  -> mapping to: prefix`);
+                  return "prefix";
+                case "agent":
+                  console.log(`  -> mapping to: agent`);
+                  return "agent";
+                case "facebook":
+                  console.log(`  -> mapping to: facebook`);
+                  return "facebook";
+                case "twitter":
+                  console.log(`  -> mapping to: twitter`);
+                  return "twitter";
+                case "linkedin":
+                  console.log(`  -> mapping to: linkedin`);
+                  return "linkedin";
+                case "instagram":
+                  console.log(`  -> mapping to: instagram`);
+                  return "instagram";
+                case "telegram":
+                  console.log(`  -> mapping to: telegram`);
+                  return "telegram";
+                default:
+                  // Remove spaces and convert to lowercase for other fields
+                  const result = normalized.replace(/\s+/g, "");
+                  console.log(`  -> default mapping to: ${result}`);
+                  return result;
+              }
+            },
+            skipEmptyLines: true,
+          })
+        )
+        .on("data", (row) => {
           rowNumber++;
 
           // Debug: log the first row to see all available columns
           if (rowNumber === 2) {
-            console.log('Available CSV columns:', Object.keys(row));
-            console.log('First row data:', row);
+            console.log("Available CSV columns:", Object.keys(row));
+            console.log("First row data:", row);
           }
 
           // More flexible field detection using the correctly mapped headers
@@ -936,86 +941,96 @@ exports.importLeads = async (req, res, next) => {
                 return row[name].toString().trim();
               }
             }
-            return '';
+            return "";
           };
 
           // Get email and address from the correctly mapped fields
-          const emailValue = (row['newemail'] || '').toLowerCase();
-          const addressValue = row['address'] || '';
+          const emailValue = (row["newemail"] || "").toLowerCase();
+          const addressValue = row["address"] || "";
 
           // Debug: Show what we found
           if (rowNumber <= 3) {
-            console.log(`Row ${rowNumber} - Email: "${emailValue}", Address: "${addressValue}"`);
+            console.log(
+              `Row ${rowNumber} - Email: "${emailValue}", Address: "${addressValue}"`
+            );
           }
 
           // If no email found, try to use old email as new email
           let finalEmailValue = emailValue;
-          if (!finalEmailValue || !finalEmailValue.includes('@')) {
-            const oldEmailValue = (row['oldemail'] || '').toLowerCase();
-            if (oldEmailValue && oldEmailValue.includes('@')) {
+          if (!finalEmailValue || !finalEmailValue.includes("@")) {
+            const oldEmailValue = (row["oldemail"] || "").toLowerCase();
+            if (oldEmailValue && oldEmailValue.includes("@")) {
               finalEmailValue = oldEmailValue;
-              console.log(`Using old email as new email for row ${rowNumber}:`, finalEmailValue);
+              console.log(
+                `Using old email as new email for row ${rowNumber}:`,
+                finalEmailValue
+              );
             }
           }
 
           // Handle multiple email addresses
-          if (finalEmailValue.includes(' ')) {
-            finalEmailValue = finalEmailValue.split(' ')[0]; // Take the first email if multiple
+          if (finalEmailValue.includes(" ")) {
+            finalEmailValue = finalEmailValue.split(" ")[0]; // Take the first email if multiple
           }
 
           // If still no email found, skip this row
-          if (!finalEmailValue || !finalEmailValue.includes('@')) {
-            console.log(`Skipping row ${rowNumber} - no valid email found. Available data:`, Object.keys(row));
+          if (!finalEmailValue || !finalEmailValue.includes("@")) {
+            console.log(
+              `Skipping row ${rowNumber} - no valid email found. Available data:`,
+              Object.keys(row)
+            );
             return;
           }
 
           const lead = {
             leadType,
             createdBy: req.user.id,
-            firstName: findField(['firstname']),
-            lastName: findField(['lastname']),
+            firstName: findField(["firstname"]),
+            lastName: findField(["lastname"]),
             newEmail: finalEmailValue,
-            newPhone: findField(['newphone']),
-            country: findField(['geo']) || 'Unknown',
-            gender: (findField(['gender']) || 'not_defined').toLowerCase(),
-            oldEmail: (findField(['oldemail']) || '').toLowerCase(),
-            oldPhone: findField(['oldphone']),
-            prefix: findField(['prefix']),
-            agent: findField(['agent']),
-            extension: findField(['extension']),
+            newPhone: findField(["newphone"]),
+            country: findField(["geo"]) || "Unknown",
+            gender: (findField(["gender"]) || "not_defined").toLowerCase(),
+            oldEmail: (findField(["oldemail"]) || "").toLowerCase(),
+            oldPhone: findField(["oldphone"]),
+            prefix: findField(["prefix"]),
+            agent: findField(["agent"]),
+            extension: findField(["extension"]),
             address: addressValue,
             socialMedia: {
-              facebook: findField(['facebook']),
-              twitter: findField(['twitter']),
-              linkedin: findField(['linkedin']),
-              instagram: findField(['instagram']),
-              telegram: findField(['telegram'])
+              facebook: findField(["facebook"]),
+              twitter: findField(["twitter"]),
+              linkedin: findField(["linkedin"]),
+              instagram: findField(["instagram"]),
+              telegram: findField(["telegram"]),
             },
             documents: [],
             dob: (() => {
-              const dobValue = findField(['dateofbirth']);
+              const dobValue = findField(["dateofbirth"]);
               if (!dobValue) return null;
               try {
                 // Handle DD/MM/YYYY format common in the CSV
-                const dateParts = dobValue.split('/');
+                const dateParts = dobValue.split("/");
                 if (dateParts.length === 3) {
                   const [day, month, year] = dateParts;
                   return new Date(year, month - 1, day); // Month is 0-indexed
                 }
                 return new Date(dobValue);
               } catch (error) {
-                console.log(`Invalid date format for row ${rowNumber}: ${dobValue}`);
+                console.log(
+                  `Invalid date format for row ${rowNumber}: ${dobValue}`
+                );
                 return null;
               }
-            })()
+            })(),
           };
 
           // Handle documents
           const documentFields = {
-            idfront: { description: 'ID Front' },
-            idback: { description: 'ID Back' },
-            selfiefront: { description: 'Selfie Front' },
-            selfieback: { description: 'Selfie Back' }
+            idfront: { description: "ID Front" },
+            idback: { description: "ID Back" },
+            selfiefront: { description: "Selfie Front" },
+            selfieback: { description: "Selfie Back" },
           };
 
           // Add documents that have URLs
@@ -1024,17 +1039,17 @@ exports.importLeads = async (req, res, next) => {
             if (url) {
               lead.documents.push({
                 url: url,
-                description: metadata.description
+                description: metadata.description,
               });
             }
           });
 
           // Clean up social media fields - handle both URL and non-URL formats
-          Object.keys(lead.socialMedia).forEach(platform => {
+          Object.keys(lead.socialMedia).forEach((platform) => {
             const value = lead.socialMedia[platform];
             if (!value) {
               delete lead.socialMedia[platform]; // Remove empty fields
-            } else if (!value.startsWith('http')) {
+            } else if (!value.startsWith("http")) {
               // If it's not a URL, store as is
               lead.socialMedia[platform] = value;
             }
@@ -1047,7 +1062,7 @@ exports.importLeads = async (req, res, next) => {
               lastName: lead.lastName,
               newEmail: lead.newEmail,
               address: lead.address,
-              country: lead.country
+              country: lead.country,
             });
           }
 
@@ -1058,14 +1073,14 @@ exports.importLeads = async (req, res, next) => {
             console.log(`Skipping row ${rowNumber} - missing required data:`, {
               firstName: !!lead.firstName,
               lastName: !!lead.lastName,
-              newEmail: !!lead.newEmail
+              newEmail: !!lead.newEmail,
             });
           }
         })
-        .on('end', () => {
+        .on("end", () => {
           resolve();
         })
-        .on('error', (error) => {
+        .on("error", (error) => {
           reject(error);
         });
     });
@@ -1089,10 +1104,9 @@ exports.importLeads = async (req, res, next) => {
       message: `Successfully imported ${savedLeads.length} out of ${leads.length} leads`,
       data: {
         imported: savedLeads.length,
-        total: leads.length
+        total: leads.length,
       },
     });
-
   } catch (error) {
     console.error("Import error:", error);
     return res.status(500).json({
