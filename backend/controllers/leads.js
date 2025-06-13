@@ -843,29 +843,82 @@ exports.importLeads = async (req, res, next) => {
         .on('data', (row) => {
           rowNumber++;
           
-          // Simple mapping - just extract the data as is
+          // Debug: log the first row to see all available columns
+          if (rowNumber === 2) {
+            console.log('Available CSV columns:', Object.keys(row));
+            console.log('First row data:', row);
+          }
+          
+          // More flexible field detection
+          const findField = (possibleNames) => {
+            for (const name of possibleNames) {
+              if (row[name] && row[name].toString().trim()) {
+                return row[name].toString().trim();
+              }
+            }
+            return '';
+          };
+
+          // Try to find email field (should contain @)
+          let emailValue = '';
+          const emailFields = ['email', 'newemail', 'new email', 'e-mail', 'emailaddress'];
+          for (const field of emailFields) {
+            if (row[field] && row[field].toString().includes('@')) {
+              emailValue = row[field].toString().trim().toLowerCase();
+              break;
+            }
+          }
+
+          // Try to find address field (should not contain @)
+          let addressValue = '';
+          const addressFields = ['address', 'newemail', 'new email', 'addr', 'location'];
+          for (const field of addressFields) {
+            if (row[field] && row[field].toString().trim() && !row[field].toString().includes('@')) {
+              addressValue = row[field].toString().trim();
+              break;
+            }
+          }
+
           const lead = {
             leadType,
             createdBy: req.user.id,
-            firstName: row['first name'] || row['firstname'] || '',
-            lastName: row['last name'] || row['lastname'] || '',
-            newEmail: (row['new email'] || row['email'] || '').toLowerCase(),
-            newPhone: row['new phone'] || row['phone'] || '',
-            country: row['geo'] || row['country'] || 'Unknown',
-            gender: row['gender'] || 'not_defined',
-            oldEmail: (row['old email'] || '').toLowerCase(),
-            oldPhone: row['old phone'] || '',
-            prefix: row['prefix'] || '',
-            agent: row['agent'] || '',
-            extension: row['extension'] || '',
-            address: row['address'] || '',
+            firstName: findField(['firstname', 'first name', 'fname', 'first_name']),
+            lastName: findField(['lastname', 'last name', 'lname', 'last_name']),
+            newEmail: emailValue,
+            newPhone: findField(['newphone', 'new phone', 'phone', 'telephone', 'mobile']),
+            country: findField(['geo', 'country', 'nation', 'location']),
+            gender: (findField(['gender', 'sex']) || 'not_defined').toLowerCase(),
+            oldEmail: findField(['oldemail', 'old email', 'previous email', 'old_email']).toLowerCase(),
+            oldPhone: findField(['oldphone', 'old phone', 'previous phone', 'old_phone']),
+            prefix: findField(['prefix', 'title', 'mr', 'mrs']),
+            agent: findField(['agent', 'rep', 'representative']),
+            extension: findField(['extension', 'ext']),
+            address: addressValue,
             socialMedia: {},
             documents: []
           };
 
+          // Debug: log the first few mapped leads
+          if (rowNumber <= 3) {
+            console.log(`Row ${rowNumber} mapped lead:`, {
+              firstName: lead.firstName,
+              lastName: lead.lastName,
+              newEmail: lead.newEmail,
+              address: lead.address,
+              country: lead.country
+            });
+          }
+
           // Only add if we have minimum required data
-          if (lead.firstName && lead.lastName && lead.newEmail) {
+          if (lead.firstName && lead.lastName && lead.newEmail && lead.newEmail.includes('@')) {
             leads.push(lead);
+          } else {
+            console.log(`Skipping row ${rowNumber} - missing required data:`, {
+              firstName: !!lead.firstName,
+              lastName: !!lead.lastName,
+              newEmail: !!lead.newEmail,
+              hasAtSymbol: lead.newEmail.includes('@')
+            });
           }
         })
         .on('end', () => {
