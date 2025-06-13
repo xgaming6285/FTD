@@ -2,7 +2,6 @@ const { validationResult } = require("express-validator");
 const mongoose = require("mongoose");
 const Lead = require("../models/Lead");
 const User = require("../models/User");
-const Comment = require("../models/Comment");
 const csvParser = require('csv-parser');
 const { Readable } = require('stream');
 
@@ -841,10 +840,11 @@ exports.importLeads = async (req, res, next) => {
             // Custom header mapping to avoid conflicts
             const normalized = header.trim().toLowerCase();
             console.log(`Mapping header "${header}" (index ${index}) -> normalized: "${normalized}"`);
-            
+
             // Explicit mapping for known headers
             switch (normalized) {
               case 'new email':
+              case 'email':
                 console.log(`  -> mapping to: newemail`);
                 return 'newemail';
               case 'old email':
@@ -857,12 +857,14 @@ exports.importLeads = async (req, res, next) => {
                 console.log(`  -> mapping to: lastname`);
                 return 'lastname';
               case 'new phone':
+              case 'phone':
                 console.log(`  -> mapping to: newphone`);
                 return 'newphone';
               case 'old phone':
                 console.log(`  -> mapping to: oldphone`);
                 return 'oldphone';
               case 'date of birth':
+              case 'dob':
                 console.log(`  -> mapping to: dateofbirth`);
                 return 'dateofbirth';
               case 'id front':
@@ -884,6 +886,7 @@ exports.importLeads = async (req, res, next) => {
                 console.log(`  -> mapping to: address`);
                 return 'address';
               case 'geo':
+              case 'country':
                 console.log(`  -> mapping to: geo`);
                 return 'geo';
               case 'extension':
@@ -924,13 +927,13 @@ exports.importLeads = async (req, res, next) => {
         }))
         .on('data', (row) => {
           rowNumber++;
-          
+
           // Debug: log the first row to see all available columns
           if (rowNumber === 2) {
             console.log('Available CSV columns:', Object.keys(row));
             console.log('First row data:', row);
           }
-          
+
           // More flexible field detection using the correctly mapped headers
           const findField = (possibleNames) => {
             for (const name of possibleNames) {
@@ -958,6 +961,11 @@ exports.importLeads = async (req, res, next) => {
               finalEmailValue = oldEmailValue;
               console.log(`Using old email as new email for row ${rowNumber}:`, finalEmailValue);
             }
+          }
+
+          // Handle multiple email addresses
+          if (finalEmailValue.includes(' ')) {
+            finalEmailValue = finalEmailValue.split(' ')[0]; // Take the first email if multiple
           }
 
           // If still no email found, skip this row
@@ -1006,6 +1014,17 @@ exports.importLeads = async (req, res, next) => {
               }
             })()
           };
+
+          // Clean up social media fields - handle both URL and non-URL formats
+          Object.keys(lead.socialMedia).forEach(platform => {
+            const value = lead.socialMedia[platform];
+            if (!value) {
+              delete lead.socialMedia[platform]; // Remove empty fields
+            } else if (!value.startsWith('http')) {
+              // If it's not a URL, store as is
+              lead.socialMedia[platform] = value;
+            }
+          });
 
           // Debug: log the first few mapped leads
           if (rowNumber <= 3) {
@@ -1153,11 +1172,11 @@ exports.previewCsvImport = async (req, res, next) => {
           mapHeaders: ({ header, index }) => {
             // Store original header
             previewData.originalHeaders[index] = header;
-            
+
             // Custom header mapping to avoid conflicts
             const normalized = header.trim().toLowerCase();
             let mappedHeader = '';
-            
+
             // Explicit mapping for known headers
             switch (normalized) {
               case 'new email':
@@ -1234,10 +1253,10 @@ exports.previewCsvImport = async (req, res, next) => {
                 mappedHeader = normalized.replace(/\s+/g, '');
                 break;
             }
-            
+
             previewData.mappedHeaders[index] = mappedHeader;
             previewData.fieldMapping[header] = mappedHeader;
-            
+
             return mappedHeader;
           },
           skipEmptyLines: true
@@ -1245,7 +1264,7 @@ exports.previewCsvImport = async (req, res, next) => {
         .on('data', (row) => {
           rowCount++;
           previewData.totalRows = rowCount;
-          
+
           // Store first 3 rows as sample
           if (rowCount <= 3) {
             previewData.sampleRows.push(row);
