@@ -1031,6 +1031,7 @@ exports.importLeads = async (req, res, next) => {
       console.log(`Processing header ${index}: "${header}" -> normalized: "${normalizedHeader}"`);
 
       // Find matching field - use exact match only to avoid confusion
+      let fieldMapped = false;
       for (const [fieldName, variations] of Object.entries(headerMappings)) {
         // Try exact match only
         const matchFound = variations.some(variation => {
@@ -1046,18 +1047,19 @@ exports.importLeads = async (req, res, next) => {
           // Check if this field is already mapped to prevent duplicates
           const alreadyMapped = Object.values(fieldMapping).includes(fieldName);
           if (alreadyMapped) {
-            console.log(`⚠️  WARNING: Field "${fieldName}" is already mapped! Skipping duplicate mapping for "${header}"`);
+            console.log(`⚠️  WARNING: Field "${fieldName}" is already mapped to column ${Object.keys(fieldMapping).find(key => fieldMapping[key] === fieldName)}! Skipping duplicate mapping for column ${index} "${header}"`);
             continue;
           }
           
           fieldMapping[index] = fieldName;
           console.log(`✅ MAPPED: Column ${index} ("${header}") -> ${fieldName}`);
+          fieldMapped = true;
           break;
         }
       }
       
       // If no exact match found, log it for debugging
-      if (!fieldMapping[index]) {
+      if (!fieldMapped) {
         console.log(`❌ No exact match found for header: "${header}" (normalized: "${normalizedHeader}")`);
         // Show all possible matches for debugging
         for (const [fieldName, variations] of Object.entries(headerMappings)) {
