@@ -808,31 +808,14 @@ exports.importLeads = async (req, res, next) => {
       });
     }
 
-    // Debug file information
-    console.log("File details:", {
-      name: file.name,
-      size: file.size,
-      mimetype: file.mimetype,
-      encoding: file.encoding,
-      data: file.data ? "Buffer present" : "No buffer",
-      tempFilePath: file.tempFilePath,
-      leadType: leadType,
-    });
-
-    // Check if file exists and has data
-    if (!file || !file.data || file.data.length === 0) {
+    // Validate file
+    if (!file.data || file.data.length === 0) {
       return res.status(400).json({
         success: false,
         message: "No file data received",
-        debug: {
-          fileExists: !!file,
-          hasData: file ? !!file.data : false,
-          dataLength: file ? file.data.length : 0,
-        },
       });
     }
 
-    // Check if file is CSV
     if (!file.mimetype.includes("csv") && !file.name.endsWith(".csv")) {
       return res.status(400).json({
         success: false,
@@ -840,491 +823,360 @@ exports.importLeads = async (req, res, next) => {
       });
     }
 
-    // Read and parse CSV file with explicit UTF-8 encoding
-    let csvData;
-    try {
-      // Log raw buffer data
-      console.log("Raw buffer (first 100 bytes):", file.data.slice(0, 100));
-      console.log("Buffer length:", file.data.length);
-
-      // Convert buffer to string and handle BOM if present
-      csvData = file.data
-        .toString("utf-8")
-        .replace(/^\uFEFF/, "")
-        .trim();
-
-      // Log the raw string data
-      console.log(
-        "Raw CSV string (first 200 chars):",
-        csvData.substring(0, 200)
-      );
-      console.log("Raw CSV string length:", csvData.length);
-      console.log("Raw CSV string contains newlines:", csvData.includes("\n"));
-      console.log(
-        "Raw CSV string contains carriage returns:",
-        csvData.includes("\r")
-      );
-
-      // Log character codes for debugging
-      console.log(
-        "First 10 character codes:",
-        Array.from(csvData.substring(0, 10)).map((c) => c.charCodeAt(0))
-      );
-    } catch (error) {
-      console.error("Error reading file:", error);
-      return res.status(400).json({
-        success: false,
-        message: "Error reading CSV file",
-        error: error.message,
-      });
-    }
-
-    // Split by newlines and handle different line endings
-    const rawRows = csvData.split(/\r?\n/);
-    console.log("Raw rows before processing:", {
-      count: rawRows.length,
-      firstRow: rawRows[0],
-      secondRow: rawRows[1],
-    });
-
-    const rows = rawRows
-      .map((row) => row.trim())
-      .filter((row) => row.length > 0) // Remove empty lines
-      .map((row) => {
-        // Improved CSV parsing with better quote handling
-        const cells = [];
-        let currentCell = "";
-        let inQuotes = false;
-        let i = 0;
-
-        while (i < row.length) {
-          const char = row[i];
-
-          if (char === '"') {
-            // Check for escaped quotes ("")
-            if (inQuotes && i + 1 < row.length && row[i + 1] === '"') {
-              currentCell += '"'; // Add literal quote
-              i += 2; // Skip both quotes
-              continue;
-            } else {
-              inQuotes = !inQuotes;
-            }
-          } else if (char === "," && !inQuotes) {
-            cells.push(currentCell.trim());
-            currentCell = "";
-          } else {
-            // Only add non-quote characters or quotes that are inside quoted strings
-            if (char !== '"' || inQuotes) {
-              currentCell += char;
-            }
-          }
-          i++;
-        }
-
-        // Add the last cell
-        cells.push(currentCell.trim());
-        return cells;
-      });
-
-    console.log("Processed rows:", {
-      totalRows: rows.length,
-      firstRow: rows[0],
-      secondRow: rows[1],
-      firstRowCellCount: rows[0]?.length,
-      secondRowCellCount: rows[1]?.length,
-    });
-
-    // Add detailed debugging for the first few rows
-    console.log("Detailed row analysis:");
-    for (let i = 0; i < Math.min(3, rows.length); i++) {
-      console.log(`Row ${i}:`, rows[i]);
-      console.log(`Row ${i} cell count:`, rows[i].length);
-      console.log(`Row ${i} cells:`, rows[i].map((cell, idx) => `[${idx}]: "${cell}"`));
-    }
+    // Parse CSV data
+    const csvData = file.data.toString('utf8');
+    const rows = csvData.split('\n').map(row => row.trim()).filter(row => row.length > 0);
 
     if (rows.length < 2) {
       return res.status(400).json({
         success: false,
         message: "CSV file must contain at least a header row and one data row",
-        debug: {
-          totalRows: rows.length,
-          rawRowCount: rawRows.length,
-          firstRawRow: rawRows[0],
-          fileSize: file.size,
-          fileType: file.mimetype,
-          csvLength: csvData.length,
-        },
       });
     }
 
-    // Get headers from first row and normalize them
-    const rawHeaders = rows[0];
+    // Parse header row
+    const headers = rows[0].split(',').map(header => header.trim().replace(/"/g, ''));
     const dataRows = rows.slice(1);
 
-    // Create a flexible header mapping function
-    const normalizeHeader = (header) => {
-      return header
-        .toLowerCase()
-        .replace(/[\s_-]+/g, "")
-        .trim();
-    };
-
-    // Define header mappings for flexible matching
-    const headerMappings = {
-      // Core fields
-      gender: ["gender"],
-      firstname: ["firstname", "first_name", "fname", "first name"],
-      lastname: ["lastname", "last_name", "lname", "last name"],
-      oldemail: [
-        "oldemail",
-        "old_email",
-        "email_old",
-        "previousemail",
-        "old email",
-      ],
-      newemail: [
-        "newemail",
-        "new_email",
-        "email_new",
-        "email",
-        "new email",
-      ],
-      prefix: ["prefix"],
-      oldphone: ["oldphone", "old_phone", "phone_old", "previousphone", "old phone"],
-      newphone: [
-        "newphone",
-        "new_phone",
-        "phone_new",
-        "phone",
-        "phonenumber",
-        "new phone",
-      ],
-      agent: ["agent"],
-      extension: ["extension", "ext"],
-      dateofbirth: ["dateofbirth", "date_of_birth", "dob", "birthday", "date of birth"],
-
-      // Social media fields
-      facebook: ["facebook", "fb"],
-      twitter: ["twitter"],
-      linkedin: ["linkedin"],
-      instagram: ["instagram", "ig"],
-      telegram: ["telegram"],
-
-      // Document fields
-      idfront: ["idfront", "id_front", "frontid", "id front"],
-      idback: ["idback", "id_back", "backid", "id back"],
-      selfieback: ["selfieback", "selfie_back", "backselfie", "selfie back"],
-      selfiefront: ["selfiefront", "selfie_front", "frontselfie", "selfie front"],
-      idremark: ["idremark", "id_remark", "remark", "id remark"],
-
-      // Address field
-      address: ["address", "full_address", "fulladdress", "street_address", "streetaddress", "location_address"],
-
-      // Geographic field
-      geo: ["geo", "country", "location", "region"],
-    };
-
-    // Create reverse mapping from CSV headers to field names
-    const fieldMapping = {};
-    rawHeaders.forEach((header, index) => {
-      const normalizedHeader = normalizeHeader(header);
-      console.log(`Processing header ${index}: "${header}" -> normalized: "${normalizedHeader}"`);
-
-      // Find matching field - use exact match only to avoid confusion
-      let fieldMapped = false;
-      for (const [fieldName, variations] of Object.entries(headerMappings)) {
-        // Try exact match only
-        const matchFound = variations.some(variation => {
-          const normalizedVariation = normalizeHeader(variation);
-          const isMatch = normalizedHeader === normalizedVariation;
-          if (isMatch) {
-            console.log(`✅ EXACT MATCH: "${header}" (${normalizedHeader}) matches ${fieldName} variation "${variation}" (${normalizedVariation})`);
-          }
-          return isMatch;
-        });
-        
-        if (matchFound) {
-          // Check if this field is already mapped to prevent duplicates
-          const alreadyMapped = Object.values(fieldMapping).includes(fieldName);
-          if (alreadyMapped) {
-            console.log(`⚠️  WARNING: Field "${fieldName}" is already mapped to column ${Object.keys(fieldMapping).find(key => fieldMapping[key] === fieldName)}! Skipping duplicate mapping for column ${index} "${header}"`);
-            continue;
-          }
-          
-          fieldMapping[index] = fieldName;
-          console.log(`✅ MAPPED: Column ${index} ("${header}") -> ${fieldName}`);
-          fieldMapped = true;
-          break;
-        }
-      }
-      
-      // If no exact match found, log it for debugging
-      if (!fieldMapped) {
-        console.log(`❌ No exact match found for header: "${header}" (normalized: "${normalizedHeader}")`);
-        // Show all possible matches for debugging
-        for (const [fieldName, variations] of Object.entries(headerMappings)) {
-          console.log(`  ${fieldName}: [${variations.map(v => `"${normalizeHeader(v)}"`).join(', ')}]`);
-        }
-      }
-    });
-
-    console.log("Header mapping:", {
-      rawHeaders,
-      fieldMapping,
-      mappedFields: Object.values(fieldMapping),
-    });
-
-    // Validate that we have at least the required fields
-    const requiredFields = ["firstname", "lastname"];
-    const hasRequiredEmail =
-      Object.values(fieldMapping).includes("newemail") ||
-      Object.values(fieldMapping).includes("email");
-    const hasRequiredPhone =
-      Object.values(fieldMapping).includes("newphone") ||
-      Object.values(fieldMapping).includes("phone");
-
-    const missingRequired = requiredFields.filter(
-      (field) => !Object.values(fieldMapping).includes(field)
-    );
-
-    if (missingRequired.length > 0) {
+    // Create column mapping based on CSV headers
+    const columnMap = createColumnMapping(headers);
+    
+    // Validate required columns
+    const requiredColumns = ['firstName', 'lastName', 'newEmail', 'newPhone', 'country'];
+    const missingColumns = requiredColumns.filter(col => columnMap[col] === -1);
+    
+    if (missingColumns.length > 0) {
       return res.status(400).json({
         success: false,
-        message: `Missing required fields: ${missingRequired.join(
-          ", "
-        )}. Headers found: ${rawHeaders.join(", ")}`,
-        debug: {
-          receivedHeaders: rawHeaders,
-          fieldMapping: fieldMapping,
-          missingRequired: missingRequired,
-        },
+        message: `Missing required columns: ${missingColumns.join(', ')}. Please check your CSV format.`,
       });
     }
 
-    if (!hasRequiredEmail) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Missing required email field (newemail, new_email, email, etc.)",
-        debug: {
-          receivedHeaders: rawHeaders,
-          fieldMapping: fieldMapping,
-        },
-      });
-    }
-
-    if (!hasRequiredPhone) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Missing required phone field (newphone, new_phone, phone, etc.)",
-        debug: {
-          receivedHeaders: rawHeaders,
-          fieldMapping: fieldMapping,
-        },
-      });
-    }
-
-    // Process each row and create leads
     const leads = [];
     const errors = [];
+    const duplicateEmails = new Set();
 
+    // Check for existing emails in database
+    const existingEmails = await Lead.find({}, { newEmail: 1 }).lean();
+    const existingEmailSet = new Set(existingEmails.map(lead => lead.newEmail));
+
+    // Process each data row
     for (let i = 0; i < dataRows.length; i++) {
-      const row = dataRows[i];
-
-      // Skip empty rows
-      if (row.every((cell) => !cell || cell.trim() === "")) {
-        continue;
-      }
-
-      const leadData = {};
-
-      // Map CSV columns to lead fields using our flexible mapping
-      row.forEach((cellValue, cellIndex) => {
-        const fieldName = fieldMapping[cellIndex];
-        if (fieldName && cellValue && cellValue.trim()) {
-          leadData[fieldName] = cellValue.trim();
-        }
-      });
-
-      console.log(`Row ${i + 2} mapped data:`, leadData);
-
       try {
-        // Validate required lead data
-        if (!leadData.firstname || !leadData.lastname) {
-          throw new Error(
-            "Missing required fields (firstName and lastName are required)"
-          );
-        }
+        const rowData = parseCSVRow(dataRows[i]);
+        const leadData = mapRowToLead(rowData, columnMap, leadType, req.user.id);
 
-        // Get email - prioritize newemail, fall back to any email field
-        const email = leadData.newemail || leadData.email;
-        if (!email) {
-          throw new Error("Email is required");
-        }
-
-        // Get phone - prioritize newphone, fall back to any phone field
-        const phone = leadData.newphone || leadData.phone;
-        if (!phone) {
-          throw new Error("Phone is required");
-        }
-
-        // Validate and clean email format
-        const cleanEmail = email.split(" ")[0].trim().toLowerCase();
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(cleanEmail)) {
-          throw new Error("Invalid email format");
-        }
-
-        // Phone validation - ensure it exists and has reasonable length
-        const cleanPhone = phone.replace(/\D/g, ""); // Remove non-digits
-        if (cleanPhone.length < 5) {
-          throw new Error("Phone number must be at least 5 digits");
-        }
-
-        // Create lead object with all available fields
-        const leadObject = {
-          firstName: leadData.firstname,
-          lastName: leadData.lastname,
-          newEmail: cleanEmail,
-          oldEmail: leadData.oldemail || "",
-          newPhone: cleanPhone,
-          oldPhone: leadData.oldphone
-            ? leadData.oldphone.replace(/\D/g, "")
-            : "",
-          country: leadData.geo || "Unknown",
-          gender: leadData.gender
-            ? leadData.gender.toLowerCase()
-            : "not_defined",
-          leadType: leadType,
-          createdBy: req.user.id,
-          isAssigned: false,
-          status: "active",
-        };
-
-        // Validate gender value and set default if invalid
-        const validGenders = ["male", "female", "not_defined"];
-        if (!validGenders.includes(leadObject.gender)) {
-          leadObject.gender = "not_defined";
-        }
-
-        // Handle date of birth conversion
-        if (leadData.dateofbirth) {
-          try {
-            const dobString = leadData.dateofbirth;
-            let dobDate;
-
-            // Check if it's a number (Excel serial date)
-            if (!isNaN(dobString) && dobString.length <= 5) {
-              // Convert Excel serial date to JavaScript date
-              const excelEpoch = new Date(1900, 0, 1);
-              dobDate = new Date(
-                excelEpoch.getTime() +
-                (parseInt(dobString) - 2) * 24 * 60 * 60 * 1000
-              );
-            } else if (dobString.includes("/")) {
-              // Handle DD/MM/YYYY format
-              const parts = dobString.split("/");
-              if (parts.length === 3) {
-                const day = parseInt(parts[0]);
-                const month = parseInt(parts[1]) - 1; // Month is 0-indexed
-                const year = parseInt(parts[2]);
-                dobDate = new Date(year, month, day);
-              }
-            } else if (dobString.includes("-")) {
-              // Handle YYYY-MM-DD format
-              dobDate = new Date(dobString);
-            }
-
-            if (dobDate && !isNaN(dobDate.getTime())) {
-              leadObject.dob = dobDate;
-            }
-          } catch (error) {
-            console.log(
-              `Warning: Could not parse date of birth "${leadData.dateofbirth
-              }" for row ${i + 2}`
-            );
-          }
-        }
-
-        // Add optional fields if they exist in CSV
-        if (leadData.prefix) leadObject.prefix = leadData.prefix;
-        if (leadData.agent) leadObject.agent = leadData.agent;
-        if (leadData.extension) leadObject.extension = leadData.extension;
-        if (leadData.address) leadObject.address = leadData.address;
-
-        // Handle social media fields
-        const socialMedia = {};
-        if (leadData.facebook) socialMedia.facebook = leadData.facebook;
-        if (leadData.twitter) socialMedia.twitter = leadData.twitter;
-        if (leadData.linkedin) socialMedia.linkedin = leadData.linkedin;
-        if (leadData.instagram) socialMedia.instagram = leadData.instagram;
-        if (leadData.telegram) socialMedia.telegram = leadData.telegram;
-
-        if (Object.keys(socialMedia).length > 0) {
-          leadObject.socialMedia = socialMedia;
-        }
-
-        // Handle document fields
-        const documents = [];
-        if (leadData.idfront) {
-          documents.push({
-            url: leadData.idfront,
-            description: 'ID Front'
+        // Validate required fields
+        const validation = validateLeadData(leadData);
+        if (!validation.isValid) {
+          errors.push({
+            row: i + 2,
+            error: `Validation failed: ${validation.errors.join(', ')}`,
+            data: leadData
           });
-        }
-        if (leadData.idback) {
-          documents.push({
-            url: leadData.idback,
-            description: 'ID Back'
-          });
-        }
-        if (leadData.selfiefront) {
-          documents.push({
-            url: leadData.selfiefront,
-            description: 'Selfie'
-          });
-        }
-        if (leadData.residenceproof) {
-          documents.push({
-            url: leadData.residenceproof,
-            description: 'Proof of Residence'
-          });
+          continue;
         }
 
-        if (documents.length > 0) {
-          leadObject.documents = documents;
+        // Check for duplicate emails
+        if (existingEmailSet.has(leadData.newEmail) || duplicateEmails.has(leadData.newEmail)) {
+          errors.push({
+            row: i + 2,
+            error: `Email ${leadData.newEmail} already exists`,
+            data: leadData
+          });
+          continue;
         }
 
-        // Create and save lead
-        const lead = new Lead(leadObject);
-        await lead.save();
-        leads.push(lead);
+        duplicateEmails.add(leadData.newEmail);
+        leads.push(leadData);
+
       } catch (error) {
         errors.push({
-          row: i + 2, // +2 because of 0-based index and header row
-          error: error.message,
-          data: leadData,
+          row: i + 2,
+          error: `Processing error: ${error.message}`,
+          data: null
         });
       }
     }
 
+    // Save leads to database
+    let savedLeads = [];
+    if (leads.length > 0) {
+      try {
+        savedLeads = await Lead.insertMany(leads, { ordered: false });
+      } catch (bulkError) {
+        // Handle bulk insert errors
+        if (bulkError.writeErrors) {
+          bulkError.writeErrors.forEach((writeError, index) => {
+            errors.push({
+              row: index + 2,
+              error: `Database error: ${writeError.errmsg}`,
+              data: leads[index]
+            });
+          });
+          savedLeads = bulkError.insertedDocs || [];
+        } else {
+          throw bulkError;
+        }
+      }
+    }
+
+    // Return results
     res.status(200).json({
       success: true,
-      message: `Successfully imported ${leads.length} leads${errors.length > 0 ? ` with ${errors.length} errors` : ""
-        }`,
+      message: `Successfully processed ${dataRows.length} rows. Imported ${savedLeads.length} leads${errors.length > 0 ? ` with ${errors.length} errors` : ""}`,
       data: {
-        imported: leads.length,
-        errors: errors,
-        headerMapping: fieldMapping,
-        detectedFields: Object.values(fieldMapping),
+        imported: savedLeads.length,
+        total: dataRows.length,
+        errors: errors
       },
     });
+
   } catch (error) {
     console.error("Import error:", error);
-    next(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to import leads",
+      error: error.message,
+    });
   }
 };
+
+// Helper function to create column mapping from headers
+function createColumnMapping(headers) {
+  const columnMap = {};
+  
+  // Define header mappings (case-insensitive)
+  const headerMappings = {
+    gender: ['gender'],
+    firstName: ['first name', 'firstname', 'first_name', 'fname'],
+    lastName: ['last name', 'lastname', 'last_name', 'lname'],
+    oldEmail: ['old email', 'oldemail', 'old_email', 'email_old'],
+    newEmail: ['new email', 'newemail', 'new_email', 'email'],
+    prefix: ['prefix'],
+    oldPhone: ['old phone', 'oldphone', 'old_phone', 'phone_old'],
+    newPhone: ['new phone', 'newphone', 'new_phone', 'phone'],
+    agent: ['agent'],
+    extension: ['extension', 'ext'],
+    dateOfBirth: ['date of birth', 'dateofbirth', 'date_of_birth', 'dob'],
+    address: ['address'],
+    facebook: ['facebook', 'fb'],
+    twitter: ['twitter'],
+    linkedin: ['linkedin'],
+    instagram: ['instagram', 'ig'],
+    telegram: ['telegram'],
+    idFront: ['id front', 'idfront', 'id_front'],
+    idBack: ['id back', 'idback', 'id_back'],
+    selfieFront: ['selfie front', 'selfiefront', 'selfie_front'],
+    selfieBack: ['selfie back', 'selfieback', 'selfie_back'],
+    idRemark: ['id remark', 'idremark', 'id_remark'],
+    geo: ['geo', 'country', 'location']
+  };
+
+  // Initialize all columns to -1 (not found)
+  Object.keys(headerMappings).forEach(key => {
+    columnMap[key] = -1;
+  });
+
+  // Map headers to column indices
+  headers.forEach((header, index) => {
+    const normalizedHeader = header.toLowerCase().trim();
+    
+    for (const [field, variations] of Object.entries(headerMappings)) {
+      if (variations.some(variation => normalizedHeader === variation.toLowerCase())) {
+        columnMap[field] = index;
+        break;
+      }
+    }
+  });
+
+  return columnMap;
+}
+
+// Helper function to parse CSV row handling quoted values
+function parseCSVRow(row) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  let i = 0;
+
+  while (i < row.length) {
+    const char = row[i];
+    
+    if (char === '"') {
+      if (inQuotes && row[i + 1] === '"') {
+        // Handle escaped quotes
+        current += '"';
+        i += 2;
+        continue;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+    i++;
+  }
+  
+  // Add the last field
+  result.push(current.trim());
+  
+  return result;
+}
+
+// Helper function to map row data to lead object
+function mapRowToLead(rowData, columnMap, leadType, userId) {
+  const lead = {
+    leadType,
+    createdBy: userId,
+    socialMedia: {},
+    documents: []
+  };
+
+  // Map basic fields
+  if (columnMap.gender !== -1 && rowData[columnMap.gender]) {
+    const gender = rowData[columnMap.gender].toLowerCase();
+    if (['male', 'female', 'not_defined'].includes(gender)) {
+      lead.gender = gender;
+    }
+  }
+
+  if (columnMap.firstName !== -1) lead.firstName = rowData[columnMap.firstName] || '';
+  if (columnMap.lastName !== -1) lead.lastName = rowData[columnMap.lastName] || '';
+  if (columnMap.newEmail !== -1) lead.newEmail = (rowData[columnMap.newEmail] || '').toLowerCase();
+  if (columnMap.oldEmail !== -1) lead.oldEmail = (rowData[columnMap.oldEmail] || '').toLowerCase();
+  if (columnMap.newPhone !== -1) lead.newPhone = rowData[columnMap.newPhone] || '';
+  if (columnMap.oldPhone !== -1) lead.oldPhone = rowData[columnMap.oldPhone] || '';
+  if (columnMap.prefix !== -1) lead.prefix = rowData[columnMap.prefix] || '';
+  if (columnMap.agent !== -1) lead.agent = rowData[columnMap.agent] || '';
+  if (columnMap.extension !== -1) lead.extension = rowData[columnMap.extension] || '';
+  if (columnMap.address !== -1) lead.address = rowData[columnMap.address] || '';
+
+  // Map country (try geo column first, then country)
+  if (columnMap.geo !== -1 && rowData[columnMap.geo]) {
+    lead.country = rowData[columnMap.geo];
+  } else if (columnMap.country !== -1 && rowData[columnMap.country]) {
+    lead.country = rowData[columnMap.country];
+  } else {
+    lead.country = 'Unknown'; // Default fallback
+  }
+
+  // Parse date of birth
+  if (columnMap.dateOfBirth !== -1 && rowData[columnMap.dateOfBirth]) {
+    lead.dob = parseDateOfBirth(rowData[columnMap.dateOfBirth]);
+  }
+
+  // Map social media
+  if (columnMap.facebook !== -1 && rowData[columnMap.facebook]) {
+    lead.socialMedia.facebook = rowData[columnMap.facebook];
+  }
+  if (columnMap.twitter !== -1 && rowData[columnMap.twitter]) {
+    lead.socialMedia.twitter = rowData[columnMap.twitter];
+  }
+  if (columnMap.linkedin !== -1 && rowData[columnMap.linkedin]) {
+    lead.socialMedia.linkedin = rowData[columnMap.linkedin];
+  }
+  if (columnMap.instagram !== -1 && rowData[columnMap.instagram]) {
+    lead.socialMedia.instagram = rowData[columnMap.instagram];
+  }
+  if (columnMap.telegram !== -1 && rowData[columnMap.telegram]) {
+    lead.socialMedia.telegram = rowData[columnMap.telegram];
+  }
+
+  // Map document URLs for FTD leads
+  if (leadType === 'ftd') {
+    if (columnMap.idFront !== -1 && rowData[columnMap.idFront]) {
+      lead.documents.push({
+        url: rowData[columnMap.idFront],
+        description: 'ID Front'
+      });
+    }
+    if (columnMap.idBack !== -1 && rowData[columnMap.idBack]) {
+      lead.documents.push({
+        url: rowData[columnMap.idBack],
+        description: 'ID Back'
+      });
+    }
+    if (columnMap.selfieFront !== -1 && rowData[columnMap.selfieFront]) {
+      lead.documents.push({
+        url: rowData[columnMap.selfieFront],
+        description: 'Selfie Front'
+      });
+    }
+    if (columnMap.selfieBack !== -1 && rowData[columnMap.selfieBack]) {
+      lead.documents.push({
+        url: rowData[columnMap.selfieBack],
+        description: 'Selfie Back'
+      });
+    }
+  }
+
+  return lead;
+}
+
+// Helper function to parse date of birth
+function parseDateOfBirth(dobString) {
+  if (!dobString) return null;
+
+  try {
+    // Handle different date formats
+    if (dobString.includes('/')) {
+      // Handle DD/MM/YYYY format
+      const parts = dobString.split('/');
+      if (parts.length === 3) {
+        const day = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+        const year = parseInt(parts[2]);
+        const date = new Date(year, month, day);
+        if (!isNaN(date.getTime())) return date;
+      }
+    } else if (dobString.includes('-')) {
+      // Handle YYYY-MM-DD format
+      const date = new Date(dobString);
+      if (!isNaN(date.getTime())) return date;
+    } else if (!isNaN(dobString) && dobString.length <= 5) {
+      // Handle Excel serial number
+      const excelEpoch = new Date(1900, 0, 1);
+      const date = new Date(excelEpoch.getTime() + (parseInt(dobString) - 2) * 24 * 60 * 60 * 1000);
+      if (!isNaN(date.getTime())) return date;
+    }
+  } catch (error) {
+    console.log(`Warning: Could not parse date of birth "${dobString}"`);
+  }
+
+  return null;
+}
+
+// Helper function to validate lead data
+function validateLeadData(leadData) {
+  const errors = [];
+
+  if (!leadData.firstName || leadData.firstName.trim().length === 0) {
+    errors.push('First name is required');
+  }
+  if (!leadData.lastName || leadData.lastName.trim().length === 0) {
+    errors.push('Last name is required');
+  }
+  if (!leadData.newEmail || leadData.newEmail.trim().length === 0) {
+    errors.push('Email is required');
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadData.newEmail)) {
+    errors.push('Invalid email format');
+  }
+  if (!leadData.newPhone || leadData.newPhone.trim().length === 0) {
+    errors.push('Phone number is required');
+  }
+  if (!leadData.country || leadData.country.trim().length === 0) {
+    errors.push('Country is required');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
 
 // @desc    Delete a lead
 // @route   DELETE /api/leads/:id
