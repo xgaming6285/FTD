@@ -1138,11 +1138,6 @@ function validateLeadData(leadData) {
   if (!leadData.lastName || leadData.lastName.trim().length === 0) {
     errors.push('Last name is required');
   }
-  if (!leadData.newEmail || leadData.newEmail.trim().length === 0) {
-    errors.push('Email is required');
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadData.newEmail)) {
-    errors.push('Invalid email format');
-  }
   if (!leadData.newPhone || leadData.newPhone.trim().length === 0) {
     errors.push('Phone number is required');
   }
