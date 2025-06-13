@@ -52,9 +52,8 @@ exports.getLeads = async (req, res, next) => {
 
     // Role-based filtering
     if (req.user.role === "affiliate_manager") {
-      // Affiliate managers can only see leads assigned to them
-      filter.assignedTo = req.user.id;
-      filter.isAssigned = true;
+      // Affiliate managers can see all leads to manage assignments
+      // No additional filtering needed - they can see all leads for management purposes
     } else if (req.user.role === "lead_manager") {
       // Lead managers can only see leads they added
       filter.createdBy = req.user.id;
@@ -337,11 +336,8 @@ exports.getLeadStats = async (req, res, next) => {
 
     // Role-based filtering for stats
     if (req.user.role === "affiliate_manager") {
-      // Affiliate managers can only see stats for leads assigned to them
-      matchCondition = {
-        assignedTo: req.user._id,
-        isAssigned: true,
-      };
+      // Affiliate managers can see stats for all leads to manage assignments
+      // No additional filtering needed
     }
 
     // Build aggregation pipeline with role-based match condition
@@ -478,9 +474,8 @@ exports.assignLeads = async (req, res, next) => {
 
     // Role-based filtering for affiliate managers
     if (req.user.role === "affiliate_manager") {
-      // Affiliate managers can only assign leads that are assigned to them
-      updateCondition.assignedTo = req.user.id;
-      updateCondition.isAssigned = true;
+      // Affiliate managers can assign any leads for management purposes
+      // No additional filtering needed - they can reassign any lead by ID
     } else if (req.user.role === "admin") {
       // Admins can assign any lead (both unassigned and reassign already assigned ones)
       // No additional filtering needed - they can assign any lead by ID
@@ -563,8 +558,8 @@ exports.unassignLeads = async (req, res, next) => {
 
     // Role-based filtering for affiliate managers
     if (req.user.role === "affiliate_manager") {
-      // Affiliate managers can only unassign leads that are assigned to them
-      updateCondition.assignedTo = req.user.id;
+      // Affiliate managers can unassign any leads for management purposes
+      // No additional filtering needed - they can unassign any lead by ID
     }
 
     // Update leads
