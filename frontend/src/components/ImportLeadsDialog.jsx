@@ -22,7 +22,6 @@ import {
   TableRow,
   Paper,
   Collapse,
-  Chip,
 } from '@mui/material';
 import { 
   FileUpload as ImportIcon, 
@@ -45,34 +44,22 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [importResults, setImportResults] = useState(null);
   const [csvPreview, setCsvPreview] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [showErrors, setShowErrors] = useState(false);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    console.log("Selected file:", file);
 
     if (file) {
-      // Validate file type
-      const validTypes = [
-        "text/csv",
-        "application/csv",
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      ];
-      const isValidType =
-        validTypes.includes(file.type) || file.name.endsWith(".csv");
-
-      if (!isValidType) {
+      // Basic file validation
+      if (!file.name.endsWith(".csv")) {
         setError("Please upload a valid CSV file");
         setSelectedFile(null);
         return;
       }
 
-      // Validate file size (10MB max)
-      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+      // File size check (10MB max)
+      const maxSize = 10 * 1024 * 1024;
       if (file.size > maxSize) {
         setError("File size must be less than 10MB");
         setSelectedFile(null);
@@ -82,7 +69,6 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
       setSelectedFile(file);
       setError(null);
       setSuccess(null);
-      setImportResults(null);
       setCsvPreview(null);
       
       // Generate preview
@@ -107,11 +93,10 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
           setCsvPreview({
             headers,
             dataRows: dataRows.map(row => {
-              // Simple CSV parsing for preview
               const fields = row.split(',').map(field => field.trim().replace(/"/g, ''));
               return fields;
             }),
-            totalRows: rows.length - 1 // Subtract header row
+            totalRows: rows.length - 1
           });
         }
       } catch (error) {
@@ -130,45 +115,26 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
     setLoading(true);
     setError(null);
     setSuccess(null);
-    setImportResults(null);
 
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
       formData.append("leadType", selectedLeadType);
 
-      // Log the FormData contents for debugging
-      console.log('FormData contents:', {
-        file: selectedFile,
-        fileSize: selectedFile.size,
-        fileType: selectedFile.type,
-        fileName: selectedFile.name,
-        leadType: selectedLeadType
-      });
-
-      // Make API request
       const response = await api.post("/leads/import", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
-        },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          console.log('Upload progress:', percentCompleted);
         }
       });
 
       if (response.data.success) {
         setSuccess(response.data.message);
-        setImportResults(response.data.data);
         if (onImportComplete) {
           onImportComplete();
         }
-        // Don't auto-close if there are errors to show
-        if (!response.data.data.errors || response.data.data.errors.length === 0) {
-          setTimeout(() => {
-            onClose();
-          }, 2000);
-        }
+        setTimeout(() => {
+          onClose();
+        }, 2000);
       } else {
         setError(response.data.message || "Import failed");
       }
@@ -189,10 +155,8 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
     setSelectedLeadType("");
     setError(null);
     setSuccess(null);
-    setImportResults(null);
     setCsvPreview(null);
     setShowPreview(false);
-    setShowErrors(false);
     onClose();
   };
 
@@ -293,59 +257,12 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
         {success && (
           <Alert severity="success" sx={{ mt: 2 }}>
             {success}
-            {importResults && (
-              <Box sx={{ mt: 1 }}>
-                <Typography variant="body2">
-                  Successfully imported {importResults.imported} out of {importResults.total} leads
-                  {importResults.errors?.length > 0 && (
-                    <>
-                      {' with '}
-                      <Chip 
-                        size="small" 
-                        label={`${importResults.errors.length} errors`}
-                        color="warning"
-                        onClick={() => setShowErrors(!showErrors)}
-                        sx={{ cursor: 'pointer' }}
-                      />
-                    </>
-                  )}
-                </Typography>
-              </Box>
-            )}
           </Alert>
-        )}
-
-        {/* Error Details */}
-        {importResults?.errors?.length > 0 && (
-          <Box sx={{ mt: 2 }}>
-            <Collapse in={showErrors}>
-              <Alert severity="warning">
-                <Typography variant="subtitle2" gutterBottom>
-                  Import Errors:
-                </Typography>
-                <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
-                  {importResults.errors.slice(0, 10).map((error, index) => (
-                    <Typography key={index} variant="caption" display="block">
-                      Row {error.row}: {error.error}
-                    </Typography>
-                  ))}
-                  {importResults.errors.length > 10 && (
-                    <Typography variant="caption" color="text.secondary">
-                      ... and {importResults.errors.length - 10} more errors
-                    </Typography>
-                  )}
-                </Box>
-              </Alert>
-            </Collapse>
-          </Box>
         )}
 
         <Box sx={{ mt: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            Expected CSV format: gender, first name, last name, old email, new email, prefix, old phone, new phone, agent, Extension, Date of birth, address, Facebook, Twitter, Linkedin, Instagram, Telegram, ID front, ID back, Selfie front, Selfie back, ID remark, GEO
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontWeight: 'bold' }}>
-            Note: Use exact column names - agent, Extension, Date of birth, address, Facebook, Twitter, Linkedin, Instagram, Telegram, ID front, ID back, Selfie front, Selfie back, ID remark, GEO
+            Expected CSV format: first name, last name, email, phone, geo, gender, old email, old phone, prefix, agent, extension, address
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Download a{" "}

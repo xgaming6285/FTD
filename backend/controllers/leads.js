@@ -831,13 +831,7 @@ exports.importLeads = async (req, res, next) => {
     const stream = Readable.from([csvData]);
 
     const leads = [];
-    const errors = [];
-    const duplicateEmails = new Set();
-    let rowNumber = 1; // Start from 1 to account for header
-
-    // Check for existing emails in database
-    const existingEmails = await Lead.find({}, { newEmail: 1 }).lean();
-    const existingEmailSet = new Set(existingEmails.map(lead => lead.newEmail));
+    let rowNumber = 1;
 
     // Parse CSV using csv-parser
     const parsePromise = new Promise((resolve, reject) => {
@@ -848,39 +842,30 @@ exports.importLeads = async (req, res, next) => {
         }))
         .on('data', (row) => {
           rowNumber++;
-          try {
-            const leadData = mapRowToLead(row, leadType, req.user.id);
+          
+          // Simple mapping - just extract the data as is
+          const lead = {
+            leadType,
+            createdBy: req.user.id,
+            firstName: row['first name'] || row['firstname'] || '',
+            lastName: row['last name'] || row['lastname'] || '',
+            newEmail: (row['new email'] || row['email'] || '').toLowerCase(),
+            newPhone: row['new phone'] || row['phone'] || '',
+            country: row['geo'] || row['country'] || 'Unknown',
+            gender: row['gender'] || 'not_defined',
+            oldEmail: (row['old email'] || '').toLowerCase(),
+            oldPhone: row['old phone'] || '',
+            prefix: row['prefix'] || '',
+            agent: row['agent'] || '',
+            extension: row['extension'] || '',
+            address: row['address'] || '',
+            socialMedia: {},
+            documents: []
+          };
 
-            // Validate required fields
-            const validation = validateLeadData(leadData);
-            if (!validation.isValid) {
-              errors.push({
-                row: rowNumber,
-                error: `Validation failed: ${validation.errors.join(', ')}`,
-                data: leadData
-              });
-              return;
-            }
-
-            // Check for duplicate emails
-            if (existingEmailSet.has(leadData.newEmail) || duplicateEmails.has(leadData.newEmail)) {
-              errors.push({
-                row: rowNumber,
-                error: `Email ${leadData.newEmail} already exists`,
-                data: leadData
-              });
-              return;
-            }
-
-            duplicateEmails.add(leadData.newEmail);
-            leads.push(leadData);
-
-          } catch (error) {
-            errors.push({
-              row: rowNumber,
-              error: `Processing error: ${error.message}`,
-              data: null
-            });
+          // Only add if we have minimum required data
+          if (lead.firstName && lead.lastName && lead.newEmail) {
+            leads.push(lead);
           }
         })
         .on('end', () => {
@@ -899,30 +884,18 @@ exports.importLeads = async (req, res, next) => {
       try {
         savedLeads = await Lead.insertMany(leads, { ordered: false });
       } catch (bulkError) {
-        // Handle bulk insert errors
-        if (bulkError.writeErrors) {
-          bulkError.writeErrors.forEach((writeError, index) => {
-            errors.push({
-              row: index + 2,
-              error: `Database error: ${writeError.errmsg}`,
-              data: leads[index]
-            });
-          });
-          savedLeads = bulkError.insertedDocs || [];
-        } else {
-          throw bulkError;
-        }
+        // If there are duplicate errors, just get what was saved
+        savedLeads = bulkError.insertedDocs || [];
       }
     }
 
     // Return results
     res.status(200).json({
       success: true,
-      message: `Successfully processed ${rowNumber - 1} rows. Imported ${savedLeads.length} leads${errors.length > 0 ? ` with ${errors.length} errors` : ""}`,
+      message: `Successfully imported ${savedLeads.length} out of ${leads.length} leads`,
       data: {
         imported: savedLeads.length,
-        total: rowNumber - 1,
-        errors: errors
+        total: leads.length
       },
     });
 
@@ -935,221 +908,6 @@ exports.importLeads = async (req, res, next) => {
     });
   }
 };
-
-// Helper function to map row data to lead object using normalized headers
-function mapRowToLead(row, leadType, userId) {
-  const lead = {
-    leadType,
-    createdBy: userId,
-    socialMedia: {},
-    documents: []
-  };
-
-  // Helper function to get value from row with flexible header matching
-  const getValue = (fieldVariations) => {
-    for (const variation of fieldVariations) {
-      if (row[variation] !== undefined && row[variation] !== null && row[variation].toString().trim() !== '') {
-        return row[variation].toString().trim();
-      }
-    }
-    return '';
-  };
-
-  // Map basic fields with flexible header matching
-  const genderValue = getValue(['gender']);
-  if (genderValue) {
-    const gender = genderValue.toLowerCase();
-    if (['male', 'female', 'not_defined'].includes(gender)) {
-      lead.gender = gender;
-    } else {
-      lead.gender = 'not_defined';
-    }
-  } else {
-    lead.gender = 'not_defined';
-  }
-
-  lead.firstName = getValue(['first name', 'firstname', 'first_name', 'fname']);
-  lead.lastName = getValue(['last name', 'lastname', 'last_name', 'lname']);
-  lead.newEmail = getValue(['new email', 'newemail', 'new_email', 'email']).toLowerCase();
-  
-  const oldEmailValue = getValue(['old email', 'oldemail', 'old_email', 'email_old']);
-  if (oldEmailValue) {
-    lead.oldEmail = oldEmailValue.toLowerCase();
-  }
-
-  lead.newPhone = getValue(['new phone', 'newphone', 'new_phone', 'phone']);
-  
-  const oldPhoneValue = getValue(['old phone', 'oldphone', 'old_phone', 'phone_old']);
-  if (oldPhoneValue) {
-    lead.oldPhone = oldPhoneValue;
-  }
-
-  const prefixValue = getValue(['prefix']);
-  if (prefixValue) {
-    lead.prefix = prefixValue;
-  }
-
-  const agentValue = getValue(['agent']);
-  if (agentValue) {
-    lead.agent = agentValue;
-  }
-
-  const extensionValue = getValue(['extension']);
-  if (extensionValue) {
-    lead.extension = extensionValue;
-  }
-
-  const addressValue = getValue(['address']);
-  if (addressValue) {
-    lead.address = addressValue;
-  }
-
-  // Map country using GEO column
-  const geoValue = getValue(['geo']);
-  if (geoValue) {
-    lead.country = geoValue;
-  } else {
-    lead.country = 'Unknown';
-  }
-
-  // Parse date of birth
-  const dobValue = getValue(['date of birth']);
-  if (dobValue) {
-    const parsedDob = parseDateOfBirth(dobValue);
-    if (parsedDob) {
-      lead.dob = parsedDob;
-    }
-  }
-
-  // Map social media (only if values exist)
-  const facebookValue = getValue(['facebook']);
-  if (facebookValue) {
-    lead.socialMedia.facebook = facebookValue;
-  }
-
-  const twitterValue = getValue(['twitter']);
-  if (twitterValue) {
-    lead.socialMedia.twitter = twitterValue;
-  }
-
-  const linkedinValue = getValue(['linkedin']);
-  if (linkedinValue) {
-    lead.socialMedia.linkedin = linkedinValue;
-  }
-
-  const instagramValue = getValue(['instagram']);
-  if (instagramValue) {
-    lead.socialMedia.instagram = instagramValue;
-  }
-
-  const telegramValue = getValue(['telegram']);
-  if (telegramValue) {
-    lead.socialMedia.telegram = telegramValue;
-  }
-
-  // Map document URLs for FTD leads
-  if (leadType === 'ftd') {
-    const idFrontValue = getValue(['id front']);
-    if (idFrontValue) {
-      lead.documents.push({
-        url: idFrontValue,
-        description: 'ID Front'
-      });
-    }
-
-    const idBackValue = getValue(['id back']);
-    if (idBackValue) {
-      lead.documents.push({
-        url: idBackValue,
-        description: 'ID Back'
-      });
-    }
-
-    const selfieFrontValue = getValue(['selfie front']);
-    if (selfieFrontValue) {
-      lead.documents.push({
-        url: selfieFrontValue,
-        description: 'Selfie Front'
-      });
-    }
-
-    const selfieBackValue = getValue(['selfie back']);
-    if (selfieBackValue) {
-      lead.documents.push({
-        url: selfieBackValue,
-        description: 'Selfie Back'
-      });
-    }
-
-    // Add ID remark as a comment if it exists
-    const idRemarkValue = getValue(['id remark']);
-    if (idRemarkValue) {
-      lead.comments = [{
-        text: `ID Remark: ${idRemarkValue}`,
-        author: userId,
-        createdAt: new Date()
-      }];
-    }
-  }
-
-  return lead;
-}
-
-// Helper function to parse date of birth
-function parseDateOfBirth(dobString) {
-  if (!dobString) return null;
-
-  try {
-    // Handle different date formats
-    if (dobString.includes('/')) {
-      // Handle DD/MM/YYYY format
-      const parts = dobString.split('/');
-      if (parts.length === 3) {
-        const day = parseInt(parts[0]);
-        const month = parseInt(parts[1]) - 1; // Month is 0-indexed
-        const year = parseInt(parts[2]);
-        const date = new Date(year, month, day);
-        if (!isNaN(date.getTime())) return date;
-      }
-    } else if (dobString.includes('-')) {
-      // Handle YYYY-MM-DD format
-      const date = new Date(dobString);
-      if (!isNaN(date.getTime())) return date;
-    } else if (!isNaN(dobString) && dobString.length <= 5) {
-      // Handle Excel serial number
-      const excelEpoch = new Date(1900, 0, 1);
-      const date = new Date(excelEpoch.getTime() + (parseInt(dobString) - 2) * 24 * 60 * 60 * 1000);
-      if (!isNaN(date.getTime())) return date;
-    }
-  } catch (error) {
-    console.log(`Warning: Could not parse date of birth "${dobString}"`);
-  }
-
-  return null;
-}
-
-// Helper function to validate lead data
-function validateLeadData(leadData) {
-  const errors = [];
-
-  if (!leadData.firstName || leadData.firstName.trim().length === 0) {
-    errors.push('First name is required');
-  }
-  if (!leadData.lastName || leadData.lastName.trim().length === 0) {
-    errors.push('Last name is required');
-  }
-  if (!leadData.newPhone || leadData.newPhone.trim().length === 0) {
-    errors.push('Phone number is required');
-  }
-  if (!leadData.country || leadData.country.trim().length === 0) {
-    errors.push('Country is required');
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-}
 
 // @desc    Delete a lead
 // @route   DELETE /api/leads/:id
