@@ -987,7 +987,6 @@ exports.importLeads = async (req, res, next) => {
         "new_email",
         "email_new",
         "email",
-        "emailaddress",
         "new email",
       ],
       prefix: ["prefix"],
@@ -1029,33 +1028,18 @@ exports.importLeads = async (req, res, next) => {
     rawHeaders.forEach((header, index) => {
       const normalizedHeader = normalizeHeader(header);
 
-      // Find matching field - use exact match first, then fallback to contains
+      // Find matching field - use exact match only to avoid confusion
       for (const [fieldName, variations] of Object.entries(headerMappings)) {
-        // First try exact match
+        // Try exact match only
         if (variations.some(variation => normalizedHeader === normalizeHeader(variation))) {
           fieldMapping[index] = fieldName;
           break;
         }
       }
       
-      // If no exact match found, try contains matching (but be more careful)
+      // If no exact match found, log it for debugging
       if (!fieldMapping[index]) {
-        for (const [fieldName, variations] of Object.entries(headerMappings)) {
-          if (
-            variations.some(
-              (variation) => {
-                const normalizedVariation = normalizeHeader(variation);
-                // Only match if the normalized header is substantially similar
-                // Avoid partial matches that could cause confusion
-                return (normalizedHeader.includes(normalizedVariation) && normalizedVariation.length >= 3) ||
-                       (normalizedVariation.includes(normalizedHeader) && normalizedHeader.length >= 3);
-              }
-            )
-          ) {
-            fieldMapping[index] = fieldName;
-            break;
-          }
-        }
+        console.log(`No exact match found for header: "${header}" (normalized: "${normalizedHeader}")`);
       }
     });
 
