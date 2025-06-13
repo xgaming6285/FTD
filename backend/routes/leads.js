@@ -20,6 +20,7 @@ const {
   createLead,
   deleteLead,
   importLeads,
+  previewCsvImport,
 } = require("../controllers/leads");
 
 const router = express.Router();
@@ -280,6 +281,15 @@ router.put(
 
 // Delete lead (Admin only)
 router.delete("/:id", [protect, isAdmin], deleteLead);
+
+// @route   POST /api/leads/import/preview
+// @desc    Preview CSV import (validate headers and show sample data)
+// @access  Private (Admin, Affiliate Manager, Lead Manager)
+router.post(
+  "/import/preview",
+  [protect, authorize("admin", "affiliate_manager", "lead_manager")],
+  previewCsvImport
+);
 
 // @route   POST /api/leads/import
 // @desc    Import leads from CSV file

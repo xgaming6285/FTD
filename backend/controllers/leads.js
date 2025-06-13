@@ -842,71 +842,83 @@ exports.importLeads = async (req, res, next) => {
             const normalized = header.trim().toLowerCase();
             console.log(`Mapping header "${header}" (index ${index}) -> normalized: "${normalized}"`);
             
-            if (normalized === 'new email') {
-              console.log(`  -> mapping to: newemail`);
-              return 'newemail';
+            // Explicit mapping for known headers
+            switch (normalized) {
+              case 'new email':
+                console.log(`  -> mapping to: newemail`);
+                return 'newemail';
+              case 'old email':
+                console.log(`  -> mapping to: oldemail`);
+                return 'oldemail';
+              case 'first name':
+                console.log(`  -> mapping to: firstname`);
+                return 'firstname';
+              case 'last name':
+                console.log(`  -> mapping to: lastname`);
+                return 'lastname';
+              case 'new phone':
+                console.log(`  -> mapping to: newphone`);
+                return 'newphone';
+              case 'old phone':
+                console.log(`  -> mapping to: oldphone`);
+                return 'oldphone';
+              case 'date of birth':
+                console.log(`  -> mapping to: dateofbirth`);
+                return 'dateofbirth';
+              case 'id front':
+                console.log(`  -> mapping to: idfront`);
+                return 'idfront';
+              case 'id back':
+                console.log(`  -> mapping to: idback`);
+                return 'idback';
+              case 'selfie front':
+                console.log(`  -> mapping to: selfiefront`);
+                return 'selfiefront';
+              case 'selfie back':
+                console.log(`  -> mapping to: selfieback`);
+                return 'selfieback';
+              case 'id remark':
+                console.log(`  -> mapping to: idremark`);
+                return 'idremark';
+              case 'address':
+                console.log(`  -> mapping to: address`);
+                return 'address';
+              case 'geo':
+                console.log(`  -> mapping to: geo`);
+                return 'geo';
+              case 'extension':
+                console.log(`  -> mapping to: extension`);
+                return 'extension';
+              case 'gender':
+                console.log(`  -> mapping to: gender`);
+                return 'gender';
+              case 'prefix':
+                console.log(`  -> mapping to: prefix`);
+                return 'prefix';
+              case 'agent':
+                console.log(`  -> mapping to: agent`);
+                return 'agent';
+              case 'facebook':
+                console.log(`  -> mapping to: facebook`);
+                return 'facebook';
+              case 'twitter':
+                console.log(`  -> mapping to: twitter`);
+                return 'twitter';
+              case 'linkedin':
+                console.log(`  -> mapping to: linkedin`);
+                return 'linkedin';
+              case 'instagram':
+                console.log(`  -> mapping to: instagram`);
+                return 'instagram';
+              case 'telegram':
+                console.log(`  -> mapping to: telegram`);
+                return 'telegram';
+              default:
+                // Remove spaces and convert to lowercase for other fields
+                const result = normalized.replace(/\s+/g, '');
+                console.log(`  -> default mapping to: ${result}`);
+                return result;
             }
-            if (normalized === 'old email') {
-              console.log(`  -> mapping to: oldemail`);
-              return 'oldemail';
-            }
-            if (normalized === 'first name') {
-              console.log(`  -> mapping to: firstname`);
-              return 'firstname';
-            }
-            if (normalized === 'last name') {
-              console.log(`  -> mapping to: lastname`);
-              return 'lastname';
-            }
-            if (normalized === 'new phone') {
-              console.log(`  -> mapping to: newphone`);
-              return 'newphone';
-            }
-            if (normalized === 'old phone') {
-              console.log(`  -> mapping to: oldphone`);
-              return 'oldphone';
-            }
-            if (normalized === 'date of birth') {
-              console.log(`  -> mapping to: dateofbirth`);
-              return 'dateofbirth';
-            }
-            if (normalized === 'id front') {
-              console.log(`  -> mapping to: idfront`);
-              return 'idfront';
-            }
-            if (normalized === 'id back') {
-              console.log(`  -> mapping to: idback`);
-              return 'idback';
-            }
-            if (normalized === 'selfie front') {
-              console.log(`  -> mapping to: selfiefront`);
-              return 'selfiefront';
-            }
-            if (normalized === 'selfie back') {
-              console.log(`  -> mapping to: selfieback`);
-              return 'selfieback';
-            }
-            if (normalized === 'id remark') {
-              console.log(`  -> mapping to: idremark`);
-              return 'idremark';
-            }
-            if (normalized === 'address') {
-              console.log(`  -> mapping to: address`);
-              return 'address';
-            }
-            if (normalized === 'geo') {
-              console.log(`  -> mapping to: geo`);
-              return 'geo';
-            }
-            if (normalized === 'extension') {
-              console.log(`  -> mapping to: extension`);
-              return 'extension';
-            }
-            
-            // Remove spaces and convert to lowercase for other fields
-            const result = normalized.replace(/\s+/g, '');
-            console.log(`  -> default mapping to: ${result}`);
-            return result;
           },
           skipEmptyLines: true
         }))
@@ -969,8 +981,30 @@ exports.importLeads = async (req, res, next) => {
             agent: findField(['agent']),
             extension: findField(['extension']),
             address: addressValue,
-            socialMedia: {},
-            documents: []
+            socialMedia: {
+              facebook: findField(['facebook']),
+              twitter: findField(['twitter']),
+              linkedin: findField(['linkedin']),
+              instagram: findField(['instagram']),
+              telegram: findField(['telegram'])
+            },
+            documents: [],
+            dob: (() => {
+              const dobValue = findField(['dateofbirth']);
+              if (!dobValue) return null;
+              try {
+                // Handle DD/MM/YYYY format common in the CSV
+                const dateParts = dobValue.split('/');
+                if (dateParts.length === 3) {
+                  const [day, month, year] = dateParts;
+                  return new Date(year, month - 1, day); // Month is 0-indexed
+                }
+                return new Date(dobValue);
+              } catch (error) {
+                console.log(`Invalid date format for row ${rowNumber}: ${dobValue}`);
+                return null;
+              }
+            })()
           };
 
           // Debug: log the first few mapped leads
@@ -1066,5 +1100,180 @@ exports.deleteLead = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+// @desc    Preview CSV import (validate headers and show sample data)
+// @route   POST /api/leads/import/preview
+// @access  Private (Admin, Affiliate Manager, Lead Manager)
+exports.previewCsvImport = async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Please upload a CSV file",
+      });
+    }
+
+    const file = req.files.file;
+
+    // Validate file
+    if (!file.data || file.data.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No file data received",
+      });
+    }
+
+    if (!file.mimetype.includes("csv") && !file.name.endsWith(".csv")) {
+      return res.status(400).json({
+        success: false,
+        message: "Please upload a valid CSV file",
+      });
+    }
+
+    // Create a readable stream from the file buffer
+    const csvData = file.data.toString('utf8');
+    const stream = Readable.from([csvData]);
+
+    const previewData = {
+      originalHeaders: [],
+      mappedHeaders: [],
+      sampleRows: [],
+      totalRows: 0,
+      fieldMapping: {}
+    };
+
+    let rowCount = 0;
+
+    // Parse CSV to get headers and sample data
+    const parsePromise = new Promise((resolve, reject) => {
+      stream
+        .pipe(csvParser({
+          mapHeaders: ({ header, index }) => {
+            // Store original header
+            previewData.originalHeaders[index] = header;
+            
+            // Custom header mapping to avoid conflicts
+            const normalized = header.trim().toLowerCase();
+            let mappedHeader = '';
+            
+            // Explicit mapping for known headers
+            switch (normalized) {
+              case 'new email':
+                mappedHeader = 'newemail';
+                break;
+              case 'old email':
+                mappedHeader = 'oldemail';
+                break;
+              case 'first name':
+                mappedHeader = 'firstname';
+                break;
+              case 'last name':
+                mappedHeader = 'lastname';
+                break;
+              case 'new phone':
+                mappedHeader = 'newphone';
+                break;
+              case 'old phone':
+                mappedHeader = 'oldphone';
+                break;
+              case 'date of birth':
+                mappedHeader = 'dateofbirth';
+                break;
+              case 'id front':
+                mappedHeader = 'idfront';
+                break;
+              case 'id back':
+                mappedHeader = 'idback';
+                break;
+              case 'selfie front':
+                mappedHeader = 'selfiefront';
+                break;
+              case 'selfie back':
+                mappedHeader = 'selfieback';
+                break;
+              case 'id remark':
+                mappedHeader = 'idremark';
+                break;
+              case 'address':
+                mappedHeader = 'address';
+                break;
+              case 'geo':
+                mappedHeader = 'geo';
+                break;
+              case 'extension':
+                mappedHeader = 'extension';
+                break;
+              case 'gender':
+                mappedHeader = 'gender';
+                break;
+              case 'prefix':
+                mappedHeader = 'prefix';
+                break;
+              case 'agent':
+                mappedHeader = 'agent';
+                break;
+              case 'facebook':
+                mappedHeader = 'facebook';
+                break;
+              case 'twitter':
+                mappedHeader = 'twitter';
+                break;
+              case 'linkedin':
+                mappedHeader = 'linkedin';
+                break;
+              case 'instagram':
+                mappedHeader = 'instagram';
+                break;
+              case 'telegram':
+                mappedHeader = 'telegram';
+                break;
+              default:
+                // Remove spaces and convert to lowercase for other fields
+                mappedHeader = normalized.replace(/\s+/g, '');
+                break;
+            }
+            
+            previewData.mappedHeaders[index] = mappedHeader;
+            previewData.fieldMapping[header] = mappedHeader;
+            
+            return mappedHeader;
+          },
+          skipEmptyLines: true
+        }))
+        .on('data', (row) => {
+          rowCount++;
+          previewData.totalRows = rowCount;
+          
+          // Store first 3 rows as sample
+          if (rowCount <= 3) {
+            previewData.sampleRows.push(row);
+          }
+        })
+        .on('end', () => {
+          resolve();
+        })
+        .on('error', (error) => {
+          reject(error);
+        });
+    });
+
+    await parsePromise;
+
+    // Return preview data
+    res.status(200).json({
+      success: true,
+      message: "CSV preview generated successfully",
+      data: previewData,
+    });
+
+  } catch (error) {
+    console.error("CSV preview error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to preview CSV",
+      error: error.message,
+    });
   }
 };
