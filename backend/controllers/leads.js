@@ -990,7 +990,7 @@ exports.importLeads = async (req, res, next) => {
         "new email",
       ],
       prefix: ["prefix"],
-      oldphone: ["oldphone", "old_phone", "phone_old", "previousphone"],
+      oldphone: ["oldphone", "old_phone", "phone_old", "previousphone", "old phone"],
       newphone: [
         "newphone",
         "new_phone",
@@ -1001,7 +1001,7 @@ exports.importLeads = async (req, res, next) => {
       ],
       agent: ["agent"],
       extension: ["extension", "ext"],
-      dateofbirth: ["dateofbirth", "date_of_birth", "dob", "birthday"],
+      dateofbirth: ["dateofbirth", "date_of_birth", "dob", "birthday", "date of birth"],
 
       // Social media fields
       facebook: ["facebook", "fb"],
@@ -1011,10 +1011,11 @@ exports.importLeads = async (req, res, next) => {
       telegram: ["telegram"],
 
       // Document fields
-      idfront: ["idfront", "id_front", "frontid"],
-      idback: ["idback", "id_back", "backid"],
-      selfieback: ["selfieback", "selfie_back", "backselfie"],
-      selfiefront: ["selfiefront", "selfie_front", "frontselfie"],
+      idfront: ["idfront", "id_front", "frontid", "id front"],
+      idback: ["idback", "id_back", "backid", "id back"],
+      selfieback: ["selfieback", "selfie_back", "backselfie", "selfie back"],
+      selfiefront: ["selfiefront", "selfie_front", "frontselfie", "selfie front"],
+      idremark: ["idremark", "id_remark", "remark", "id remark"],
 
       // Address field
       address: ["address", "full_address", "fulladdress", "street_address", "streetaddress", "location_address"],
