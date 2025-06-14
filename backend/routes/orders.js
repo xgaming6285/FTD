@@ -8,6 +8,7 @@ const {
   updateOrder,
   cancelOrder,
   getOrderStats,
+  exportOrderLeads,
 } = require("../controllers/orders");
 
 const router = express.Router();
@@ -116,6 +117,11 @@ router.get(
   ],
   getOrderStats
 );
+
+// @route   GET /api/orders/:id/export
+// @desc    Export leads from order as CSV
+// @access  Private (Admin, Manager - own orders only)
+router.get("/:id/export", [protect, isManager], exportOrderLeads);
 
 // @route   GET /api/orders/:id
 // @desc    Get order by ID with populated lead info

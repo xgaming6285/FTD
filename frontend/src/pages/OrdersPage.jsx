@@ -37,6 +37,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Visibility as ViewIcon,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -233,6 +234,44 @@ const OrdersPage = () => {
     }
   }, []);
 
+  const handleExportLeads = useCallback(async (orderId) => {
+    try {
+      setNotification({ message: 'Preparing CSV export...', severity: 'info' });
+
+      const response = await api.get(`/orders/${orderId}/export`, {
+        responseType: 'blob', // Important for file downloads
+      });
+
+      // Create blob link to download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Get filename from response header or create default
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `order_${orderId}_leads_${new Date().toISOString().split('T')[0]}.csv`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setNotification({ message: 'CSV export completed successfully!', severity: 'success' });
+    } catch (err) {
+      setNotification({
+        message: err.response?.data?.message || 'Failed to export leads',
+        severity: 'error',
+      });
+    }
+  }, []);
+
   const toggleRowExpansion = useCallback(async (orderId) => {
     const isCurrentlyExpanded = !!expandedRowData[orderId];
     if (isCurrentlyExpanded) {
@@ -410,8 +449,9 @@ const OrdersPage = () => {
                         <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}><Chip label={order.priority} color={getPriorityColor(order.priority)} size="small" /></TableCell>
                         <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <IconButton size="small" onClick={() => handleViewOrder(order._id)}><ViewIcon fontSize="small" /></IconButton>
-                          <IconButton size="small" onClick={() => toggleRowExpansion(order._id)}>
+                          <IconButton size="small" onClick={() => handleViewOrder(order._id)} title="View Order"><ViewIcon fontSize="small" /></IconButton>
+                          <IconButton size="small" onClick={() => handleExportLeads(order._id)} title="Export Leads as CSV"><DownloadIcon fontSize="small" /></IconButton>
+                          <IconButton size="small" onClick={() => toggleRowExpansion(order._id)} title={isExpanded ? "Collapse" : "Expand"}>
                             {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                           </IconButton>
                         </TableCell>
@@ -440,7 +480,17 @@ const OrdersPage = () => {
                                   </Grid>
                                   {expandedDetails.leads && expandedDetails.leads.length > 0 && (
                                     <Grid item xs={12}>
-                                      <Typography variant="subtitle2" sx={{ mt: 1 }}>Assigned Leads</Typography>
+                                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                        <Typography variant="subtitle2">Assigned Leads</Typography>
+                                        <Button
+                                          size="small"
+                                          startIcon={<DownloadIcon />}
+                                          onClick={() => handleExportLeads(order._id)}
+                                          variant="outlined"
+                                        >
+                                          Export CSV
+                                        </Button>
+                                      </Box>
                                       <TableContainer component={Paper} elevation={2}>
                                         <Table size="small">
                                           <TableHead>
@@ -607,9 +657,17 @@ const OrdersPage = () => {
             </Grid>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
-        </DialogActions>
+                  <DialogActions>
+            <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+            <Button
+              onClick={() => handleExportLeads(selectedOrder._id)}
+              startIcon={<DownloadIcon />}
+              variant="contained"
+              color="primary"
+            >
+              Export Leads CSV
+            </Button>
+          </DialogActions>
       </Dialog>
     </Box>
   );

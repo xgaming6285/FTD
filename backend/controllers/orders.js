@@ -490,3 +490,138 @@ exports.getOrderStats = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Export leads from order as CSV
+// @route   GET /api/orders/:id/export
+// @access  Private (Admin, Manager - own orders only)
+exports.exportOrderLeads = async (req, res, next) => {
+  try {
+    const orderId = req.params.id;
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order ID",
+      });
+    }
+
+    // Get order and check ownership
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    // Check if user can access this order (Admin or owns the order)
+    if (req.user.role !== "admin" && order.requester.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied",
+      });
+    }
+
+    // Get all leads for this order
+    const leads = await Lead.find({ orderId: orderId })
+      .populate("assignedTo", "fullName")
+      .populate("createdBy", "fullName")
+      .sort({ createdAt: -1 });
+
+    if (leads.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No leads found for this order",
+      });
+    }
+
+    // Generate CSV content
+    const csvHeaders = [
+      "Lead Type",
+      "First Name",
+      "Last Name",
+      "Email",
+      "Phone",
+      "Country",
+      "Gender",
+      "Status",
+      "DOB",
+      "Address",
+      "Old Email",
+      "Old Phone",
+      "Client",
+      "Client Broker",
+      "Client Network",
+      "Facebook",
+      "Twitter",
+      "LinkedIn",
+      "Instagram",
+      "Telegram",
+      "WhatsApp",
+      "Assigned To",
+      "Created By",
+      "Created At",
+      "Assigned At"
+    ];
+
+    // Convert leads to CSV rows
+    const csvRows = leads.map(lead => [
+      lead.leadType || "",
+      lead.firstName || "",
+      lead.lastName || "",
+      lead.newEmail || "",
+      lead.newPhone || "",
+      lead.country || "",
+      lead.gender || "",
+      lead.status || "",
+      lead.dob ? lead.dob.toISOString().split('T')[0] : "",
+      lead.address || "",
+      lead.oldEmail || "",
+      lead.oldPhone || "",
+      lead.client || "",
+      lead.clientBroker || "",
+      lead.clientNetwork || "",
+      lead.socialMedia?.facebook || "",
+      lead.socialMedia?.twitter || "",
+      lead.socialMedia?.linkedin || "",
+      lead.socialMedia?.instagram || "",
+      lead.socialMedia?.telegram || "",
+      lead.socialMedia?.whatsapp || "",
+      lead.assignedTo?.fullName || "",
+      lead.createdBy?.fullName || "",
+      lead.createdAt ? lead.createdAt.toISOString().split('T')[0] : "",
+      lead.assignedAt ? lead.assignedAt.toISOString().split('T')[0] : ""
+    ]);
+
+    // Helper function to escape CSV values
+    const escapeCsvValue = (value) => {
+      if (value === null || value === undefined) return "";
+      const stringValue = String(value);
+      // If the value contains comma, double quote, or newline, wrap in quotes and escape quotes
+      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    };
+
+    // Build CSV content
+    const csvContent = [
+      csvHeaders.map(escapeCsvValue).join(','),
+      ...csvRows.map(row => row.map(escapeCsvValue).join(','))
+    ].join('\n');
+
+    // Set response headers for file download
+    const filename = `order_${orderId}_leads_${new Date().toISOString().split('T')[0]}.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-cache');
+
+    // Send CSV content
+    res.status(200).send(csvContent);
+
+  } catch (error) {
+    console.error("Export error:", error);
+    next(error);
+  }
+};
