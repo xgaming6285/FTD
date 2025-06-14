@@ -166,4 +166,31 @@ router.delete(
   cancelOrder
 );
 
+// @route   PUT /api/orders/:id/assign-client-info
+// @desc    Assign client, broker, and network info to all leads in order
+// @access  Private (Admin, Manager - own orders only)
+router.put(
+  "/:id/assign-client-info",
+  [
+    protect,
+    isManager,
+    body("client")
+      .optional()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage("Client name must be less than 100 characters"),
+    body("clientBroker")
+      .optional()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage("Client broker must be less than 100 characters"),
+    body("clientNetwork")
+      .optional()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage("Client network must be less than 100 characters"),
+  ],
+  require("../controllers/orders").assignClientInfoToOrderLeads
+);
+
 module.exports = router;
