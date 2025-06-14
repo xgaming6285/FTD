@@ -171,6 +171,15 @@ leadSchema.index({ createdAt: -1 });
 leadSchema.index({ client: 1 }, { sparse: true });
 leadSchema.index({ clientBroker: 1 }, { sparse: true });
 leadSchema.index({ clientNetwork: 1 }, { sparse: true });
+leadSchema.index({
+  firstName: "text",
+  lastName: "text",
+  newEmail: "text",
+  newPhone: "text",
+  client: "text",
+  clientBroker: "text",
+  clientNetwork: "text",
+});
 
 // Virtual for full name
 leadSchema.virtual("fullName").get(function () {

@@ -85,8 +85,7 @@ const userSchema = new mongoose.Schema({
 
 // Индекси за производителност на заявки
 userSchema.index({ email: 1 });
-userSchema.index({ role: 1 });
-userSchema.index({ status: 1 });
+userSchema.index({ role: 1, status: 1 });
 userSchema.index({ fourDigitCode: 1 });
 
 // Middleware за хеширане на паролата преди запазване на потребителя
