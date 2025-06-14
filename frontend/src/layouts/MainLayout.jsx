@@ -31,6 +31,7 @@ import {
   Logout as LogoutIcon
 } from '@mui/icons-material';
 import { logout, selectUser } from '../store/slices/authSlice';
+import Footer from './Footer';
 
 const drawerWidth = 240;
 
@@ -260,17 +261,23 @@ const MainLayout = () => {
         </Drawer>
       </Box>
 
-      {/* Main content */}
+      {/* Main Content */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          mt: 8, // Account for AppBar height
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
         }}
       >
-        <Outlet />
+        <Toolbar />
+        <Box component="div" sx={{ flexGrow: 1 }}>
+          <Outlet />
+        </Box>
+        <Footer />
       </Box>
     </Box>
   );

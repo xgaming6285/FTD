@@ -72,6 +72,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending' // <-- КОРИГИРАНО: По подразбиране статус 'pending'
+  },
+  eulaAccepted: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true, // Автоматично добавя createdAt и updatedAt

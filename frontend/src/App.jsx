@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Provider } from 'react-redux';
+import { Provider, useSelector, useDispatch } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, CircularProgress, Box } from '@mui/material';
 import { Toaster } from 'react-hot-toast';
 import { store, persistor } from './store/store';
+import { selectUser, selectIsAuthenticated, acceptEula } from './store/slices/authSlice.js';
 
 // Import components
 import ProtectedRoute from './components/common/ProtectedRoute.jsx';
 import PublicRoute from './components/common/PublicRoute.jsx';
 import MainLayout from './layouts/MainLayout.jsx';
+import DisclaimerModal from './components/common/DisclaimerModal.jsx';
 
 // Import pages
 import LoginPage from './pages/LoginPage.jsx';
@@ -22,6 +24,7 @@ import UsersPage from './pages/UsersPage.jsx';
 import PerformancePage from './pages/PerformancePage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
+import DisclaimerPage from './pages/DisclaimerPage.jsx';
 
 // Create theme
 const theme = createTheme({
@@ -75,6 +78,79 @@ const theme = createTheme({
   },
 });
 
+function AppContent() {
+  const dispatch = useDispatch();
+  const [disclaimerOpen, setDisclaimerOpen] = useState(false);
+  const user = useSelector(selectUser);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+
+  useEffect(() => {
+    if (isAuthenticated && user && !user.eulaAccepted) {
+      setDisclaimerOpen(true);
+    } else {
+      setDisclaimerOpen(false);
+    }
+  }, [isAuthenticated, user]);
+
+  const handleAgree = () => {
+    dispatch(acceptEula());
+  };
+
+  return (
+    <>
+      <Router>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+          <Route path="/disclaimer" element={<DisclaimerPage />} />
+
+          {/* Protected routes with layout */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="orders" element={<OrdersPage />} />
+            <Route path="leads" element={<LeadsPage />} />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="performance" element={<PerformancePage />} />
+            <Route path="profile" element={<ProfilePage />} />
+          </Route>
+
+          {/* 404 page */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </Router>
+
+      {/* Toast notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            theme: {
+              primary: 'green',
+              secondary: 'black',
+            },
+          },
+        }}
+      />
+      <DisclaimerModal open={disclaimerOpen} onAgree={handleAgree} />
+    </>
+  );
+}
+
 function App() {
   return (
     <Provider store={store}>
@@ -93,54 +169,7 @@ function App() {
       >
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <Router>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-              {/* NEW: Added route for the registration page */}
-              <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
-
-              {/* Protected routes with layout */}
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <MainLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Navigate to="/dashboard" replace />} />
-                <Route path="dashboard" element={<DashboardPage />} />
-                <Route path="orders" element={<OrdersPage />} />
-                <Route path="leads" element={<LeadsPage />} />
-                <Route path="users" element={<UsersPage />} />
-                <Route path="performance" element={<PerformancePage />} />
-                <Route path="profile" element={<ProfilePage />} />
-              </Route>
-
-              {/* 404 page */}
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-          </Router>
-
-          {/* Toast notifications */}
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: '#363636',
-                color: '#fff',
-              },
-              success: {
-                duration: 3000,
-                theme: {
-                  primary: 'green',
-                  secondary: 'black',
-                },
-              },
-            }}
-          />
+          <AppContent />
         </ThemeProvider>
       </PersistGate>
     </Provider>

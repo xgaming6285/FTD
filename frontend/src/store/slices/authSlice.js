@@ -87,6 +87,20 @@ export const changePassword = createAsyncThunk(
   }
 );
 
+export const acceptEula = createAsyncThunk(
+  'auth/acceptEula',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.put('/users/accept-eula');
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to accept EULA'
+      );
+    }
+  }
+);
+
 // Auth slice
 const authSlice = createSlice({
   name: 'auth',
@@ -183,6 +197,20 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(changePassword.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+      // Accept EULA
+      .addCase(acceptEula.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(acceptEula.fulfilled, (state) => {
+        state.isLoading = false;
+        if (state.user) {
+          state.user.eulaAccepted = true;
+        }
+      })
+      .addCase(acceptEula.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       });

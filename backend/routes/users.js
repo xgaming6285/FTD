@@ -8,7 +8,7 @@ const {
   updateUser,
   updateUserPermissions,
   deleteUser,
-  approveUser, // NEW: Import the approveUser controller function
+  approveUser,
   getUserStats,
   getAgentPerformance,
   updateAgentPerformance,
@@ -16,9 +16,13 @@ const {
   getDailyTeamStats,
   assignAsLeadManager,
   approveLeadManager,
+  acceptEula,
 } = require("../controllers/users");
 
 const router = express.Router();
+
+// EULA Acceptance Route - MOVED TO TOP
+router.put("/accept-eula", protect, acceptEula);
 
 // Basic user routes
 router.get("/", [
