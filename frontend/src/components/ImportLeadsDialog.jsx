@@ -267,6 +267,9 @@ const ImportLeadsDialog = ({ open, onClose, onImportComplete }) => {
           <Typography variant="body2" color="text.secondary">
             Expected CSV format: First name, Last name, Email, Phone number, GEO, Gender, Prefix
           </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Optional fields: ID front, ID back, Selfie front, Selfie back, Facebook, Twitter, Linkedin, Instagram, Telegram, WhatsApp, Date of birth, Address
+          </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Download a{" "}
             <Link

@@ -1068,6 +1068,63 @@ exports.importLeads = async (req, res, next) => {
         createdBy: req.user.id,
       };
 
+      // Add social media fields
+      const socialMedia = {};
+      if (lead.Facebook || lead.facebook)
+        socialMedia.facebook = lead.Facebook || lead.facebook;
+      if (lead.Twitter || lead.twitter)
+        socialMedia.twitter = lead.Twitter || lead.twitter;
+      if (lead.Linkedin || lead.linkedin)
+        socialMedia.linkedin = lead.Linkedin || lead.linkedin;
+      if (lead.Instagram || lead.instagram)
+        socialMedia.instagram = lead.Instagram || lead.instagram;
+      if (lead.Telegram || lead.telegram)
+        socialMedia.telegram = lead.Telegram || lead.telegram;
+      if (lead.WhatsApp || lead.whatsapp)
+        socialMedia.whatsapp = lead.WhatsApp || lead.whatsapp;
+
+      if (Object.keys(socialMedia).length > 0) {
+        leadData.socialMedia = socialMedia;
+      }
+
+      // Add documents for image URLs
+      const documents = [];
+      const idFront = lead["ID front"] || lead["id front"] || lead.id_front;
+      const idBack = lead["ID back"] || lead["id back"] || lead.id_back;
+      const selfieFront =
+        lead["Selfie front"] || lead["selfie front"] || lead.selfie_front;
+      const selfieBack =
+        lead["Selfie back"] || lead["selfie back"] || lead.selfie_back;
+
+      if (idFront && idFront.trim()) {
+        documents.push({
+          url: idFront.trim(),
+          description: "ID Front",
+        });
+      }
+      if (idBack && idBack.trim()) {
+        documents.push({
+          url: idBack.trim(),
+          description: "ID Back",
+        });
+      }
+      if (selfieFront && selfieFront.trim()) {
+        documents.push({
+          url: selfieFront.trim(),
+          description: "Selfie with ID Front",
+        });
+      }
+      if (selfieBack && selfieBack.trim()) {
+        documents.push({
+          url: selfieBack.trim(),
+          description: "Selfie with ID Back",
+        });
+      }
+
+      if (documents.length > 0) {
+        leadData.documents = documents;
+      }
+
       // Add SIN for FTD leads (only if available)
       if (leadData.leadType === "ftd") {
         const sinValue =

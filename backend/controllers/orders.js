@@ -611,8 +611,8 @@ exports.exportOrderLeads = async (req, res, next) => {
       "Lead Type",
       "First Name",
       "Last Name",
-      "Prefix",
       "Email",
+      "Prefix",
       "Phone",
       "Country",
       "Gender",
@@ -630,6 +630,10 @@ exports.exportOrderLeads = async (req, res, next) => {
       "Instagram",
       "Telegram",
       "WhatsApp",
+      "ID front",
+      "ID back",
+      "Selfie front",
+      "Selfie back",
       "Assigned To",
       "Created By",
       "Created At",
@@ -650,13 +654,24 @@ exports.exportOrderLeads = async (req, res, next) => {
       return `${day}/${month}/${year}`;
     };
 
+    // Helper function to extract document URL by description
+    const getDocumentUrl = (documents, description) => {
+      if (!documents || !Array.isArray(documents)) return "";
+      const doc = documents.find(
+        (d) =>
+          d.description &&
+          d.description.toLowerCase().includes(description.toLowerCase())
+      );
+      return doc ? doc.url || "" : "";
+    };
+
     // Convert leads to CSV rows
     const csvRows = leads.map((lead) => [
       lead.leadType || "",
       lead.firstName || "",
       lead.lastName || "",
-      lead.prefix || "",
       lead.newEmail || "",
+      lead.prefix || "",
       lead.newPhone || "",
       lead.country || "",
       lead.gender || "",
@@ -674,6 +689,10 @@ exports.exportOrderLeads = async (req, res, next) => {
       lead.socialMedia?.instagram || "",
       lead.socialMedia?.telegram || "",
       lead.socialMedia?.whatsapp || "",
+      getDocumentUrl(lead.documents, "ID Front"),
+      getDocumentUrl(lead.documents, "ID Back"),
+      getDocumentUrl(lead.documents, "Selfie with ID Front"),
+      getDocumentUrl(lead.documents, "Selfie with ID Back"),
       lead.assignedTo?.fullName || "",
       lead.createdBy?.fullName || "",
       formatDateForExcel(lead.createdAt),
