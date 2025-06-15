@@ -1004,17 +1004,26 @@ exports.importLeads = async (req, res, next) => {
         lead["last name"] ||
         "",
       newEmail:
-        lead.email || lead.newEmail || lead.Email || lead["Email"] || "",
+        lead.email ||
+        lead.newEmail ||
+        lead.Email ||
+        lead["Email"] ||
+        lead["new email"] ||
+        "",
+      oldEmail: lead.oldEmail || lead["old email"] || "",
       newPhone:
         lead.phone ||
         lead.newPhone ||
         lead["Phone number"] ||
         lead["phone number"] ||
         lead.Phone ||
+        lead["new phone"] ||
         "",
+      oldPhone: lead.oldPhone || lead["old phone"] || "",
       country: lead.country || lead.Country || lead.GEO || lead.geo || "",
       gender: lead.gender || lead.Gender || "",
       prefix: lead.prefix || lead.Prefix || "",
+      dob: lead.dob || lead.DOB || lead["Date of birth"] || "",
       leadType: req.body.leadType || lead.leadType || lead.lead_type || "cold",
       createdBy: req.user.id,
     }));
@@ -1023,6 +1032,33 @@ exports.importLeads = async (req, res, next) => {
       (lead) =>
         lead.firstName && lead.newEmail && (lead.newPhone || lead.country)
     );
+
+    // Debug logging
+    console.log(`Total leads parsed: ${processedLeads.length}`);
+    console.log(`Valid leads after filtering: ${validLeads.length}`);
+
+    if (processedLeads.length > 0) {
+      console.log("Sample parsed lead:", processedLeads[0]);
+    }
+
+    if (validLeads.length > 0) {
+      console.log("Sample valid lead:", validLeads[0]);
+    } else {
+      console.log("Invalid leads sample (first 3):");
+      processedLeads.slice(0, 3).forEach((lead, index) => {
+        console.log(`Lead ${index + 1}:`, {
+          firstName: lead.firstName,
+          newEmail: lead.newEmail,
+          newPhone: lead.newPhone,
+          country: lead.country,
+          isValid: !!(
+            lead.firstName &&
+            lead.newEmail &&
+            (lead.newPhone || lead.country)
+          ),
+        });
+      });
+    }
 
     if (validLeads.length === 0) {
       return res.status(400).json({
