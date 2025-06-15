@@ -38,6 +38,7 @@ import {
   ExpandLess as ExpandLessIcon,
   Visibility as ViewIcon,
   Download as DownloadIcon,
+  Assignment as AssignmentIcon,
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -45,6 +46,7 @@ import * as yup from 'yup';
 import api from '../services/api';
 import { selectUser } from '../store/slices/authSlice';
 import { getSortedCountries } from '../constants/countries';
+import AssignClientInfoDialog from '../components/AssignClientInfoDialog';
 
 // --- Best Practice: Define constants and schemas outside the component ---
 // This prevents them from being recreated on every render.
@@ -119,7 +121,10 @@ const OrdersPage = () => {
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [assignClientDialogOpen, setAssignClientDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedOrderForClient, setSelectedOrderForClient] = useState(null);
+  const [isAssigningClient, setIsAssigningClient] = useState(false);
 
   // Pagination and filtering
   const [page, setPage] = useState(0);
@@ -315,6 +320,48 @@ const OrdersPage = () => {
     setPage(0);
   }, []);
 
+  // Client assignment handlers
+  const handleOpenAssignClientDialog = useCallback(async (orderId) => {
+    try {
+      const response = await api.get(`/orders/${orderId}`);
+      setSelectedOrderForClient(response.data.data);
+      setAssignClientDialogOpen(true);
+    } catch (err) {
+      setNotification({
+        message: err.response?.data?.message || 'Failed to fetch order details',
+        severity: 'error',
+      });
+    }
+  }, []);
+
+  const handleAssignClientInfo = useCallback(async (clientData) => {
+    if (!selectedOrderForClient) return;
+
+    setIsAssigningClient(true);
+    try {
+      const response = await api.put(`/orders/${selectedOrderForClient._id}/assign-client-info`, clientData);
+      setNotification({
+        message: response.data.message || 'Client information assigned successfully!',
+        severity: 'success'
+      });
+      setAssignClientDialogOpen(false);
+      setSelectedOrderForClient(null);
+      fetchOrders(); // Refresh the orders list
+    } catch (err) {
+      setNotification({
+        message: err.response?.data?.message || 'Failed to assign client information',
+        severity: 'error',
+      });
+    } finally {
+      setIsAssigningClient(false);
+    }
+  }, [selectedOrderForClient, fetchOrders]);
+
+  const handleCloseAssignClientDialog = useCallback(() => {
+    setAssignClientDialogOpen(false);
+    setSelectedOrderForClient(null);
+  }, []);
+
   // Readability: Helper component for rendering lead counts
   const renderLeadCounts = (label, requested, fulfilled) => (
     <Typography variant="body2">
@@ -451,6 +498,9 @@ const OrdersPage = () => {
                         <TableCell>
                           <IconButton size="small" onClick={() => handleViewOrder(order._id)} title="View Order"><ViewIcon fontSize="small" /></IconButton>
                           <IconButton size="small" onClick={() => handleExportLeads(order._id)} title="Export Leads as CSV"><DownloadIcon fontSize="small" /></IconButton>
+                          {order.leads && order.leads.length > 0 && (
+                            <IconButton size="small" onClick={() => handleOpenAssignClientDialog(order._id)} title="Assign Client Info to All Leads"><AssignmentIcon fontSize="small" /></IconButton>
+                          )}
                           <IconButton size="small" onClick={() => toggleRowExpansion(order._id)} title={isExpanded ? "Collapse" : "Expand"}>
                             {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                           </IconButton>
@@ -669,6 +719,15 @@ const OrdersPage = () => {
             </Button>
           </DialogActions>
       </Dialog>
+
+      {/* Assign Client Info Dialog */}
+      <AssignClientInfoDialog
+        open={assignClientDialogOpen}
+        onClose={handleCloseAssignClientDialog}
+        onSubmit={handleAssignClientInfo}
+        isSubmitting={isAssigningClient}
+        orderData={selectedOrderForClient}
+      />
     </Box>
   );
 };
