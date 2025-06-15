@@ -3,6 +3,117 @@ const mongoose = require("mongoose");
 const Order = require("../models/Order");
 const Lead = require("../models/Lead");
 
+/**
+ * FILLER LEADS PHONE NUMBER REPETITION RULES
+ * ==========================================
+ * This module implements phone number repetition filtering for filler leads orders:
+ *
+ * 1. Orders with ≤10 filler leads: No repetition of first four digits after phone prefix
+ * 2. Orders with 11-20 filler leads: Max 2 repetitions per phone pattern, max 10 pairs total
+ * 3. Orders with 21-40 filler leads: Max 4 repetitions per phone pattern
+ * 4. Orders with >40 filler leads: No repetition restrictions
+ *
+ * The system extracts the first four digits after the country code from phone numbers
+ * (e.g., +1234567890 -> "2345") and groups leads by these patterns to apply the rules.
+ */
+
+/**
+ * Helper function to extract first four digits after prefix from phone number
+ * This is used to identify phone number patterns for filler leads repetition rules
+ * @param {string} phoneNumber - Phone number in format +1234567890
+ * @returns {string|null} - First four digits after country code (e.g., "2345")
+ */
+const getFirstFourDigitsAfterPrefix = (phoneNumber) => {
+  if (!phoneNumber) return null;
+
+  // Remove the '+' prefix and extract first 4 digits after country code
+  // Assuming country code is 1-3 digits, we'll take digits 2-5 after the '+'
+  const cleanPhone = phoneNumber.replace(/\D/g, ""); // Remove non-digits
+  if (cleanPhone.length < 5) return null;
+
+  // Skip the first digit (country code start) and take next 4 digits
+  return cleanPhone.substring(1, 5);
+};
+
+/**
+ * Helper function to apply phone number repetition rules for filler leads
+ * Implements the following rules based on the number of filler leads requested:
+ * - ≤10 leads: No repetition of first four digits after prefix
+ * - 11-20 leads: Max 2 repetitions per pattern, but no more than 10 pairs total
+ * - 21-40 leads: Max 4 repetitions per pattern
+ * - >40 leads: No restrictions
+ * @param {Array} fillerLeads - Array of filler lead objects
+ * @param {number} requestedCount - Number of filler leads requested
+ * @returns {Array} - Filtered array of leads following repetition rules
+ */
+const applyFillerPhoneRepetitionRules = (fillerLeads, requestedCount) => {
+  if (!fillerLeads || fillerLeads.length === 0) return fillerLeads;
+
+  // Group leads by first four digits of phone number
+  const phoneGroups = {};
+  fillerLeads.forEach((lead) => {
+    const firstFour = getFirstFourDigitsAfterPrefix(lead.newPhone);
+    if (firstFour) {
+      if (!phoneGroups[firstFour]) {
+        phoneGroups[firstFour] = [];
+      }
+      phoneGroups[firstFour].push(lead);
+    }
+  });
+
+  const selectedLeads = [];
+  const maxRepetitions = getMaxRepetitionsForFillerCount(requestedCount);
+
+  // Apply the repetition rules
+  if (requestedCount <= 10) {
+    // Rule 1: No repetition of first four digits
+    Object.keys(phoneGroups).forEach((firstFour) => {
+      if (phoneGroups[firstFour].length > 0) {
+        selectedLeads.push(phoneGroups[firstFour][0]); // Take only first lead
+      }
+    });
+  } else if (requestedCount <= 20) {
+    // Rule 2: No more than 2 repetitions, but can't have 10 pairs
+    let pairCount = 0;
+    Object.keys(phoneGroups).forEach((firstFour) => {
+      const group = phoneGroups[firstFour];
+      const toTake = Math.min(group.length, 2);
+
+      // Check if taking 2 would create too many pairs
+      if (toTake === 2) {
+        if (pairCount >= 10) {
+          selectedLeads.push(group[0]); // Only take 1 to avoid exceeding 10 pairs
+        } else {
+          selectedLeads.push(...group.slice(0, 2));
+          pairCount++;
+        }
+      } else {
+        selectedLeads.push(...group.slice(0, toTake));
+      }
+    });
+  } else if (requestedCount <= 40) {
+    // Rule 3: No more than 4 repetitions
+    Object.keys(phoneGroups).forEach((firstFour) => {
+      const group = phoneGroups[firstFour];
+      const toTake = Math.min(group.length, 4);
+      selectedLeads.push(...group.slice(0, toTake));
+    });
+  } else {
+    // For orders > 40, no specific rules mentioned - return as is
+    return fillerLeads;
+  }
+
+  return selectedLeads.slice(0, requestedCount); // Ensure we don't exceed requested count
+};
+
+// Helper function to determine max repetitions based on filler count
+const getMaxRepetitionsForFillerCount = (count) => {
+  if (count <= 10) return 1;
+  if (count <= 20) return 2;
+  if (count <= 40) return 4;
+  return Infinity; // No limit for larger orders
+};
+
 // @desc    Create a new order and pull leads
 // @route   POST /api/orders
 // @access  Private (Admin, Manager with canCreateOrders permission)
@@ -74,18 +185,33 @@ exports.createOrder = async (req, res, next) => {
       }
     }
 
-    // Pull Filler leads
+    // Pull Filler leads with phone number repetition rules
     if (filler > 0) {
+      // Fetch more leads than requested to have enough for filtering
+      // The multiplier ensures we have enough variety to apply repetition rules
+      let fetchMultiplier = 1;
+      if (filler <= 10)
+        fetchMultiplier = 3; // Need variety for no repetition rule
+      else if (filler <= 20)
+        fetchMultiplier = 2; // Need some extra for 2-max rule
+      else if (filler <= 40) fetchMultiplier = 1.5; // Need some extra for 4-max rule
+
+      const fetchLimit = Math.max(filler, Math.ceil(filler * fetchMultiplier));
+
       const fillerLeads = await Lead.find({
         leadType: "filler",
         ...countryFilter,
         ...genderFilter,
         ...exclusionFilters,
-      }).limit(filler);
+      }).limit(fetchLimit);
 
       if (fillerLeads.length > 0) {
-        pulledLeads.push(...fillerLeads);
-        fulfilled.filler = fillerLeads.length;
+        const appliedFillerLeads = applyFillerPhoneRepetitionRules(
+          fillerLeads,
+          filler
+        );
+        pulledLeads.push(...appliedFillerLeads);
+        fulfilled.filler = appliedFillerLeads.length;
       }
     }
 
@@ -231,6 +357,19 @@ exports.createOrder = async (req, res, next) => {
         }
         if (country) msg += ` from ${country}`;
         if (gender) msg += ` with gender: ${gender}`;
+
+        // Add phone number filtering info for filler leads
+        if (filler > 0 && fulfilled.filler > 0) {
+          const maxReps = getMaxRepetitionsForFillerCount(filler);
+          if (maxReps === 1) {
+            msg += ` (filler leads: no phone number repetitions)`;
+          } else if (maxReps === 2) {
+            msg += ` (filler leads: max 2 repetitions per phone pattern, max 10 pairs)`;
+          } else if (maxReps === 4) {
+            msg += ` (filler leads: max 4 repetitions per phone pattern)`;
+          }
+        }
+
         msg += exclusionMessage;
         return msg;
       })(),
