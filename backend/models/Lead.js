@@ -171,6 +171,18 @@ leadSchema.index({ createdAt: -1 });
 leadSchema.index({ client: 1 }, { sparse: true });
 leadSchema.index({ clientBroker: 1 }, { sparse: true });
 leadSchema.index({ clientNetwork: 1 }, { sparse: true });
+leadSchema.index({ newEmail: 1 }, { unique: true }); // Optimize lookup by email
+leadSchema.index({ status: 1 }); // Add index for status field
+leadSchema.index({ assignedAt: -1 }); // Add index for assignedAt for sorting
+leadSchema.index({ isAssigned: 1, assignedTo: 1 }); // Compound index for assigned leads
+leadSchema.index({ firstName: 1, lastName: 1 }); // Optimize name-based sorting
+leadSchema.index({ createdBy: 1 }); // Optimize filtering by creator
+leadSchema.index({ updatedAt: -1 }); // Track updates efficiently
+
+// Compound indexes for common query patterns
+leadSchema.index({ leadType: 1, isAssigned: 1, status: 1 }); // Common filtering pattern
+leadSchema.index({ assignedTo: 1, status: 1 }); // Agent's leads by status
+
 leadSchema.index({
   firstName: "text",
   lastName: "text",
@@ -179,6 +191,17 @@ leadSchema.index({
   client: "text",
   clientBroker: "text",
   clientNetwork: "text",
+}, {
+  weights: {
+    firstName: 10,
+    lastName: 10,
+    newEmail: 5,
+    newPhone: 5,
+    client: 3,
+    clientBroker: 2,
+    clientNetwork: 1
+  },
+  name: "lead_search_index"
 });
 
 // Virtual for full name
