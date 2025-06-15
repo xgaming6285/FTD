@@ -121,7 +121,7 @@ const leadSchema = new mongoose.Schema(
     // FTD Only Fields
     documents: {
       type: mongoose.Schema.Types.Mixed,
-      default: []
+      default: [],
     },
     sin: {
       type: String,
@@ -180,26 +180,29 @@ leadSchema.index({ updatedAt: -1 }); // Track updates efficiently
 leadSchema.index({ leadType: 1, isAssigned: 1, status: 1 }); // Common filtering pattern
 leadSchema.index({ assignedTo: 1, status: 1 }); // Agent's leads by status
 
-leadSchema.index({
-  firstName: "text",
-  lastName: "text",
-  newEmail: "text",
-  newPhone: "text",
-  client: "text",
-  clientBroker: "text",
-  clientNetwork: "text",
-}, {
-  weights: {
-    firstName: 10,
-    lastName: 10,
-    newEmail: 5,
-    newPhone: 5,
-    client: 3,
-    clientBroker: 2,
-    clientNetwork: 1
+leadSchema.index(
+  {
+    firstName: "text",
+    lastName: "text",
+    newEmail: "text",
+    newPhone: "text",
+    client: "text",
+    clientBroker: "text",
+    clientNetwork: "text",
   },
-  name: "lead_search_index"
-});
+  {
+    weights: {
+      firstName: 10,
+      lastName: 10,
+      newEmail: 5,
+      newPhone: 5,
+      client: 3,
+      clientBroker: 2,
+      clientNetwork: 1,
+    },
+    name: "lead_search_index",
+  }
+);
 
 // Virtual for full name
 leadSchema.virtual("fullName").get(function () {
@@ -218,11 +221,11 @@ leadSchema.pre("save", function (next) {
     this.assignedAt = undefined;
     this.assignedTo = undefined;
   }
-  
+
   // Handle address conversion if it's an object
-  if (this.address && typeof this.address === 'object') {
+  if (this.address && typeof this.address === "object") {
     try {
-      const { street = '', city = '', postalCode = '' } = this.address;
+      const { street = "", city = "", postalCode = "" } = this.address;
       this.address = `${street}, ${city} ${postalCode}`.trim();
     } catch (err) {
       // If address can't be parsed as an object, stringify it

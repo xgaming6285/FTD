@@ -925,7 +925,11 @@ const batchProcess = async (items, batchSize, processFn) => {
     );
 
     const batchResults = await processFn(batch);
-    results.push(...batchResults);
+    if (Array.isArray(batchResults)) {
+      results.push(...batchResults);
+    } else {
+      results.push(batchResults);
+    }
 
     // Small pause between batches to prevent overwhelming the database
     if (i + batchSize < totalItems) {
@@ -989,44 +993,91 @@ exports.importLeads = async (req, res, next) => {
       }
     }
 
+    // Helper function to parse date from DD/MM/YYYY format
+    const parseDate = (dateString) => {
+      if (!dateString) return null;
+
+      // Handle DD/MM/YYYY format
+      const parts = dateString.split("/");
+      if (parts.length === 3) {
+        const day = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+        const year = parseInt(parts[2]);
+
+        if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+          return new Date(year, month, day);
+        }
+      }
+
+      // Try to parse as regular date if above fails
+      const parsed = new Date(dateString);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    // Helper function to normalize gender
+    const normalizeGender = (gender) => {
+      if (!gender) return "not_defined";
+
+      const genderLower = gender.toLowerCase();
+      if (genderLower === "male" || genderLower === "m") return "male";
+      if (genderLower === "female" || genderLower === "f") return "female";
+      return "not_defined";
+    };
+
     // Process and validate leads
-    const processedLeads = leads.map((lead) => ({
-      firstName:
-        lead.firstName ||
-        lead.first_name ||
-        lead["First name"] ||
-        lead["first name"] ||
-        "",
-      lastName:
-        lead.lastName ||
-        lead.last_name ||
-        lead["Last name"] ||
-        lead["last name"] ||
-        "",
-      newEmail:
-        lead.email ||
-        lead.newEmail ||
-        lead.Email ||
-        lead["Email"] ||
-        lead["new email"] ||
-        "",
-      oldEmail: lead.oldEmail || lead["old email"] || "",
-      newPhone:
-        lead.phone ||
-        lead.newPhone ||
-        lead["Phone number"] ||
-        lead["phone number"] ||
-        lead.Phone ||
-        lead["new phone"] ||
-        "",
-      oldPhone: lead.oldPhone || lead["old phone"] || "",
-      country: lead.country || lead.Country || lead.GEO || lead.geo || "",
-      gender: lead.gender || lead.Gender || "",
-      prefix: lead.prefix || lead.Prefix || "",
-      dob: lead.dob || lead.DOB || lead["Date of birth"] || "",
-      leadType: req.body.leadType || lead.leadType || lead.lead_type || "cold",
-      createdBy: req.user.id,
-    }));
+    const processedLeads = leads.map((lead) => {
+      const leadData = {
+        firstName:
+          lead.firstName ||
+          lead.first_name ||
+          lead["First name"] ||
+          lead["first name"] ||
+          "",
+        lastName:
+          lead.lastName ||
+          lead.last_name ||
+          lead["Last name"] ||
+          lead["last name"] ||
+          "",
+        newEmail:
+          lead.email ||
+          lead.newEmail ||
+          lead.Email ||
+          lead["Email"] ||
+          lead["new email"] ||
+          "",
+        oldEmail: lead.oldEmail || lead["old email"] || "",
+        newPhone:
+          lead.phone ||
+          lead.newPhone ||
+          lead["Phone number"] ||
+          lead["phone number"] ||
+          lead.Phone ||
+          lead["new phone"] ||
+          "",
+        oldPhone: lead.oldPhone || lead["old phone"] || "",
+        country: lead.country || lead.Country || lead.GEO || lead.geo || "",
+        gender: normalizeGender(lead.gender || lead.Gender || ""),
+        prefix: lead.prefix || lead.Prefix || "",
+        dob: parseDate(lead.dob || lead.DOB || lead["Date of birth"] || ""),
+        address: lead.address || lead.Address || "",
+        leadType:
+          req.body.leadType || lead.leadType || lead.lead_type || "cold",
+        createdBy: req.user.id,
+      };
+
+      // Add SIN for FTD leads (only if available)
+      if (leadData.leadType === "ftd") {
+        const sinValue =
+          lead.sin || lead.SIN || lead["Social Insurance Number"] || "";
+        if (sinValue && sinValue.trim().length > 0) {
+          leadData.sin = sinValue.trim();
+        }
+        // Don't add sin field if it's empty - let the database handle it
+      }
+
+      return leadData;
+    });
 
     const validLeads = processedLeads.filter(
       (lead) =>
@@ -1039,13 +1090,14 @@ exports.importLeads = async (req, res, next) => {
 
     if (processedLeads.length > 0) {
       console.log("Sample parsed lead:", processedLeads[0]);
+      console.log("Raw lead data sample:", leads[0]);
     }
 
     if (validLeads.length > 0) {
       console.log("Sample valid lead:", validLeads[0]);
     } else {
-      console.log("Invalid leads sample (first 3):");
-      processedLeads.slice(0, 3).forEach((lead, index) => {
+      console.log("Invalid leads sample (first 5):");
+      processedLeads.slice(0, 5).forEach((lead, index) => {
         console.log(`Lead ${index + 1}:`, {
           firstName: lead.firstName,
           newEmail: lead.newEmail,
@@ -1056,6 +1108,11 @@ exports.importLeads = async (req, res, next) => {
             lead.newEmail &&
             (lead.newPhone || lead.country)
           ),
+          validationDetails: {
+            hasFirstName: !!lead.firstName,
+            hasEmail: !!lead.newEmail,
+            hasPhoneOrCountry: !!(lead.newPhone || lead.country),
+          },
         });
       });
     }
@@ -1080,18 +1137,52 @@ exports.importLeads = async (req, res, next) => {
           newEmail: { $in: emails },
         });
 
+        console.log(`Batch processing: ${batch.length} leads in batch`);
+        console.log(
+          `Found ${existingEmails.length} existing emails:`,
+          existingEmails.slice(0, 5)
+        );
+
         // Filter out leads with existing emails
         const newLeads = batch.filter(
           (lead) => !existingEmails.includes(lead.newEmail)
         );
 
-        if (newLeads.length === 0) return [];
+        console.log(
+          `After duplicate filtering: ${newLeads.length} new leads to insert`
+        );
+
+        if (newLeads.length === 0) {
+          console.log("No new leads to insert - all were duplicates");
+          return [];
+        }
+
+        console.log(`Inserting ${newLeads.length} new leads...`);
 
         // Use insertMany for better performance
-        return await Lead.insertMany(newLeads, {
+        const result = await Lead.insertMany(newLeads, {
           ordered: false, // Continue inserting despite errors
           rawResult: true, // Return statistics about the operation
         });
+
+        console.log("Insert result:", result);
+
+        // Log validation errors if any
+        if (
+          result.mongoose &&
+          result.mongoose.validationErrors &&
+          result.mongoose.validationErrors.length > 0
+        ) {
+          console.log("Validation errors found:");
+          result.mongoose.validationErrors
+            .slice(0, 3)
+            .forEach((error, index) => {
+              console.log(`Validation error ${index + 1}:`, error.message);
+              console.log("Error details:", error);
+            });
+        }
+
+        return result;
       }
     );
 
