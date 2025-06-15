@@ -9,6 +9,8 @@ const {
   cancelOrder,
   getOrderStats,
   exportOrderLeads,
+  getExclusionOptions,
+  assignClientInfoToOrderLeads,
 } = require("../controllers/orders");
 
 const router = express.Router();
@@ -66,6 +68,54 @@ router.post(
         }
         return true;
       }),
+    body("excludeClients")
+      .optional()
+      .isArray()
+      .withMessage("Exclude clients must be an array")
+      .custom((value) => {
+        if (value && value.length > 0) {
+          if (
+            !value.every(
+              (item) => typeof item === "string" && item.trim().length > 0
+            )
+          ) {
+            throw new Error("All excluded clients must be non-empty strings");
+          }
+        }
+        return true;
+      }),
+    body("excludeBrokers")
+      .optional()
+      .isArray()
+      .withMessage("Exclude brokers must be an array")
+      .custom((value) => {
+        if (value && value.length > 0) {
+          if (
+            !value.every(
+              (item) => typeof item === "string" && item.trim().length > 0
+            )
+          ) {
+            throw new Error("All excluded brokers must be non-empty strings");
+          }
+        }
+        return true;
+      }),
+    body("excludeNetworks")
+      .optional()
+      .isArray()
+      .withMessage("Exclude networks must be an array")
+      .custom((value) => {
+        if (value && value.length > 0) {
+          if (
+            !value.every(
+              (item) => typeof item === "string" && item.trim().length > 0
+            )
+          ) {
+            throw new Error("All excluded networks must be non-empty strings");
+          }
+        }
+        return true;
+      }),
   ],
   createOrder
 );
@@ -116,6 +166,15 @@ router.get(
       .withMessage("End date must be a valid ISO date"),
   ],
   getOrderStats
+);
+
+// @route   GET /api/orders/exclusion-options
+// @desc    Get unique client, broker, and network values for exclusion filters
+// @access  Private (Admin, Manager with canCreateOrders permission)
+router.get(
+  "/exclusion-options",
+  [protect, isManager, hasPermission("canCreateOrders")],
+  getExclusionOptions
 );
 
 // @route   GET /api/orders/:id/export
@@ -190,7 +249,7 @@ router.put(
       .isLength({ max: 100 })
       .withMessage("Client network must be less than 100 characters"),
   ],
-  require("../controllers/orders").assignClientInfoToOrderLeads
+  assignClientInfoToOrderLeads
 );
 
 module.exports = router;

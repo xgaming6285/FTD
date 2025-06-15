@@ -73,8 +73,14 @@ exports.getLeads = async (req, res, next) => {
     // Add search functionality - use text index for better performance when possible
     if (search) {
       // If search is a simple term, use text index for better performance
-      if (search.length > 3 && !search.includes(":") && !search.includes("?") && 
-          !search.includes("*") && !search.includes("(") && !search.includes(")")) {
+      if (
+        search.length > 3 &&
+        !search.includes(":") &&
+        !search.includes("?") &&
+        !search.includes("*") &&
+        !search.includes("(") &&
+        !search.includes(")")
+      ) {
         filter.$text = { $search: search };
       } else {
         // Fallback to regex for complex search patterns
@@ -106,23 +112,23 @@ exports.getLeads = async (req, res, next) => {
           from: "users",
           localField: "assignedTo",
           foreignField: "_id",
-          as: "assignedToUser"
-        }
+          as: "assignedToUser",
+        },
       },
       {
         $lookup: {
           from: "orders",
           localField: "orderId",
           foreignField: "_id",
-          as: "orderDetails"
-        }
+          as: "orderDetails",
+        },
       },
       // Unwind arrays to normalize the data structure
       {
         $addFields: {
           assignedTo: { $arrayElemAt: ["$assignedToUser", 0] },
           order: { $arrayElemAt: ["$orderDetails", 0] },
-        }
+        },
       },
       // Project only needed fields
       {
@@ -132,7 +138,7 @@ exports.getLeads = async (req, res, next) => {
           lastName: 1,
           newEmail: 1,
           newPhone: 1,
-          oldEmail: 1, 
+          oldEmail: 1,
           oldPhone: 1,
           country: 1,
           leadType: 1,
@@ -152,9 +158,9 @@ exports.getLeads = async (req, res, next) => {
           "order._id": 1,
           "order.status": 1,
           "order.priority": 1,
-          "order.createdAt": 1
-        }
-      }
+          "order.createdAt": 1,
+        },
+      },
     ];
 
     // Execute aggregation pipeline
@@ -214,14 +220,14 @@ exports.getAssignedLeads = async (req, res, next) => {
             foreignField: "_id",
             as: "assignedToDetails",
             pipeline: [
-              { 
-                $project: { 
-                  fullName: 1, 
-                  fourDigitCode: 1 
-                } 
-              }
-            ]
-          }
+              {
+                $project: {
+                  fullName: 1,
+                  fourDigitCode: 1,
+                },
+              },
+            ],
+          },
         },
         {
           $lookup: {
@@ -230,15 +236,15 @@ exports.getAssignedLeads = async (req, res, next) => {
             foreignField: "_id",
             as: "orderDetails",
             pipeline: [
-              { 
-                $project: { 
-                  status: 1, 
+              {
+                $project: {
+                  status: 1,
                   priority: 1,
-                  createdAt: 1
-                } 
-              }
-            ]
-          }
+                  createdAt: 1,
+                },
+              },
+            ],
+          },
         },
         {
           $project: {
@@ -256,11 +262,11 @@ exports.getAssignedLeads = async (req, res, next) => {
             "assignedToDetails.fourDigitCode": 1,
             "orderDetails.status": 1,
             "orderDetails.priority": 1,
-            "orderDetails.createdAt": 1
-          }
-        }
+            "orderDetails.createdAt": 1,
+          },
+        },
       ]),
-      Lead.countDocuments(filter)
+      Lead.countDocuments(filter),
     ]);
 
     res.status(200).json({
@@ -740,9 +746,12 @@ exports.updateLead = async (req, res, next) => {
     if (leadType) lead.leadType = leadType;
     if (sin !== undefined && leadType === "ftd") lead.sin = sin;
     if (gender !== undefined) lead.gender = gender;
-    
+
     // Update address if provided and lead type is appropriate
-    if (address !== undefined && (lead.leadType === 'ftd' || lead.leadType === 'filler')) {
+    if (
+      address !== undefined &&
+      (lead.leadType === "ftd" || lead.leadType === "filler")
+    ) {
       // Address will be handled by pre-save middleware to ensure it's a string
       lead.address = address;
     }
@@ -860,7 +869,7 @@ exports.createLead = async (req, res, next) => {
         leadData.documents = documents;
       } else {
         leadData.documents = {
-          status: "pending"
+          status: "pending",
         };
       }
     } else {
@@ -903,23 +912,27 @@ const batchProcess = async (items, batchSize, processFn) => {
   const totalItems = items.length;
   const totalBatches = Math.ceil(totalItems / batchSize);
 
-  console.log(`Starting batch processing of ${totalItems} items in ${totalBatches} batches`);
-  
+  console.log(
+    `Starting batch processing of ${totalItems} items in ${totalBatches} batches`
+  );
+
   for (let i = 0; i < totalItems; i += batchSize) {
     const batch = items.slice(i, i + batchSize);
     const batchNumber = Math.floor(i / batchSize) + 1;
-    
-    console.log(`Processing batch ${batchNumber}/${totalBatches} (${batch.length} items)`);
-    
+
+    console.log(
+      `Processing batch ${batchNumber}/${totalBatches} (${batch.length} items)`
+    );
+
     const batchResults = await processFn(batch);
     results.push(...batchResults);
-    
+
     // Small pause between batches to prevent overwhelming the database
     if (i + batchSize < totalItems) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
-  
+
   return results;
 };
 
@@ -978,17 +991,37 @@ exports.importLeads = async (req, res, next) => {
 
     // Process and validate leads
     const processedLeads = leads.map((lead) => ({
-      firstName: lead.firstName || lead.first_name || "",
-      lastName: lead.lastName || lead.last_name || "",
-      newEmail: lead.email || lead.newEmail || "",
-      newPhone: lead.phone || lead.newPhone || "",
-      country: lead.country || "",
-      leadType: lead.leadType || lead.lead_type || "cold",
+      firstName:
+        lead.firstName ||
+        lead.first_name ||
+        lead["First name"] ||
+        lead["first name"] ||
+        "",
+      lastName:
+        lead.lastName ||
+        lead.last_name ||
+        lead["Last name"] ||
+        lead["last name"] ||
+        "",
+      newEmail:
+        lead.email || lead.newEmail || lead.Email || lead["Email"] || "",
+      newPhone:
+        lead.phone ||
+        lead.newPhone ||
+        lead["Phone number"] ||
+        lead["phone number"] ||
+        lead.Phone ||
+        "",
+      country: lead.country || lead.Country || lead.GEO || lead.geo || "",
+      gender: lead.gender || lead.Gender || "",
+      prefix: lead.prefix || lead.Prefix || "",
+      leadType: req.body.leadType || lead.leadType || lead.lead_type || "cold",
       createdBy: req.user.id,
     }));
 
     const validLeads = processedLeads.filter(
-      (lead) => lead.firstName && lead.newEmail && lead.newPhone && lead.country
+      (lead) =>
+        lead.firstName && lead.newEmail && (lead.newPhone || lead.country)
     );
 
     if (validLeads.length === 0) {
@@ -1000,27 +1033,35 @@ exports.importLeads = async (req, res, next) => {
 
     // Use batch processing for better performance
     const BATCH_SIZE = 100; // Process in batches of 100
-    
-    const savedLeads = await batchProcess(validLeads, BATCH_SIZE, async (batch) => {
-      // Check for existing emails in this batch to avoid duplicates
-      const emails = batch.map(lead => lead.newEmail);
-      const existingEmails = await Lead.distinct('newEmail', { newEmail: { $in: emails } });
-      
-      // Filter out leads with existing emails
-      const newLeads = batch.filter(lead => !existingEmails.includes(lead.newEmail));
-      
-      if (newLeads.length === 0) return [];
-      
-      // Use insertMany for better performance
-      return await Lead.insertMany(newLeads, { 
-        ordered: false, // Continue inserting despite errors
-        rawResult: true // Return statistics about the operation
-      });
-    });
+
+    const savedLeads = await batchProcess(
+      validLeads,
+      BATCH_SIZE,
+      async (batch) => {
+        // Check for existing emails in this batch to avoid duplicates
+        const emails = batch.map((lead) => lead.newEmail);
+        const existingEmails = await Lead.distinct("newEmail", {
+          newEmail: { $in: emails },
+        });
+
+        // Filter out leads with existing emails
+        const newLeads = batch.filter(
+          (lead) => !existingEmails.includes(lead.newEmail)
+        );
+
+        if (newLeads.length === 0) return [];
+
+        // Use insertMany for better performance
+        return await Lead.insertMany(newLeads, {
+          ordered: false, // Continue inserting despite errors
+          rawResult: true, // Return statistics about the operation
+        });
+      }
+    );
 
     // Count successful imports
     let importCount = 0;
-    savedLeads.forEach(result => {
+    savedLeads.forEach((result) => {
       if (result.insertedCount) importCount += result.insertedCount;
     });
 

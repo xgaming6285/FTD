@@ -46,6 +46,20 @@ const orderSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Exclusion filters used when creating this order
+    excludeClients: {
+      type: [String],
+      default: undefined,
+    },
+    excludeBrokers: {
+      type: [String],
+      default: undefined,
+    },
+    excludeNetworks: {
+      type: [String],
+      default: undefined,
+    },
+
     // Fulfillment tracking
     fulfilled: {
       ftd: { type: Number, default: 0 },

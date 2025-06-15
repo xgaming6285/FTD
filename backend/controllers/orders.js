@@ -17,7 +17,17 @@ exports.createOrder = async (req, res, next) => {
       });
     }
 
-    const { requests, priority, notes, country, gender } = req.body;
+    const {
+      requests,
+      priority,
+      notes,
+      country,
+      gender,
+      excludeClients = [],
+      excludeBrokers = [],
+      excludeNetworks = [],
+    } = req.body;
+
     const { ftd = 0, filler = 0, cold = 0, live = 0 } = requests || {};
 
     if (ftd + filler + cold + live === 0) {
@@ -34,14 +44,28 @@ exports.createOrder = async (req, res, next) => {
     const countryFilter = country ? { country: new RegExp(country, "i") } : {};
     const genderFilter = gender ? { gender } : {};
 
+    // Build exclusion filters
+    const exclusionFilters = {};
+
+    if (excludeClients.length > 0) {
+      exclusionFilters.client = { $nin: excludeClients };
+    }
+
+    if (excludeBrokers.length > 0) {
+      exclusionFilters.clientBroker = { $nin: excludeBrokers };
+    }
+
+    if (excludeNetworks.length > 0) {
+      exclusionFilters.clientNetwork = { $nin: excludeNetworks };
+    }
+
     // Pull FTD leads
     if (ftd > 0) {
       const ftdLeads = await Lead.find({
         leadType: "ftd",
-        isAssigned: false,
-        // Removed documents.status restriction to allow FTD leads regardless of document status
         ...countryFilter,
         ...genderFilter,
+        ...exclusionFilters,
       }).limit(ftd);
 
       if (ftdLeads.length > 0) {
@@ -54,9 +78,9 @@ exports.createOrder = async (req, res, next) => {
     if (filler > 0) {
       const fillerLeads = await Lead.find({
         leadType: "filler",
-        isAssigned: false,
         ...countryFilter,
         ...genderFilter,
+        ...exclusionFilters,
       }).limit(filler);
 
       if (fillerLeads.length > 0) {
@@ -69,9 +93,9 @@ exports.createOrder = async (req, res, next) => {
     if (cold > 0) {
       const coldLeads = await Lead.find({
         leadType: "cold",
-        isAssigned: false,
         ...countryFilter,
         ...genderFilter,
+        ...exclusionFilters,
       }).limit(cold);
 
       if (coldLeads.length > 0) {
@@ -84,9 +108,9 @@ exports.createOrder = async (req, res, next) => {
     if (live > 0) {
       const liveLeads = await Lead.find({
         leadType: "live",
-        isAssigned: false,
         ...countryFilter,
         ...genderFilter,
+        ...exclusionFilters,
       }).limit(live);
 
       if (liveLeads.length > 0) {
@@ -126,10 +150,14 @@ exports.createOrder = async (req, res, next) => {
       status: orderStatus,
       countryFilter: country || null,
       genderFilter: gender || null,
+      excludeClients: excludeClients.length > 0 ? excludeClients : undefined,
+      excludeBrokers: excludeBrokers.length > 0 ? excludeBrokers : undefined,
+      excludeNetworks: excludeNetworks.length > 0 ? excludeNetworks : undefined,
       // Set cancellation details if no leads available
       ...(orderStatus === "cancelled" && {
         cancelledAt: new Date(),
-        cancellationReason: "No leads available for the requested criteria",
+        cancellationReason:
+          "No leads available matching the requested criteria and exclusion filters",
       }),
     });
 
@@ -141,7 +169,7 @@ exports.createOrder = async (req, res, next) => {
         { _id: { $in: pulledLeads.map((l) => l._id) } },
         {
           $set: {
-            isAssigned: true,
+            // Keep assignment tracking for audit purposes, but don't block reuse
             assignedTo: req.user._id,
             assignedAt: new Date(),
             orderId: order._id,
@@ -178,6 +206,18 @@ exports.createOrder = async (req, res, next) => {
       },
     ]);
 
+    // Enhanced success message with exclusion details
+    let exclusionMessage = "";
+    if (excludeClients.length > 0) {
+      exclusionMessage += ` (excluded clients: ${excludeClients.join(", ")})`;
+    }
+    if (excludeBrokers.length > 0) {
+      exclusionMessage += ` (excluded brokers: ${excludeBrokers.join(", ")})`;
+    }
+    if (excludeNetworks.length > 0) {
+      exclusionMessage += ` (excluded networks: ${excludeNetworks.join(", ")})`;
+    }
+
     res.status(201).json({
       success: true,
       message: (() => {
@@ -191,6 +231,7 @@ exports.createOrder = async (req, res, next) => {
         }
         if (country) msg += ` from ${country}`;
         if (gender) msg += ` with gender: ${gender}`;
+        msg += exclusionMessage;
         return msg;
       })(),
       data: order,
@@ -731,6 +772,39 @@ exports.assignClientInfoToOrderLeads = async (req, res, next) => {
     });
   } catch (error) {
     console.error("Assign client info error:", error);
+    next(error);
+  }
+};
+
+// @desc    Get unique client, broker, and network values for exclusion filters
+// @route   GET /api/orders/exclusion-options
+// @access  Private (Admin, Manager with canCreateOrders permission)
+exports.getExclusionOptions = async (req, res, next) => {
+  try {
+    // Get unique client values
+    const clients = await Lead.distinct("client", {
+      client: { $ne: null, $ne: "" },
+    });
+
+    // Get unique broker values
+    const brokers = await Lead.distinct("clientBroker", {
+      clientBroker: { $ne: null, $ne: "" },
+    });
+
+    // Get unique network values
+    const networks = await Lead.distinct("clientNetwork", {
+      clientNetwork: { $ne: null, $ne: "" },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        clients: clients.sort(),
+        brokers: brokers.sort(),
+        networks: networks.sort(),
+      },
+    });
+  } catch (error) {
     next(error);
   }
 };
