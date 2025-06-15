@@ -18,6 +18,11 @@ const leadSchema = new mongoose.Schema(
       required: [true, "Last name is required"],
       trim: true,
     },
+    // Add prefix field
+    prefix: {
+      type: String,
+      trim: true,
+    },
     newEmail: {
       type: String,
       required: [true, "New email is required"],
@@ -179,6 +184,7 @@ leadSchema.index({ updatedAt: -1 }); // Track updates efficiently
 // Compound indexes for common query patterns
 leadSchema.index({ leadType: 1, isAssigned: 1, status: 1 }); // Common filtering pattern
 leadSchema.index({ assignedTo: 1, status: 1 }); // Agent's leads by status
+leadSchema.index({ prefix: 1 }); // Add index for prefix field
 
 leadSchema.index(
   {
