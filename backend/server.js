@@ -28,8 +28,10 @@ app.set("trust proxy", 1);
 mongoose.connect(
   process.env.MONGODB_URI || "mongodb://localhost:27017/lead-management",
   {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+    family: 4,
+    maxPoolSize: 10,
   }
 );
 

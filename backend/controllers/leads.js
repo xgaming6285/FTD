@@ -143,6 +143,9 @@ exports.getLeads = async (req, res, next) => {
 exports.getAssignedLeads = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, status, orderId } = req.query;
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
 
     // Build filter object
     const filter = {
@@ -153,30 +156,78 @@ exports.getAssignedLeads = async (req, res, next) => {
     if (status) filter.status = status;
     if (orderId) filter.orderId = new mongoose.Types.ObjectId(orderId);
 
-    // Calculate pagination
-    const skip = (page - 1) * limit;
+    const aggregationPipeline = [
+      { $match: filter },
+      {
+        $facet: {
+          leads: [
+            { $sort: { assignedAt: -1 } },
+            { $skip: skip },
+            { $limit: limitNum },
+            {
+              $lookup: {
+                from: "users",
+                localField: "assignedTo",
+                foreignField: "_id",
+                as: "assignedTo",
+              },
+            },
+            {
+              $unwind: {
+                path: "$assignedTo",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $lookup: {
+                from: "orders",
+                localField: "orderId",
+                foreignField: "_id",
+                as: "order",
+              },
+            },
+            {
+              $unwind: {
+                path: "$order",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $project: {
+                firstName: 1,
+                lastName: 1,
+                newEmail: 1,
+                country: 1,
+                leadType: 1,
+                isAssigned: 1,
+                "assignedTo.fullName": 1,
+                "assignedTo.fourDigitCode": 1,
+                status: 1,
+                createdAt: 1,
+                "order.status": 1,
+                "order.priority": 1,
+              },
+            },
+          ],
+          total: [{ $count: "count" }],
+        },
+      },
+    ];
 
-    // Get assigned leads
-    const leads = await Lead.find(filter)
-      .populate("assignedTo", "fullName fourDigitCode email")
-      .populate("comments.author", "fullName")
-      .populate("orderId", "status priority createdAt") // Add order population
-      .sort({ assignedAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
+    const results = await Lead.aggregate(aggregationPipeline);
 
-    // Get total count for pagination
-    const total = await Lead.countDocuments(filter);
+    const leads = results[0].leads;
+    const total = results[0].total.length > 0 ? results[0].total[0].count : 0;
 
     res.status(200).json({
       success: true,
       data: leads,
       pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(total / limit),
+        currentPage: pageNum,
+        totalPages: Math.ceil(total / limitNum),
         totalLeads: total,
-        hasNextPage: page * limit < total,
-        hasPrevPage: page > 1,
+        hasNextPage: pageNum * limitNum < total,
+        hasPrevPage: pageNum > 1,
       },
     });
   } catch (error) {
