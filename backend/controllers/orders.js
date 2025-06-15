@@ -635,6 +635,20 @@ exports.exportOrderLeads = async (req, res, next) => {
       "Assigned At",
     ];
 
+    // Helper function to format dates for Excel compatibility
+    const formatDateForExcel = (date) => {
+      if (!date) return "";
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return "";
+
+      // Format as DD/MM/YYYY which is more Excel-friendly
+      const day = d.getDate().toString().padStart(2, "0");
+      const month = (d.getMonth() + 1).toString().padStart(2, "0");
+      const year = d.getFullYear();
+
+      return `${day}/${month}/${year}`;
+    };
+
     // Convert leads to CSV rows
     const csvRows = leads.map((lead) => [
       lead.leadType || "",
@@ -645,7 +659,7 @@ exports.exportOrderLeads = async (req, res, next) => {
       lead.country || "",
       lead.gender || "",
       lead.status || "",
-      lead.dob ? lead.dob.toISOString().split("T")[0] : "",
+      formatDateForExcel(lead.dob),
       lead.address || "",
       lead.oldEmail || "",
       lead.oldPhone || "",
@@ -660,8 +674,8 @@ exports.exportOrderLeads = async (req, res, next) => {
       lead.socialMedia?.whatsapp || "",
       lead.assignedTo?.fullName || "",
       lead.createdBy?.fullName || "",
-      lead.createdAt ? lead.createdAt.toISOString().split("T")[0] : "",
-      lead.assignedAt ? lead.assignedAt.toISOString().split("T")[0] : "",
+      formatDateForExcel(lead.createdAt),
+      formatDateForExcel(lead.assignedAt),
     ]);
 
     // Helper function to escape CSV values
