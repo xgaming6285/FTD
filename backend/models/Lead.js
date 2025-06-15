@@ -119,13 +119,10 @@ const leadSchema = new mongoose.Schema(
     },
 
     // FTD Only Fields
-    documents: [{
-      url: {
-        type: String,
-        required: true
-      },
-      description: String
-    }],
+    documents: {
+      type: mongoose.Schema.Types.Mixed,
+      default: []
+    },
     sin: {
       type: String,
       trim: true,
@@ -171,6 +168,18 @@ leadSchema.index({ createdAt: -1 });
 leadSchema.index({ client: 1 }, { sparse: true });
 leadSchema.index({ clientBroker: 1 }, { sparse: true });
 leadSchema.index({ clientNetwork: 1 }, { sparse: true });
+leadSchema.index({ newEmail: 1 }, { unique: true }); // Optimize lookup by email
+leadSchema.index({ status: 1 }); // Add index for status field
+leadSchema.index({ assignedAt: -1 }); // Add index for assignedAt for sorting
+leadSchema.index({ isAssigned: 1, assignedTo: 1 }); // Compound index for assigned leads
+leadSchema.index({ firstName: 1, lastName: 1 }); // Optimize name-based sorting
+leadSchema.index({ createdBy: 1 }); // Optimize filtering by creator
+leadSchema.index({ updatedAt: -1 }); // Track updates efficiently
+
+// Compound indexes for common query patterns
+leadSchema.index({ leadType: 1, isAssigned: 1, status: 1 }); // Common filtering pattern
+leadSchema.index({ assignedTo: 1, status: 1 }); // Agent's leads by status
+
 leadSchema.index({
   firstName: "text",
   lastName: "text",
@@ -179,6 +188,17 @@ leadSchema.index({
   client: "text",
   clientBroker: "text",
   clientNetwork: "text",
+}, {
+  weights: {
+    firstName: 10,
+    lastName: 10,
+    newEmail: 5,
+    newPhone: 5,
+    client: 3,
+    clientBroker: 2,
+    clientNetwork: 1
+  },
+  name: "lead_search_index"
 });
 
 // Virtual for full name
@@ -197,6 +217,17 @@ leadSchema.pre("save", function (next) {
   if (this.isModified("isAssigned") && !this.isAssigned) {
     this.assignedAt = undefined;
     this.assignedTo = undefined;
+  }
+  
+  // Handle address conversion if it's an object
+  if (this.address && typeof this.address === 'object') {
+    try {
+      const { street = '', city = '', postalCode = '' } = this.address;
+      this.address = `${street}, ${city} ${postalCode}`.trim();
+    } catch (err) {
+      // If address can't be parsed as an object, stringify it
+      this.address = JSON.stringify(this.address);
+    }
   }
 
   next();

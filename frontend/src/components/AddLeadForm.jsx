@@ -43,7 +43,7 @@ const addLeadSchema = yup.object({
         then: () => yup.date().nullable(),
         otherwise: () => yup.date().nullable()
     }),
-    address: yup.string().nullable(),
+    address: yup.string().nullable().typeError('Address must be a string type'),
     'socialMedia.facebook': yup.string().nullable().url('Invalid Facebook URL'),
     'socialMedia.twitter': yup.string().nullable().url('Invalid Twitter URL'),
     'socialMedia.linkedin': yup.string().nullable().url('Invalid LinkedIn URL'),
@@ -87,11 +87,7 @@ const AddLeadForm = ({ onLeadAdded }) => {
             clientBroker: '',
             clientNetwork: '',
             dob: null,
-            address: {
-                street: '',
-                city: '',
-                postalCode: ''
-            },
+            address: '',
             socialMedia: {
                 facebook: '',
                 twitter: '',
@@ -111,8 +107,38 @@ const AddLeadForm = ({ onLeadAdded }) => {
         setError(null);
         setSuccess(null);
 
+        console.log("Form data before submission:", data);
+
         try {
-            const response = await api.post('/leads', data);
+            // Prepare data for submission
+            const submitData = { ...data };
+            
+            // Handle documents field correctly for FTD leads
+            if (data.leadType === 'ftd') {
+                // Filter out empty documents
+                submitData.documents = data.documents.filter(doc => doc.url.trim() !== '');
+                
+                // If no documents provided, set correct structure for backend
+                if (submitData.documents.length === 0) {
+                    submitData.documents = [];
+                }
+            }
+            
+            // Ensure address is properly formatted as a string
+            if (submitData.address) {
+                if (typeof submitData.address === 'object') {
+                    // Convert address object to string if needed
+                    const { street, city, postalCode } = submitData.address;
+                    submitData.address = `${street || ''}, ${city || ''} ${postalCode || ''}`.trim();
+                } else if (typeof submitData.address !== 'string') {
+                    // Convert any other non-string type to string
+                    submitData.address = String(submitData.address);
+                }
+            }
+
+            console.log("Submit data being sent:", submitData);
+
+            const response = await api.post('/leads', submitData);
 
             if (response.data.success) {
                 setSuccess('Lead added successfully');
@@ -124,6 +150,7 @@ const AddLeadForm = ({ onLeadAdded }) => {
                 throw new Error(response.data.message || 'Failed to add lead');
             }
         } catch (err) {
+            console.error("Error adding lead:", err);
             setError(err.response?.data?.message || err.message || 'Failed to add lead');
         } finally {
             setLoading(false);
@@ -385,6 +412,7 @@ const AddLeadForm = ({ onLeadAdded }) => {
                                             InputLabelProps={{
                                                 shrink: true,
                                             }}
+                                            value={field.value || ''}
                                             error={!!errors.dob}
                                             helperText={errors.dob?.message}
                                         />
@@ -395,17 +423,26 @@ const AddLeadForm = ({ onLeadAdded }) => {
                                 <Controller
                                     name="address"
                                     control={control}
-                                    render={({ field }) => (
-                                        <TextField
-                                            {...field}
-                                            label="Address"
-                                            fullWidth
-                                            multiline
-                                            rows={3}
-                                            error={!!errors.address}
-                                            helperText={errors.address?.message}
-                                        />
-                                    )}
+                                    render={({ field }) => {
+                                        // Ensure field.value is always a string
+                                        const addressValue = typeof field.value === 'string' 
+                                            ? field.value 
+                                            : (field.value ? JSON.stringify(field.value) : '');
+                                        
+                                        return (
+                                            <TextField
+                                                {...field}
+                                                label="Address"
+                                                fullWidth
+                                                multiline
+                                                rows={3}
+                                                value={addressValue}
+                                                onChange={(e) => field.onChange(e.target.value)}
+                                                error={!!errors.address}
+                                                helperText={errors.address?.message || "Enter full address"}
+                                            />
+                                        );
+                                    }}
                                 />
                             </Grid>
                         </>
@@ -426,6 +463,7 @@ const AddLeadForm = ({ onLeadAdded }) => {
                                     {...field}
                                     label="Facebook"
                                     fullWidth
+                                    value={field.value || ''}
                                     error={!!errors['socialMedia.facebook']}
                                     helperText={errors['socialMedia.facebook']?.message}
                                 />
@@ -441,6 +479,7 @@ const AddLeadForm = ({ onLeadAdded }) => {
                                     {...field}
                                     label="Twitter"
                                     fullWidth
+                                    value={field.value || ''}
                                     error={!!errors['socialMedia.twitter']}
                                     helperText={errors['socialMedia.twitter']?.message}
                                 />

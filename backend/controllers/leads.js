@@ -20,10 +20,10 @@ exports.getLeads = async (req, res, next) => {
       page = 1,
       limit = 10,
       search,
-      includeConverted = "true", // New parameter to control visibility of converted leads
-      order = "newest", // Add order parameter with default value
-      orderId, // Add orderId parameter
-      assignedToMe, // New parameter to filter leads assigned to the current user
+      includeConverted = "true",
+      order = "newest",
+      orderId,
+      assignedToMe,
     } = req.query;
 
     // Build filter object
@@ -33,10 +33,10 @@ exports.getLeads = async (req, res, next) => {
       filter.isAssigned = isAssigned === "true";
     if (country) filter.country = new RegExp(country, "i");
     if (gender) filter.gender = gender;
-    if (orderId) filter.orderId = new mongoose.Types.ObjectId(orderId); // Convert to ObjectId
+    if (orderId) filter.orderId = new mongoose.Types.ObjectId(orderId);
 
     // Determine sort order based on order parameter
-    let sortOrder = { createdAt: -1 }; // Default sort
+    let sortOrder = { createdAt: -1 };
     switch (order) {
       case "oldest":
         sortOrder = { createdAt: 1 };
@@ -47,21 +47,17 @@ exports.getLeads = async (req, res, next) => {
       case "name_desc":
         sortOrder = { firstName: -1, lastName: -1 };
         break;
-      default: // "newest" or any other value
+      default:
         sortOrder = { createdAt: -1 };
     }
 
     // Role-based filtering
     if (req.user.role === "affiliate_manager") {
-      // Check if affiliate manager wants to see only leads assigned to them
       if (assignedToMe === "true") {
         filter.assignedTo = req.user.id;
         filter.isAssigned = true;
       }
-      // Otherwise, affiliate managers can see all leads to manage assignments
-      // No additional filtering needed - they can see all leads for management purposes
     } else if (req.user.role === "lead_manager") {
-      // Lead managers can only see leads they added
       filter.createdBy = req.user.id;
     }
 
@@ -69,56 +65,102 @@ exports.getLeads = async (req, res, next) => {
     if (status) {
       filter.status = status;
     } else if (includeConverted !== "true") {
-      filter.status = { $ne: "converted" }; // Exclude converted leads if not explicitly requested
+      filter.status = { $ne: "converted" };
     }
 
     if (documentStatus) filter["documents.status"] = documentStatus;
 
-    // Add search functionality
+    // Add search functionality - use text index for better performance when possible
     if (search) {
-      filter.$or = [
-        { firstName: new RegExp(search, "i") },
-        { lastName: new RegExp(search, "i") },
-        { email: new RegExp(search, "i") },
-        { phone: new RegExp(search, "i") },
-        { client: new RegExp(search, "i") },
-        { clientBroker: new RegExp(search, "i") },
-        { clientNetwork: new RegExp(search, "i") },
-      ];
+      // If search is a simple term, use text index for better performance
+      if (search.length > 3 && !search.includes(":") && !search.includes("?") && 
+          !search.includes("*") && !search.includes("(") && !search.includes(")")) {
+        filter.$text = { $search: search };
+      } else {
+        // Fallback to regex for complex search patterns
+        filter.$or = [
+          { firstName: new RegExp(search, "i") },
+          { lastName: new RegExp(search, "i") },
+          { newEmail: new RegExp(search, "i") },
+          { newPhone: new RegExp(search, "i") },
+          { client: new RegExp(search, "i") },
+          { clientBroker: new RegExp(search, "i") },
+          { clientNetwork: new RegExp(search, "i") },
+        ];
+      }
     }
 
     // Calculate pagination
     const skip = (page - 1) * limit;
+    const limitNum = parseInt(limit);
 
-    // Get leads with pagination
-    console.log("MongoDB Query Filter:", JSON.stringify(filter, null, 2));
-    const leads = await Lead.find(filter)
-      .populate("assignedTo", "fullName fourDigitCode")
-      .populate("comments.author", "fullName")
-      .populate("orderId", "status priority createdAt") // Add order population
-      .sort(sortOrder)
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    console.log("MongoDB Query Results:", JSON.stringify(leads, null, 2));
-
-    // Debug: Check if assignedTo is properly populated
-    leads.forEach((lead, index) => {
-      if (lead.isAssigned && lead.assignedTo) {
-        console.log(`Lead ${index} assignedTo:`, {
-          id: lead.assignedTo._id,
-          fullName: lead.assignedTo.fullName,
-          fourDigitCode: lead.assignedTo.fourDigitCode,
-          email: lead.assignedTo.email,
-        });
-      } else if (lead.isAssigned && !lead.assignedTo) {
-        console.log(
-          `Lead ${index} is assigned but assignedTo is null/undefined`
-        );
+    // Use aggregation for better performance with large datasets
+    const aggregationPipeline = [
+      { $match: filter },
+      { $sort: sortOrder },
+      { $skip: skip },
+      { $limit: limitNum },
+      // Populate with efficient lookups
+      {
+        $lookup: {
+          from: "users",
+          localField: "assignedTo",
+          foreignField: "_id",
+          as: "assignedToUser"
+        }
+      },
+      {
+        $lookup: {
+          from: "orders",
+          localField: "orderId",
+          foreignField: "_id",
+          as: "orderDetails"
+        }
+      },
+      // Unwind arrays to normalize the data structure
+      {
+        $addFields: {
+          assignedTo: { $arrayElemAt: ["$assignedToUser", 0] },
+          order: { $arrayElemAt: ["$orderDetails", 0] },
+        }
+      },
+      // Project only needed fields
+      {
+        $project: {
+          _id: 1,
+          firstName: 1,
+          lastName: 1,
+          newEmail: 1,
+          newPhone: 1,
+          oldEmail: 1, 
+          oldPhone: 1,
+          country: 1,
+          leadType: 1,
+          isAssigned: 1,
+          assignedAt: 1,
+          status: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          gender: 1,
+          client: 1,
+          clientBroker: 1,
+          clientNetwork: 1,
+          documents: 1,
+          "assignedTo._id": 1,
+          "assignedTo.fullName": 1,
+          "assignedTo.fourDigitCode": 1,
+          "order._id": 1,
+          "order.status": 1,
+          "order.priority": 1,
+          "order.createdAt": 1
+        }
       }
-    });
+    ];
 
-    // Get total count for pagination
+    // Execute aggregation pipeline
+    const leads = await Lead.aggregate(aggregationPipeline);
+
+    // Get total count for pagination (using countDocuments with the same filter)
     const total = await Lead.countDocuments(filter);
 
     res.status(200).json({
@@ -142,91 +184,93 @@ exports.getLeads = async (req, res, next) => {
 // @access  Private (Agent)
 exports.getAssignedLeads = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, status, orderId } = req.query;
+    const { page = 1, limit = 10, status, orderId, leadType } = req.query;
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
     const skip = (pageNum - 1) * limitNum;
 
-    // Build filter object
+    // Build filter object - use an efficient filtering approach
     const filter = {
-      assignedTo: req.user.id,
+      assignedTo: new mongoose.Types.ObjectId(req.user.id),
       isAssigned: true,
     };
 
+    // Apply optional filters only if provided
     if (status) filter.status = status;
     if (orderId) filter.orderId = new mongoose.Types.ObjectId(orderId);
+    if (leadType) filter.leadType = leadType;
 
-    const aggregationPipeline = [
-      { $match: filter },
-      {
-        $facet: {
-          leads: [
-            { $sort: { assignedAt: -1 } },
-            { $skip: skip },
-            { $limit: limitNum },
-            {
-              $lookup: {
-                from: "users",
-                localField: "assignedTo",
-                foreignField: "_id",
-                as: "assignedTo",
-              },
-            },
-            {
-              $unwind: {
-                path: "$assignedTo",
-                preserveNullAndEmptyArrays: true,
-              },
-            },
-            {
-              $lookup: {
-                from: "orders",
-                localField: "orderId",
-                foreignField: "_id",
-                as: "order",
-              },
-            },
-            {
-              $unwind: {
-                path: "$order",
-                preserveNullAndEmptyArrays: true,
-              },
-            },
-            {
-              $project: {
-                firstName: 1,
-                lastName: 1,
-                newEmail: 1,
-                country: 1,
-                leadType: 1,
-                isAssigned: 1,
-                "assignedTo.fullName": 1,
-                "assignedTo.fourDigitCode": 1,
-                status: 1,
-                createdAt: 1,
-                "order.status": 1,
-                "order.priority": 1,
-              },
-            },
-          ],
-          total: [{ $count: "count" }],
+    // Use promise.all to run count and data queries in parallel
+    const [results, totalCount] = await Promise.all([
+      Lead.aggregate([
+        { $match: filter },
+        { $sort: { assignedAt: -1 } },
+        { $skip: skip },
+        { $limit: limitNum },
+        {
+          $lookup: {
+            from: "users",
+            localField: "assignedTo",
+            foreignField: "_id",
+            as: "assignedToDetails",
+            pipeline: [
+              { 
+                $project: { 
+                  fullName: 1, 
+                  fourDigitCode: 1 
+                } 
+              }
+            ]
+          }
         },
-      },
-    ];
-
-    const results = await Lead.aggregate(aggregationPipeline);
-
-    const leads = results[0].leads;
-    const total = results[0].total.length > 0 ? results[0].total[0].count : 0;
+        {
+          $lookup: {
+            from: "orders",
+            localField: "orderId",
+            foreignField: "_id",
+            as: "orderDetails",
+            pipeline: [
+              { 
+                $project: { 
+                  status: 1, 
+                  priority: 1,
+                  createdAt: 1
+                } 
+              }
+            ]
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            firstName: 1,
+            lastName: 1,
+            newEmail: 1,
+            country: 1,
+            leadType: 1,
+            isAssigned: 1,
+            assignedAt: 1,
+            status: 1,
+            createdAt: 1,
+            "assignedToDetails.fullName": 1,
+            "assignedToDetails.fourDigitCode": 1,
+            "orderDetails.status": 1,
+            "orderDetails.priority": 1,
+            "orderDetails.createdAt": 1
+          }
+        }
+      ]),
+      Lead.countDocuments(filter)
+    ]);
 
     res.status(200).json({
       success: true,
-      data: leads,
+      data: results,
       pagination: {
         currentPage: pageNum,
-        totalPages: Math.ceil(total / limitNum),
-        totalLeads: total,
-        hasNextPage: pageNum * limitNum < total,
+        totalPages: Math.ceil(totalCount / limitNum),
+        totalLeads: totalCount,
+        hasNextPage: pageNum * limitNum < totalCount,
         hasPrevPage: pageNum > 1,
       },
     });
@@ -661,6 +705,7 @@ exports.updateLead = async (req, res, next) => {
       socialMedia,
       sin,
       gender,
+      address,
     } = req.body;
 
     const lead = await Lead.findById(req.params.id);
@@ -695,6 +740,12 @@ exports.updateLead = async (req, res, next) => {
     if (leadType) lead.leadType = leadType;
     if (sin !== undefined && leadType === "ftd") lead.sin = sin;
     if (gender !== undefined) lead.gender = gender;
+    
+    // Update address if provided and lead type is appropriate
+    if (address !== undefined && (lead.leadType === 'ftd' || lead.leadType === 'filler')) {
+      // Address will be handled by pre-save middleware to ensure it's a string
+      lead.address = address;
+    }
 
     // Update social media fields if provided
     if (socialMedia) {
@@ -780,8 +831,8 @@ exports.createLead = async (req, res, next) => {
       });
     }
 
-    // Create a new lead
-    const lead = new Lead({
+    // Create lead data object
+    const leadData = {
       firstName,
       lastName,
       newEmail,
@@ -798,19 +849,26 @@ exports.createLead = async (req, res, next) => {
       dob,
       address,
       gender,
-      documents,
       createdBy: req.user.id,
       isAssigned: false,
       status: "active",
-    });
+    };
 
-    // Set document status to pending for FTD leads
+    // Set documents based on lead type
     if (leadType === "ftd") {
-      lead.documents = {
-        status: "good",
-      };
+      if (documents && Array.isArray(documents) && documents.length > 0) {
+        leadData.documents = documents;
+      } else {
+        leadData.documents = {
+          status: "pending"
+        };
+      }
+    } else {
+      leadData.documents = documents || [];
     }
 
+    // Create a new lead
+    const lead = new Lead(leadData);
     await lead.save();
 
     res.status(201).json({
@@ -839,338 +897,146 @@ exports.createLead = async (req, res, next) => {
   }
 };
 
-// @desc    Import leads from CSV file
+// Utility function to handle batch operations efficiently
+const batchProcess = async (items, batchSize, processFn) => {
+  const results = [];
+  const totalItems = items.length;
+  const totalBatches = Math.ceil(totalItems / batchSize);
+
+  console.log(`Starting batch processing of ${totalItems} items in ${totalBatches} batches`);
+  
+  for (let i = 0; i < totalItems; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    const batchNumber = Math.floor(i / batchSize) + 1;
+    
+    console.log(`Processing batch ${batchNumber}/${totalBatches} (${batch.length} items)`);
+    
+    const batchResults = await processFn(batch);
+    results.push(...batchResults);
+    
+    // Small pause between batches to prevent overwhelming the database
+    if (i + batchSize < totalItems) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+  
+  return results;
+};
+
+// @desc    Import leads from CSV or JSON
 // @route   POST /api/leads/import
-// @access  Private (Admin, Affiliate Manager, Lead Manager)
+// @access  Private (Admin, Lead Manager)
 exports.importLeads = async (req, res, next) => {
   try {
     if (!req.files || !req.files.file) {
       return res.status(400).json({
         success: false,
-        message: "Please upload a CSV file",
+        message: "Please upload a file",
       });
     }
 
     const file = req.files.file;
-    const leadType = req.body.leadType;
+    const fileExtension = file.name.split(".").pop().toLowerCase();
 
-    // Validate lead type
-    if (!leadType || !["ftd", "filler", "cold", "live"].includes(leadType)) {
+    if (!["csv", "json"].includes(fileExtension)) {
       return res.status(400).json({
         success: false,
-        message: "Please select a valid lead type (ftd, filler, cold, or live)",
+        message: "Please upload a CSV or JSON file",
       });
     }
 
-    // Validate file
-    if (!file.data || file.data.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No file data received",
+    let leads = [];
+
+    if (fileExtension === "csv") {
+      // Parse CSV file
+      const results = [];
+      const stream = Readable.from(file.data.toString());
+
+      await new Promise((resolve, reject) => {
+        stream
+          .pipe(csvParser())
+          .on("data", (data) => results.push(data))
+          .on("error", (error) => reject(error))
+          .on("end", () => resolve());
       });
-    }
 
-    if (!file.mimetype.includes("csv") && !file.name.endsWith(".csv")) {
-      return res.status(400).json({
-        success: false,
-        message: "Please upload a valid CSV file",
-      });
-    }
-
-    // Create a readable stream from the file buffer
-    const csvData = file.data.toString("utf8");
-    const stream = Readable.from([csvData]);
-
-    const leads = [];
-    let rowNumber = 1;
-
-    // Parse CSV using csv-parser
-    const parsePromise = new Promise((resolve, reject) => {
-      stream
-        .pipe(
-          csvParser({
-            mapHeaders: ({ header, index }) => {
-              // Custom header mapping to avoid conflicts
-              const normalized = header.trim().toLowerCase();
-              console.log(
-                `Mapping header "${header}" (index ${index}) -> normalized: "${normalized}"`
-              );
-
-              // Explicit mapping for known headers
-              switch (normalized) {
-                case "new email":
-                case "email":
-                  console.log(`  -> mapping to: newemail`);
-                  return "newemail";
-                case "old email":
-                  console.log(`  -> mapping to: oldemail`);
-                  return "oldemail";
-                case "first name":
-                  console.log(`  -> mapping to: firstname`);
-                  return "firstname";
-                case "last name":
-                  console.log(`  -> mapping to: lastname`);
-                  return "lastname";
-                case "new phone":
-                case "phone":
-                case "phone number":
-                  console.log(`  -> mapping to: newphone`);
-                  return "newphone";
-                case "old phone":
-                  console.log(`  -> mapping to: oldphone`);
-                  return "oldphone";
-                case "date of birth":
-                case "dob":
-                  console.log(`  -> mapping to: dateofbirth`);
-                  return "dateofbirth";
-                case "id front":
-                  console.log(`  -> mapping to: idfront`);
-                  return "idfront";
-                case "id back":
-                  console.log(`  -> mapping to: idback`);
-                  return "idback";
-                case "selfie front":
-                  console.log(`  -> mapping to: selfiefront`);
-                  return "selfiefront";
-                case "selfie back":
-                  console.log(`  -> mapping to: selfieback`);
-                  return "selfieback";
-                case "id remark":
-                  console.log(`  -> mapping to: idremark`);
-                  return "idremark";
-                case "address":
-                  console.log(`  -> mapping to: address`);
-                  return "address";
-                case "geo":
-                case "country":
-                  console.log(`  -> mapping to: geo`);
-                  return "geo";
-                case "extension":
-                  console.log(`  -> mapping to: extension`);
-                  return "extension";
-                case "gender":
-                  console.log(`  -> mapping to: gender`);
-                  return "gender";
-                case "prefix":
-                  console.log(`  -> mapping to: prefix`);
-                  return "prefix";
-                case "agent":
-                  console.log(`  -> mapping to: agent`);
-                  return "agent";
-                case "facebook":
-                  console.log(`  -> mapping to: facebook`);
-                  return "facebook";
-                case "twitter":
-                  console.log(`  -> mapping to: twitter`);
-                  return "twitter";
-                case "linkedin":
-                  console.log(`  -> mapping to: linkedin`);
-                  return "linkedin";
-                case "instagram":
-                  console.log(`  -> mapping to: instagram`);
-                  return "instagram";
-                case "telegram":
-                  console.log(`  -> mapping to: telegram`);
-                  return "telegram";
-                default:
-                  // Remove spaces and convert to lowercase for other fields
-                  const result = normalized.replace(/\s+/g, "");
-                  console.log(`  -> default mapping to: ${result}`);
-                  return result;
-              }
-            },
-            skipEmptyLines: true,
-          })
-        )
-        .on("data", (row) => {
-          rowNumber++;
-
-          // Debug: log the first row to see all available columns
-          if (rowNumber === 2) {
-            console.log("Available CSV columns:", Object.keys(row));
-            console.log("First row data:", row);
-          }
-
-          // More flexible field detection using the correctly mapped headers
-          const findField = (possibleNames) => {
-            for (const name of possibleNames) {
-              if (row[name] && row[name].toString().trim()) {
-                return row[name].toString().trim();
-              }
-            }
-            return "";
-          };
-
-          // Get email and address from the correctly mapped fields
-          const emailValue = (row["newemail"] || "").toLowerCase();
-          const addressValue = row["address"] || "";
-
-          // Debug: Show what we found
-          if (rowNumber <= 3) {
-            console.log(
-              `Row ${rowNumber} - Email: "${emailValue}", Address: "${addressValue}"`
-            );
-          }
-
-          // If no email found, try to use old email as new email
-          let finalEmailValue = emailValue;
-          if (!finalEmailValue || !finalEmailValue.includes("@")) {
-            const oldEmailValue = (row["oldemail"] || "").toLowerCase();
-            if (oldEmailValue && oldEmailValue.includes("@")) {
-              finalEmailValue = oldEmailValue;
-              console.log(
-                `Using old email as new email for row ${rowNumber}:`,
-                finalEmailValue
-              );
-            }
-          }
-
-          // Handle multiple email addresses
-          if (finalEmailValue.includes(" ")) {
-            finalEmailValue = finalEmailValue.split(" ")[0]; // Take the first email if multiple
-          }
-
-          // If still no email found, skip this row
-          if (!finalEmailValue || !finalEmailValue.includes("@")) {
-            console.log(
-              `Skipping row ${rowNumber} - no valid email found. Available data:`,
-              Object.keys(row)
-            );
-            return;
-          }
-
-          const lead = {
-            leadType,
-            createdBy: req.user.id,
-            firstName: findField(["firstname"]),
-            lastName: findField(["lastname"]),
-            newEmail: finalEmailValue,
-            newPhone: findField(["newphone"]),
-            country: findField(["geo"]) || "Unknown",
-            gender: (findField(["gender"]) || "not_defined").toLowerCase(),
-            oldEmail: (findField(["oldemail"]) || "").toLowerCase(),
-            oldPhone: findField(["oldphone"]),
-            prefix: findField(["prefix"]),
-            agent: findField(["agent"]),
-            extension: findField(["extension"]),
-            address: addressValue,
-            socialMedia: {
-              facebook: findField(["facebook"]),
-              twitter: findField(["twitter"]),
-              linkedin: findField(["linkedin"]),
-              instagram: findField(["instagram"]),
-              telegram: findField(["telegram"]),
-            },
-            documents: [],
-            dob: (() => {
-              const dobValue = findField(["dateofbirth"]);
-              if (!dobValue) return null;
-              try {
-                // Handle DD/MM/YYYY format common in the CSV
-                const dateParts = dobValue.split("/");
-                if (dateParts.length === 3) {
-                  const [day, month, year] = dateParts;
-                  return new Date(year, month - 1, day); // Month is 0-indexed
-                }
-                return new Date(dobValue);
-              } catch (error) {
-                console.log(
-                  `Invalid date format for row ${rowNumber}: ${dobValue}`
-                );
-                return null;
-              }
-            })(),
-          };
-
-          // Handle documents
-          const documentFields = {
-            idfront: { description: "ID Front" },
-            idback: { description: "ID Back" },
-            selfiefront: { description: "Selfie Front" },
-            selfieback: { description: "Selfie Back" },
-          };
-
-          // Add documents that have URLs
-          Object.entries(documentFields).forEach(([field, metadata]) => {
-            const url = findField([field]);
-            if (url) {
-              lead.documents.push({
-                url: url,
-                description: metadata.description,
-              });
-            }
-          });
-
-          // Clean up social media fields - handle both URL and non-URL formats
-          Object.keys(lead.socialMedia).forEach((platform) => {
-            const value = lead.socialMedia[platform];
-            if (!value) {
-              delete lead.socialMedia[platform]; // Remove empty fields
-            } else if (!value.startsWith("http")) {
-              // If it's not a URL, store as is
-              lead.socialMedia[platform] = value;
-            }
-          });
-
-          // Debug: log the first few mapped leads
-          if (rowNumber <= 3) {
-            console.log(`Row ${rowNumber} mapped lead:`, {
-              firstName: lead.firstName,
-              lastName: lead.lastName,
-              newEmail: lead.newEmail,
-              address: lead.address,
-              country: lead.country,
-            });
-          }
-
-          // Only add if we have minimum required data
-          if (lead.firstName && lead.lastName && lead.newEmail) {
-            leads.push(lead);
-          } else {
-            console.log(`Skipping row ${rowNumber} - missing required data:`, {
-              firstName: !!lead.firstName,
-              lastName: !!lead.lastName,
-              newEmail: !!lead.newEmail,
-            });
-          }
-        })
-        .on("end", () => {
-          resolve();
-        })
-        .on("error", (error) => {
-          reject(error);
-        });
-    });
-
-    await parsePromise;
-
-    // Save leads to database
-    let savedLeads = [];
-    if (leads.length > 0) {
+      leads = results;
+    } else {
+      // Parse JSON file
       try {
-        savedLeads = await Lead.insertMany(leads, { ordered: false });
-      } catch (bulkError) {
-        // If there are duplicate errors, just get what was saved
-        savedLeads = bulkError.insertedDocs || [];
+        leads = JSON.parse(file.data.toString());
+        if (!Array.isArray(leads)) {
+          leads = [leads]; // Convert single object to array
+        }
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid JSON format",
+        });
       }
     }
 
-    // Return results
+    // Process and validate leads
+    const processedLeads = leads.map((lead) => ({
+      firstName: lead.firstName || lead.first_name || "",
+      lastName: lead.lastName || lead.last_name || "",
+      newEmail: lead.email || lead.newEmail || "",
+      newPhone: lead.phone || lead.newPhone || "",
+      country: lead.country || "",
+      leadType: lead.leadType || lead.lead_type || "cold",
+      createdBy: req.user.id,
+    }));
+
+    const validLeads = processedLeads.filter(
+      (lead) => lead.firstName && lead.newEmail && lead.newPhone && lead.country
+    );
+
+    if (validLeads.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No valid leads found in the file",
+      });
+    }
+
+    // Use batch processing for better performance
+    const BATCH_SIZE = 100; // Process in batches of 100
+    
+    const savedLeads = await batchProcess(validLeads, BATCH_SIZE, async (batch) => {
+      // Check for existing emails in this batch to avoid duplicates
+      const emails = batch.map(lead => lead.newEmail);
+      const existingEmails = await Lead.distinct('newEmail', { newEmail: { $in: emails } });
+      
+      // Filter out leads with existing emails
+      const newLeads = batch.filter(lead => !existingEmails.includes(lead.newEmail));
+      
+      if (newLeads.length === 0) return [];
+      
+      // Use insertMany for better performance
+      return await Lead.insertMany(newLeads, { 
+        ordered: false, // Continue inserting despite errors
+        rawResult: true // Return statistics about the operation
+      });
+    });
+
+    // Count successful imports
+    let importCount = 0;
+    savedLeads.forEach(result => {
+      if (result.insertedCount) importCount += result.insertedCount;
+    });
+
     res.status(200).json({
       success: true,
-      message: `Successfully imported ${savedLeads.length} out of ${leads.length} leads`,
-      data: {
-        imported: savedLeads.length,
-        total: leads.length,
-      },
+      message: `${importCount} leads imported successfully`,
     });
   } catch (error) {
-    console.error("Import error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to import leads",
-      error: error.message,
-    });
+    if (error.code === 11000) {
+      // Handle duplicate key error
+      return res.status(400).json({
+        success: false,
+        message: "Some leads could not be imported due to duplicate emails",
+      });
+    }
+    next(error);
   }
 };
 
