@@ -152,9 +152,7 @@ exports.getLeads = async (req, res, next) => {
           "order._id": 1,
           "order.status": 1,
           "order.priority": 1,
-          "order.createdAt": 1,
-          assignedToUser: 0,
-          orderDetails: 0,
+          "order.createdAt": 1
         }
       }
     ];
@@ -707,6 +705,7 @@ exports.updateLead = async (req, res, next) => {
       socialMedia,
       sin,
       gender,
+      address,
     } = req.body;
 
     const lead = await Lead.findById(req.params.id);
@@ -741,6 +740,12 @@ exports.updateLead = async (req, res, next) => {
     if (leadType) lead.leadType = leadType;
     if (sin !== undefined && leadType === "ftd") lead.sin = sin;
     if (gender !== undefined) lead.gender = gender;
+    
+    // Update address if provided and lead type is appropriate
+    if (address !== undefined && (lead.leadType === 'ftd' || lead.leadType === 'filler')) {
+      // Address will be handled by pre-save middleware to ensure it's a string
+      lead.address = address;
+    }
 
     // Update social media fields if provided
     if (socialMedia) {
@@ -826,8 +831,8 @@ exports.createLead = async (req, res, next) => {
       });
     }
 
-    // Create a new lead
-    const lead = new Lead({
+    // Create lead data object
+    const leadData = {
       firstName,
       lastName,
       newEmail,
@@ -844,19 +849,26 @@ exports.createLead = async (req, res, next) => {
       dob,
       address,
       gender,
-      documents,
       createdBy: req.user.id,
       isAssigned: false,
       status: "active",
-    });
+    };
 
-    // Set document status to pending for FTD leads
+    // Set documents based on lead type
     if (leadType === "ftd") {
-      lead.documents = {
-        status: "good",
-      };
+      if (documents && Array.isArray(documents) && documents.length > 0) {
+        leadData.documents = documents;
+      } else {
+        leadData.documents = {
+          status: "pending"
+        };
+      }
+    } else {
+      leadData.documents = documents || [];
     }
 
+    // Create a new lead
+    const lead = new Lead(leadData);
     await lead.save();
 
     res.status(201).json({

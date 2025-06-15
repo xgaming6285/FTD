@@ -119,13 +119,10 @@ const leadSchema = new mongoose.Schema(
     },
 
     // FTD Only Fields
-    documents: [{
-      url: {
-        type: String,
-        required: true
-      },
-      description: String
-    }],
+    documents: {
+      type: mongoose.Schema.Types.Mixed,
+      default: []
+    },
     sin: {
       type: String,
       trim: true,
@@ -220,6 +217,17 @@ leadSchema.pre("save", function (next) {
   if (this.isModified("isAssigned") && !this.isAssigned) {
     this.assignedAt = undefined;
     this.assignedTo = undefined;
+  }
+  
+  // Handle address conversion if it's an object
+  if (this.address && typeof this.address === 'object') {
+    try {
+      const { street = '', city = '', postalCode = '' } = this.address;
+      this.address = `${street}, ${city} ${postalCode}`.trim();
+    } catch (err) {
+      // If address can't be parsed as an object, stringify it
+      this.address = JSON.stringify(this.address);
+    }
   }
 
   next();
