@@ -47,6 +47,7 @@ import api from '../services/api';
 import { selectUser } from '../store/slices/authSlice';
 import { getSortedCountries } from '../constants/countries';
 import AssignClientInfoDialog from '../components/AssignClientInfoDialog';
+import LeadDetailCard from '../components/LeadDetailCard';
 
 // --- Best Practice: Define constants and schemas outside the component ---
 // This prevents them from being recreated on every render.
@@ -141,6 +142,9 @@ const OrdersPage = () => {
 
   // --- Bug Fix: Use an object to store data for each expanded row individually ---
   const [expandedRowData, setExpandedRowData] = useState({});
+
+  // State for individual lead expansion within orders
+  const [expandedLeads, setExpandedLeads] = useState({});
 
   const {
     control,
@@ -237,6 +241,29 @@ const OrdersPage = () => {
         severity: 'error',
       });
     }
+  }, []);
+
+  const toggleLeadExpansion = useCallback((leadId) => {
+    setExpandedLeads(prev => ({
+      ...prev,
+      [leadId]: !prev[leadId]
+    }));
+  }, []);
+
+  const expandAllLeads = useCallback((leads) => {
+    const expandedState = {};
+    leads.forEach(lead => {
+      expandedState[lead._id] = true;
+    });
+    setExpandedLeads(prev => ({ ...prev, ...expandedState }));
+  }, []);
+
+  const collapseAllLeads = useCallback((leads) => {
+    const collapsedState = {};
+    leads.forEach(lead => {
+      collapsedState[lead._id] = false;
+    });
+    setExpandedLeads(prev => ({ ...prev, ...collapsedState }));
   }, []);
 
   const handleExportLeads = useCallback(async (orderId) => {
@@ -537,8 +564,24 @@ const OrdersPage = () => {
                                           startIcon={<DownloadIcon />}
                                           onClick={() => handleExportLeads(order._id)}
                                           variant="outlined"
+                                          sx={{ mr: 1 }}
                                         >
                                           Export CSV
+                                        </Button>
+                                        <Button
+                                          size="small"
+                                          onClick={() => expandAllLeads(expandedDetails.leads)}
+                                          variant="outlined"
+                                          sx={{ mr: 1 }}
+                                        >
+                                          Expand All
+                                        </Button>
+                                        <Button
+                                          size="small"
+                                          onClick={() => collapseAllLeads(expandedDetails.leads)}
+                                          variant="outlined"
+                                        >
+                                          Collapse All
                                         </Button>
                                       </Box>
                                       <TableContainer component={Paper} elevation={2}>
@@ -549,16 +592,39 @@ const OrdersPage = () => {
                                               <TableCell>Name</TableCell>
                                               <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Country</TableCell>
                                               <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Email</TableCell>
+                                              <TableCell>Actions</TableCell>
                                             </TableRow>
                                           </TableHead>
                                           <TableBody>
                                             {expandedDetails.leads.map((lead) => (
-                                              <TableRow key={lead._id}>
-                                                <TableCell><Chip label={lead.leadType?.toUpperCase()} size="small" /></TableCell>
-                                                <TableCell>{lead.firstName} {lead.lastName}</TableCell>
-                                                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{lead.country}</TableCell>
-                                                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{lead.newEmail}</TableCell>
-                                              </TableRow>
+                                              <React.Fragment key={lead._id}>
+                                                <TableRow>
+                                                  <TableCell><Chip label={lead.leadType?.toUpperCase()} size="small" /></TableCell>
+                                                  <TableCell>{lead.firstName} {lead.lastName}</TableCell>
+                                                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{lead.country}</TableCell>
+                                                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{lead.newEmail}</TableCell>
+                                                  <TableCell>
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() => toggleLeadExpansion(lead._id)}
+                                                      aria-label={expandedLeads[lead._id] ? 'collapse' : 'expand'}
+                                                    >
+                                                      {expandedLeads[lead._id] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                                                    </IconButton>
+                                                  </TableCell>
+                                                </TableRow>
+                                                {expandedLeads[lead._id] && (
+                                                  <TableRow>
+                                                    <TableCell colSpan={5} sx={{ py: 0, border: 0 }}>
+                                                      <Collapse in={expandedLeads[lead._id]} timeout="auto" unmountOnExit>
+                                                        <Box sx={{ p: 2 }}>
+                                                          <LeadDetailCard lead={lead} />
+                                                        </Box>
+                                                      </Collapse>
+                                                    </TableCell>
+                                                  </TableRow>
+                                                )}
+                                              </React.Fragment>
                                             ))}
                                           </TableBody>
                                         </Table>
@@ -683,22 +749,67 @@ const OrdersPage = () => {
               <Grid item xs={12} sm={6}><Typography variant="subtitle2">Gender Filter</Typography><Typography variant="body2">{selectedOrder.genderFilter || 'Any'}</Typography></Grid>
               <Grid item xs={12}><Typography variant="subtitle2">Notes</Typography><Typography variant="body2">{selectedOrder.notes || 'N/A'}</Typography></Grid>
               <Grid item xs={12}><Typography variant="subtitle2">Created</Typography><Typography variant="body2">{new Date(selectedOrder.createdAt).toLocaleString()}</Typography></Grid>
-              <Grid item xs={12}><Typography variant="subtitle2">Assigned Leads ({selectedOrder.leads?.length || 0})</Typography>
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="subtitle2">Assigned Leads ({selectedOrder.leads?.length || 0})</Typography>
+                  {selectedOrder.leads?.length > 0 && (
+                    <Box>
+                      <Button
+                        size="small"
+                        onClick={() => expandAllLeads(selectedOrder.leads)}
+                        variant="outlined"
+                        sx={{ mr: 1 }}
+                      >
+                        Expand All
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() => collapseAllLeads(selectedOrder.leads)}
+                        variant="outlined"
+                      >
+                        Collapse All
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
                 {selectedOrder.leads?.length > 0 ? (
                   <TableContainer component={Paper}><Table size="small">
                     <TableHead><TableRow>
                       <TableCell>Type</TableCell><TableCell>Name</TableCell>
                       <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Country</TableCell>
                       <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Email</TableCell>
+                      <TableCell>Details</TableCell>
                     </TableRow></TableHead>
                     <TableBody>
                       {selectedOrder.leads.map((lead) => (
-                        <TableRow key={lead._id}>
-                          <TableCell><Chip label={lead.leadType.toUpperCase()} size="small" /></TableCell>
-                          <TableCell>{lead.firstName} {lead.lastName}</TableCell>
-                          <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{lead.country}</TableCell>
-                          <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{lead.newEmail}</TableCell>
-                        </TableRow>
+                        <React.Fragment key={lead._id}>
+                          <TableRow>
+                            <TableCell><Chip label={lead.leadType.toUpperCase()} size="small" /></TableCell>
+                            <TableCell>{lead.firstName} {lead.lastName}</TableCell>
+                            <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{lead.country}</TableCell>
+                            <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{lead.newEmail}</TableCell>
+                            <TableCell>
+                              <IconButton
+                                size="small"
+                                onClick={() => toggleLeadExpansion(lead._id)}
+                                aria-label={expandedLeads[lead._id] ? 'collapse' : 'expand'}
+                              >
+                                {expandedLeads[lead._id] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                          {expandedLeads[lead._id] && (
+                            <TableRow>
+                              <TableCell colSpan={5} sx={{ py: 0, border: 0 }}>
+                                <Collapse in={expandedLeads[lead._id]} timeout="auto" unmountOnExit>
+                                  <Box sx={{ p: 2 }}>
+                                    <LeadDetailCard lead={lead} />
+                                  </Box>
+                                </Collapse>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </React.Fragment>
                       ))}
                     </TableBody>
                   </Table></TableContainer>

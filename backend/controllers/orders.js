@@ -249,7 +249,21 @@ exports.getOrders = async (req, res, next) => {
     // Get orders with pagination
     const orders = await Order.find(query)
       .populate("requester", "fullName email role")
-      .populate("leads", "leadType firstName lastName country")
+      .populate({
+        path: "leads",
+        select:
+          "leadType firstName lastName country newEmail newPhone oldEmail oldPhone gender dob address sin client clientBroker clientNetwork socialMedia status priority source assignedTo assignedAt createdAt documents comments",
+        populate: [
+          {
+            path: "assignedTo",
+            select: "fullName email",
+          },
+          {
+            path: "comments.author",
+            select: "fullName",
+          },
+        ],
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum);
@@ -279,7 +293,19 @@ exports.getOrderById = async (req, res, next) => {
   try {
     const order = await Order.findById(req.params.id)
       .populate("requester", "fullName email role")
-      .populate("leads");
+      .populate({
+        path: "leads",
+        populate: [
+          {
+            path: "assignedTo",
+            select: "fullName email",
+          },
+          {
+            path: "comments.author",
+            select: "fullName",
+          },
+        ],
+      });
 
     if (!order) {
       return res.status(404).json({
