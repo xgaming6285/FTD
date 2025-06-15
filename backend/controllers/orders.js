@@ -20,90 +20,374 @@ const Lead = require("../models/Lead");
 /**
  * Helper function to extract first four digits after prefix from phone number
  * This is used to identify phone number patterns for filler leads repetition rules
- * @param {string} phoneNumber - Phone number in format +1234567890
+ * @param {string} phoneNumber - Phone number in format 1234567890 (without +) or +1234567890
  * @returns {string|null} - First four digits after country code (e.g., "2345")
  */
 const getFirstFourDigitsAfterPrefix = (phoneNumber) => {
-  if (!phoneNumber) return null;
+  console.log(`[DEBUG-PHONE] Input: ${phoneNumber}`);
 
-  // Remove the '+' prefix and extract first 4 digits after country code
-  // Assuming country code is 1-3 digits, we'll take digits 2-5 after the '+'
-  const cleanPhone = phoneNumber.replace(/\D/g, ""); // Remove non-digits
-  if (cleanPhone.length < 5) return null;
+  if (!phoneNumber) {
+    console.log(`[DEBUG-PHONE] No phone number provided`);
+    return null;
+  }
 
-  // Skip the first digit (country code start) and take next 4 digits
-  return cleanPhone.substring(1, 5);
+  // Remove all non-digits
+  const cleanPhone = phoneNumber.replace(/\D/g, "");
+  console.log(`[DEBUG-PHONE] Cleaned: ${cleanPhone}`);
+
+  if (cleanPhone.length < 5) {
+    console.log(`[DEBUG-PHONE] Too short: ${cleanPhone.length} digits`);
+    return null;
+  }
+
+  // For phone numbers stored without +, we need to handle different formats:
+  // - If it starts with country code (e.g., "12345678901" for US +1), skip first 1-3 digits
+  // - If it's already without country code, take first 4 digits
+  // - Common country codes: 1 (US/Canada), 44 (UK), 49 (Germany), etc.
+
+  let result;
+
+  // Check if it starts with common single-digit country codes (1, 7, etc.)
+  if (cleanPhone.length >= 11 && ["1", "7"].includes(cleanPhone[0])) {
+    // Skip 1 digit country code, take next 4
+    result = cleanPhone.substring(1, 5);
+  }
+  // Check if it starts with common 2-digit country codes (44, 49, 33, etc.)
+  else if (
+    cleanPhone.length >= 12 &&
+    ["44", "49", "33", "34", "39", "41", "43", "45", "46", "47", "48"].includes(
+      cleanPhone.substring(0, 2)
+    )
+  ) {
+    // Skip 2 digit country code, take next 4
+    result = cleanPhone.substring(2, 6);
+  }
+  // Check if it starts with common 3-digit country codes (359, 371, etc.)
+  else if (
+    cleanPhone.length >= 13 &&
+    ["359", "371", "372", "373", "374", "375", "376", "377", "378"].includes(
+      cleanPhone.substring(0, 3)
+    )
+  ) {
+    // Skip 3 digit country code, take next 4
+    result = cleanPhone.substring(3, 7);
+  }
+  // Default: assume first 4 digits are what we want (no country code)
+  else {
+    result = cleanPhone.substring(0, 4);
+  }
+
+  console.log(`[DEBUG-PHONE] Result: ${result}`);
+  return result;
 };
 
 /**
  * Helper function to apply phone number repetition rules for filler leads
  * Implements the following rules based on the number of filler leads requested:
- * - ≤10 leads: No repetition of first four digits after prefix
- * - 11-20 leads: Max 2 repetitions per pattern, but no more than 10 pairs total
- * - 21-40 leads: Max 4 repetitions per pattern
+ * - ≤10 leads: All leads must have unique first four digits after prefix
+ * - 11-20 leads: Max 2 repetitions per pattern, but no more than 10 pairs total with same first 4 digits
+ * - 21-40 leads: Max 4 repetitions per pattern, but no more than 20 pairs total with same first 4 digits
  * - >40 leads: No restrictions
  * @param {Array} fillerLeads - Array of filler lead objects
  * @param {number} requestedCount - Number of filler leads requested
  * @returns {Array} - Filtered array of leads following repetition rules
  */
 const applyFillerPhoneRepetitionRules = (fillerLeads, requestedCount) => {
-  if (!fillerLeads || fillerLeads.length === 0) return fillerLeads;
+  if (!fillerLeads || fillerLeads.length === 0) {
+    console.log(`[FILLER-DEBUG] No leads provided`);
+    return fillerLeads;
+  }
+
+  console.log(`[FILLER-DEBUG] ===== STARTING FILLER PROCESSING =====`);
+  console.log(
+    `[FILLER-DEBUG] Input: ${fillerLeads.length} filler leads available, ${requestedCount} requested`
+  );
 
   // Group leads by first four digits of phone number
   const phoneGroups = {};
-  fillerLeads.forEach((lead) => {
+  const leadsWithoutValidPhone = [];
+
+  fillerLeads.forEach((lead, index) => {
     const firstFour = getFirstFourDigitsAfterPrefix(lead.newPhone);
+    console.log(
+      `[FILLER-DEBUG] Lead ${index}: Phone=${lead.newPhone}, FirstFour=${firstFour}, ID=${lead._id}`
+    );
+
     if (firstFour) {
       if (!phoneGroups[firstFour]) {
         phoneGroups[firstFour] = [];
       }
       phoneGroups[firstFour].push(lead);
+    } else {
+      console.log(
+        `[FILLER-DEBUG] Lead ${index} has no valid phone pattern, adding to backup`
+      );
+      leadsWithoutValidPhone.push(lead);
     }
   });
 
+  const uniquePatterns = Object.keys(phoneGroups);
+  console.log(
+    `[FILLER-DEBUG] Phone groups created:`,
+    uniquePatterns.map((key) => `${key}:${phoneGroups[key].length}`).join(", ")
+  );
+  console.log(
+    `[FILLER-DEBUG] Leads without valid phone: ${leadsWithoutValidPhone.length}`
+  );
+
   const selectedLeads = [];
-  const maxRepetitions = getMaxRepetitionsForFillerCount(requestedCount);
 
-  // Apply the repetition rules
+  // Apply the repetition rules based on requested count
   if (requestedCount <= 10) {
-    // Rule 1: No repetition of first four digits
-    Object.keys(phoneGroups).forEach((firstFour) => {
-      if (phoneGroups[firstFour].length > 0) {
-        selectedLeads.push(phoneGroups[firstFour][0]); // Take only first lead
-      }
-    });
-  } else if (requestedCount <= 20) {
-    // Rule 2: No more than 2 repetitions, but can't have 10 pairs
-    let pairCount = 0;
-    Object.keys(phoneGroups).forEach((firstFour) => {
-      const group = phoneGroups[firstFour];
-      const toTake = Math.min(group.length, 2);
+    // Rule 1: All leads must have unique first four digits
+    console.log(`[FILLER-DEBUG] ===== RULE 1 (≤10 leads) =====`);
+    console.log(
+      `[FILLER-DEBUG] Need ${requestedCount} leads with unique patterns, have ${uniquePatterns.length} unique patterns`
+    );
 
-      // Check if taking 2 would create too many pairs
-      if (toTake === 2) {
-        if (pairCount >= 10) {
-          selectedLeads.push(group[0]); // Only take 1 to avoid exceeding 10 pairs
-        } else {
-          selectedLeads.push(...group.slice(0, 2));
-          pairCount++;
+    // Check if we have enough unique patterns
+    if (uniquePatterns.length < requestedCount) {
+      console.log(
+        `[FILLER-DEBUG] ERROR: Not enough unique patterns! Have ${uniquePatterns.length}, need ${requestedCount}`
+      );
+      console.log(
+        `[FILLER-DEBUG] Will return as many unique patterns as possible + leads without valid phone if needed`
+      );
+
+      // Take one from each unique pattern
+      uniquePatterns.forEach((pattern, index) => {
+        if (selectedLeads.length < requestedCount) {
+          selectedLeads.push(phoneGroups[pattern][0]);
+          console.log(
+            `[FILLER-DEBUG] Selected lead ${selectedLeads.length} with pattern ${pattern}`
+          );
         }
-      } else {
-        selectedLeads.push(...group.slice(0, toTake));
+      });
+
+      // If still need more, add leads without valid phone patterns
+      let leadsWithoutPhoneIndex = 0;
+      while (
+        selectedLeads.length < requestedCount &&
+        leadsWithoutPhoneIndex < leadsWithoutValidPhone.length
+      ) {
+        selectedLeads.push(leadsWithoutValidPhone[leadsWithoutPhoneIndex]);
+        console.log(
+          `[FILLER-DEBUG] Added lead without valid phone pattern: ${
+            leadsWithoutPhoneIndex + 1
+          }`
+        );
+        leadsWithoutPhoneIndex++;
       }
-    });
+    } else {
+      // We have enough unique patterns - take exactly requestedCount with unique patterns
+      for (let i = 0; i < requestedCount; i++) {
+        selectedLeads.push(phoneGroups[uniquePatterns[i]][0]);
+        console.log(
+          `[FILLER-DEBUG] Selected lead ${i + 1} with pattern ${
+            uniquePatterns[i]
+          }`
+        );
+      }
+    }
+  } else if (requestedCount <= 20) {
+    // Rule 2: Max 2 repetitions per pattern, max 10 pairs total
+    // This means: each pattern can appear many times, but we count pairs (every 2nd occurrence of same pattern)
+    // and limit total pairs to 10, not pairs per pattern
+    console.log(`[FILLER-DEBUG] ===== RULE 2 (11-20 leads) =====`);
+    console.log(
+      `[FILLER-DEBUG] Need ${requestedCount} leads, max 10 pairs total across all patterns`
+    );
+
+    const patternCount = {}; // Track how many leads we've taken from each pattern
+    let totalPairs = 0;
+    const maxPairs = 10;
+
+    // Strategy: Continue adding leads from available patterns until we reach the requested count
+    // Count pairs as every 2nd occurrence of the same pattern
+    while (selectedLeads.length < requestedCount) {
+      let addedThisRound = 0;
+
+      for (const pattern of uniquePatterns) {
+        if (selectedLeads.length >= requestedCount) break;
+
+        const currentCount = patternCount[pattern] || 0;
+        const availableInGroup = phoneGroups[pattern].length;
+
+        // Can we add another lead from this pattern?
+        if (currentCount < availableInGroup) {
+          // Check if this would create a new pair (every 2nd lead from same pattern creates a pair)
+          const wouldCreatePair = (currentCount + 1) % 2 === 0; // 2nd, 4th, 6th, etc. create pairs
+
+          if (wouldCreatePair && totalPairs >= maxPairs) {
+            console.log(
+              `[FILLER-DEBUG] Skipping pattern ${pattern} - would exceed total pair limit (${totalPairs}/${maxPairs})`
+            );
+            continue;
+          }
+
+          selectedLeads.push(phoneGroups[pattern][currentCount]);
+          patternCount[pattern] = currentCount + 1;
+          addedThisRound++;
+
+          if (wouldCreatePair) {
+            totalPairs++;
+            console.log(
+              `[FILLER-DEBUG] Added lead #${
+                currentCount + 1
+              } from pattern ${pattern} (creates pair #${totalPairs}), total pairs: ${totalPairs}/${maxPairs} (total leads: ${
+                selectedLeads.length
+              })`
+            );
+          } else {
+            console.log(
+              `[FILLER-DEBUG] Added lead #${
+                currentCount + 1
+              } from pattern ${pattern} (no pair), total leads: ${
+                selectedLeads.length
+              }`
+            );
+          }
+        }
+      }
+
+      // If we couldn't add any leads this round, we're done
+      if (addedThisRound === 0) {
+        console.log(
+          `[FILLER-DEBUG] No more leads can be added due to constraints or availability, stopping at ${selectedLeads.length} leads`
+        );
+        break;
+      }
+    }
+
+    // If still need more leads and have leads without valid phone, add them
+    let leadsWithoutPhoneIndex = 0;
+    while (
+      selectedLeads.length < requestedCount &&
+      leadsWithoutPhoneIndex < leadsWithoutValidPhone.length
+    ) {
+      selectedLeads.push(leadsWithoutValidPhone[leadsWithoutPhoneIndex]);
+      console.log(
+        `[FILLER-DEBUG] Added lead without valid phone pattern to reach target`
+      );
+      leadsWithoutPhoneIndex++;
+    }
   } else if (requestedCount <= 40) {
-    // Rule 3: No more than 4 repetitions
-    Object.keys(phoneGroups).forEach((firstFour) => {
-      const group = phoneGroups[firstFour];
-      const toTake = Math.min(group.length, 4);
-      selectedLeads.push(...group.slice(0, toTake));
-    });
+    // Rule 3: Max 4 repetitions per pattern, max 20 pairs total
+    // This means: each pattern can appear many times, but we count pairs (every 2nd occurrence of same pattern)
+    // and limit total pairs to 20, not pairs per pattern
+    console.log(`[FILLER-DEBUG] ===== RULE 3 (21-40 leads) =====`);
+    console.log(
+      `[FILLER-DEBUG] Need ${requestedCount} leads, max 20 pairs total across all patterns`
+    );
+
+    const patternCount = {}; // Track how many leads we've taken from each pattern
+    let totalPairs = 0;
+    const maxPairs = 20;
+
+    // Strategy: Continue adding leads from available patterns until we reach the requested count
+    // Count pairs as every 2nd occurrence of the same pattern
+    while (selectedLeads.length < requestedCount) {
+      let addedThisRound = 0;
+
+      for (const pattern of uniquePatterns) {
+        if (selectedLeads.length >= requestedCount) break;
+
+        const currentCount = patternCount[pattern] || 0;
+        const availableInGroup = phoneGroups[pattern].length;
+
+        // Can we add another lead from this pattern?
+        if (currentCount < availableInGroup) {
+          // Check if this would create a new pair (every 2nd lead from same pattern creates a pair)
+          const wouldCreatePair = (currentCount + 1) % 2 === 0; // 2nd, 4th, 6th, etc. create pairs
+
+          if (wouldCreatePair && totalPairs >= maxPairs) {
+            console.log(
+              `[FILLER-DEBUG] Skipping pattern ${pattern} - would exceed total pair limit (${totalPairs}/${maxPairs})`
+            );
+            continue;
+          }
+
+          selectedLeads.push(phoneGroups[pattern][currentCount]);
+          patternCount[pattern] = currentCount + 1;
+          addedThisRound++;
+
+          if (wouldCreatePair) {
+            totalPairs++;
+            console.log(
+              `[FILLER-DEBUG] Added lead #${
+                currentCount + 1
+              } from pattern ${pattern} (creates pair #${totalPairs}), total pairs: ${totalPairs}/${maxPairs} (total leads: ${
+                selectedLeads.length
+              })`
+            );
+          } else {
+            console.log(
+              `[FILLER-DEBUG] Added lead #${
+                currentCount + 1
+              } from pattern ${pattern} (no pair), total leads: ${
+                selectedLeads.length
+              }`
+            );
+          }
+        }
+      }
+
+      // If we couldn't add any leads this round, we're done
+      if (addedThisRound === 0) {
+        console.log(
+          `[FILLER-DEBUG] No more leads can be added due to constraints or availability, stopping at ${selectedLeads.length} leads`
+        );
+        break;
+      }
+    }
+
+    // If still need more leads and have leads without valid phone, add them
+    let leadsWithoutPhoneIndex = 0;
+    while (
+      selectedLeads.length < requestedCount &&
+      leadsWithoutPhoneIndex < leadsWithoutValidPhone.length
+    ) {
+      selectedLeads.push(leadsWithoutValidPhone[leadsWithoutPhoneIndex]);
+      console.log(
+        `[FILLER-DEBUG] Added lead without valid phone pattern to reach target`
+      );
+      leadsWithoutPhoneIndex++;
+    }
   } else {
-    // For orders > 40, no specific rules mentioned - return as is
-    return fillerLeads;
+    // Rule 4: No restrictions for orders > 40
+    console.log(`[FILLER-DEBUG] ===== RULE 4 (>40 leads) =====`);
+    console.log(
+      `[FILLER-DEBUG] No restrictions, returning up to ${requestedCount} leads`
+    );
+    return fillerLeads.slice(0, requestedCount);
   }
 
-  return selectedLeads.slice(0, requestedCount); // Ensure we don't exceed requested count
+  console.log(`[FILLER-DEBUG] ===== FINAL RESULT =====`);
+  console.log(
+    `[FILLER-DEBUG] Selected ${selectedLeads.length} leads out of ${requestedCount} requested`
+  );
+
+  // Log pattern distribution in final result
+  const finalPatternCount = {};
+  selectedLeads.forEach((lead) => {
+    const pattern = getFirstFourDigitsAfterPrefix(lead.newPhone);
+    finalPatternCount[pattern] = (finalPatternCount[pattern] || 0) + 1;
+  });
+
+  console.log(
+    `[FILLER-DEBUG] Final pattern distribution:`,
+    Object.entries(finalPatternCount)
+      .map(([pattern, count]) => `${pattern || "NO_PATTERN"}:${count}`)
+      .join(", ")
+  );
+
+  if (selectedLeads.length < requestedCount) {
+    console.log(
+      `[FILLER-DEBUG] WARNING: Could not fulfill complete request. Got ${selectedLeads.length}/${requestedCount} leads`
+    );
+  }
+
+  return selectedLeads;
 };
 
 // Helper function to determine max repetitions based on filler count
@@ -187,23 +471,47 @@ exports.createOrder = async (req, res, next) => {
 
     // Pull Filler leads with phone number repetition rules
     if (filler > 0) {
-      // Fetch more leads than requested to have enough for filtering
+      console.log(`[FILLER-DEBUG] ===== FETCHING FILLER LEADS =====`);
+      console.log(`[FILLER-DEBUG] Requested filler leads: ${filler}`);
+
+      // Fetch more leads than requested to have enough variety for filtering
       // The multiplier ensures we have enough variety to apply repetition rules
+      // With large databases (5000+ leads), we need much higher multipliers to get pattern diversity
       let fetchMultiplier = 1;
-      if (filler <= 10)
-        fetchMultiplier = 3; // Need variety for no repetition rule
-      else if (filler <= 20)
-        fetchMultiplier = 2; // Need some extra for 2-max rule
-      else if (filler <= 40) fetchMultiplier = 1.5; // Need some extra for 4-max rule
+      if (filler <= 10) {
+        fetchMultiplier = 50; // Need lots of variety for unique pattern rule - fetch 500 leads for 10 requested
+      } else if (filler <= 20) {
+        fetchMultiplier = 25; // Need massive variety for 2-max rule - fetch 500 leads for 20 requested
+      } else if (filler <= 40) {
+        fetchMultiplier = 15; // Need lots of variety for 4-max rule - fetch 600 leads for 40 requested
+      } else {
+        fetchMultiplier = 5; // Still need variety for larger orders
+      }
 
       const fetchLimit = Math.max(filler, Math.ceil(filler * fetchMultiplier));
+      console.log(
+        `[FILLER-DEBUG] Fetch multiplier: ${fetchMultiplier}, fetching up to ${fetchLimit} leads`
+      );
 
-      const fillerLeads = await Lead.find({
-        leadType: "filler",
-        ...countryFilter,
-        ...genderFilter,
-        ...exclusionFilters,
-      }).limit(fetchLimit);
+      // Use aggregation with $sample to get random leads for better pattern diversity
+      // This helps ensure we don't just get leads with similar phone patterns
+      const fillerLeads = await Lead.aggregate([
+        {
+          $match: {
+            leadType: "filler",
+            ...countryFilter,
+            ...genderFilter,
+            ...exclusionFilters,
+          },
+        },
+        {
+          $sample: { size: fetchLimit },
+        },
+      ]);
+
+      console.log(
+        `[FILLER-DEBUG] Found ${fillerLeads.length} filler leads in database`
+      );
 
       if (fillerLeads.length > 0) {
         const appliedFillerLeads = applyFillerPhoneRepetitionRules(
@@ -212,6 +520,11 @@ exports.createOrder = async (req, res, next) => {
         );
         pulledLeads.push(...appliedFillerLeads);
         fulfilled.filler = appliedFillerLeads.length;
+        console.log(
+          `[FILLER-DEBUG] Final result: ${appliedFillerLeads.length} filler leads added to order`
+        );
+      } else {
+        console.log(`[FILLER-DEBUG] No filler leads found matching criteria`);
       }
     }
 
@@ -431,8 +744,7 @@ exports.getOrders = async (req, res, next) => {
       .populate("requester", "fullName email role")
       .populate({
         path: "leads",
-        select:
-          "leadType firstName lastName country newEmail newPhone oldEmail oldPhone gender dob address sin client clientBroker clientNetwork socialMedia status priority source assignedTo assignedAt createdAt documents comments",
+        select: "leadType firstName lastName country email phone orderId",
         populate: [
           {
             path: "assignedTo",
