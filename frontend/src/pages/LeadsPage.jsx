@@ -1056,7 +1056,7 @@ const LeadsPage = () => {
               </TableBody>
             </Table>
           </TableContainer>
-          <TablePagination rowsPerPageOptions={[5, 10, 25]} component="div" count={totalLeads} rowsPerPage={rowsPerPage} page={page} onPageChange={handleChangePage} onRowsPerPageChange={handleChangeRowsPerPage} />
+          <TablePagination rowsPerPageOptions={[5, 10, 25, 50, 100]} component="div" count={totalLeads} rowsPerPage={rowsPerPage} page={page} onPageChange={handleChangePage} onRowsPerPageChange={handleChangeRowsPerPage} />
         </Paper>
       </Box>
 
@@ -1084,7 +1084,7 @@ const LeadsPage = () => {
                     handleEditLead={handleEditLead}
                   />
                 ))}
-                <TablePagination rowsPerPageOptions={[5, 10, 25]} component="div" count={totalLeads} rowsPerPage={rowsPerPage} page={page} onPageChange={handleChangePage} onRowsPerPageChange={handleChangeRowsPerPage} />
+                <TablePagination rowsPerPageOptions={[5, 10, 25, 50, 100]} component="div" count={totalLeads} rowsPerPage={rowsPerPage} page={page} onPageChange={handleChangePage} onRowsPerPageChange={handleChangeRowsPerPage} />
               </Stack>
             )}
       </Box>
