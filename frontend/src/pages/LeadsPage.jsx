@@ -57,6 +57,9 @@ import {
   Visibility as VisibilityIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  Person as PersonIcon,
 } from "@mui/icons-material";
 
 // Project Components & Services
@@ -374,7 +377,9 @@ const LeadsPage = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalLeads, setTotalLeads] = useState(0);
   const [filters, setFilters] = useState({
-    search: "",
+    searchName: "",
+    searchEmail: "",
+    searchPhone: "",
     leadType: "",
     isAssigned: "",
     country: "",
@@ -593,8 +598,19 @@ const LeadsPage = () => {
 
   const clearFilters = useCallback(() => {
     setFilters({
-      search: "", leadType: "", isAssigned: "", country: "", gender: "", status: "",
-      documentStatus: "", includeConverted: true, order: "newest", orderId: "",
+      searchName: "",
+      searchEmail: "",
+      searchPhone: "",
+      leadType: "",
+      isAssigned: "",
+      country: "",
+      gender: "",
+      status: "",
+      documentStatus: "",
+      includeConverted: true,
+      order: "newest",
+      orderId: "",
+      assignedToMe: false,
     });
     setPage(0);
   }, []);
@@ -969,7 +985,9 @@ const LeadsPage = () => {
         </Button>
         <Collapse in={showFilters}>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6} md={3}><TextField fullWidth label="Search" value={filters.search} onChange={(e) => handleFilterChange("search", e.target.value)} placeholder="Name, email, phone..." InputProps={{ startAdornment: (<SearchIcon sx={{ mr: 1, color: "action.active" }} />) }} /></Grid>
+            <Grid item xs={12} sm={4} md={2}><TextField fullWidth label="Search Name" value={filters.searchName} onChange={(e) => handleFilterChange("searchName", e.target.value)} placeholder="Name" InputProps={{ startAdornment: (<PersonIcon sx={{ mr: 1, color: "action.active" }} />) }} /></Grid>
+            <Grid item xs={12} sm={4} md={2}><TextField fullWidth label="Search Email" value={filters.searchEmail} onChange={(e) => handleFilterChange("searchEmail", e.target.value)} placeholder="Email" InputProps={{ startAdornment: (<EmailIcon sx={{ mr: 1, color: "action.active" }} />) }} /></Grid>
+            <Grid item xs={12} sm={4} md={2}><TextField fullWidth label="Search Phone" value={filters.searchPhone} onChange={(e) => handleFilterChange("searchPhone", e.target.value)} placeholder="Phone" InputProps={{ startAdornment: (<PhoneIcon sx={{ mr: 1, color: "action.active" }} />) }} /></Grid>
             <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Lead Type</InputLabel><Select value={filters.leadType} label="Lead Type" onChange={(e) => handleFilterChange("leadType", e.target.value)}><MenuItem value="">All</MenuItem>{Object.values(LEAD_TYPES).map(type => <MenuItem key={type} value={type}>{type.toUpperCase()}</MenuItem>)}</Select></FormControl></Grid>
             {isAdminOrManager && <Grid item xs={12} sm={6} md={2}><FormControl fullWidth><InputLabel>Assignment</InputLabel><Select value={filters.isAssigned} label="Assignment" onChange={(e) => handleFilterChange("isAssigned", e.target.value)}><MenuItem value="">All</MenuItem><MenuItem value="true">Assigned</MenuItem><MenuItem value="false">Unassigned</MenuItem></Select></FormControl></Grid>}
             {isAffiliateManager && <Grid item xs={12} sm={6} md={2}><FormControlLabel control={<Switch checked={filters.assignedToMe} onChange={(e) => handleFilterChange("assignedToMe", e.target.checked)} color="primary" />} label="My Assigned Leads" /></Grid>}

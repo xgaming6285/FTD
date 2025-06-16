@@ -19,7 +19,9 @@ exports.getLeads = async (req, res, next) => {
       documentStatus,
       page = 1,
       limit = 10,
-      search,
+      searchName,
+      searchEmail,
+      searchPhone,
       includeConverted = "true",
       order = "newest",
       orderId,
@@ -70,29 +72,46 @@ exports.getLeads = async (req, res, next) => {
 
     if (documentStatus) filter["documents.status"] = documentStatus;
 
-    // Add search functionality - use text index for better performance when possible
-    if (search) {
-      // If search is a simple term, use text index for better performance
-      if (
-        search.length > 3 &&
-        !search.includes(":") &&
-        !search.includes("?") &&
-        !search.includes("*") &&
-        !search.includes("(") &&
-        !search.includes(")")
-      ) {
-        filter.$text = { $search: search };
-      } else {
-        // Fallback to regex for complex search patterns
-        filter.$or = [
-          { firstName: new RegExp(search, "i") },
-          { lastName: new RegExp(search, "i") },
-          { newEmail: new RegExp(search, "i") },
-          { newPhone: new RegExp(search, "i") },
-          { client: new RegExp(search, "i") },
-          { clientBroker: new RegExp(search, "i") },
-          { clientNetwork: new RegExp(search, "i") },
-        ];
+    // Add search functionality for separate fields
+    if (searchName || searchEmail || searchPhone) {
+      const searchConditions = [];
+
+      // Search by name (firstName, lastName, client fields)
+      if (searchName) {
+        searchConditions.push({
+          $or: [
+            { firstName: new RegExp(searchName, "i") },
+            { lastName: new RegExp(searchName, "i") },
+            { client: new RegExp(searchName, "i") },
+            { clientBroker: new RegExp(searchName, "i") },
+            { clientNetwork: new RegExp(searchName, "i") },
+          ]
+        });
+      }
+
+      // Search by email
+      if (searchEmail) {
+        searchConditions.push({
+          $or: [
+            { newEmail: new RegExp(searchEmail, "i") },
+            { oldEmail: new RegExp(searchEmail, "i") },
+          ]
+        });
+      }
+
+      // Search by phone
+      if (searchPhone) {
+        searchConditions.push({
+          $or: [
+            { newPhone: new RegExp(searchPhone, "i") },
+            { oldPhone: new RegExp(searchPhone, "i") },
+          ]
+        });
+      }
+
+      // Combine all search conditions with AND logic
+      if (searchConditions.length > 0) {
+        filter.$and = searchConditions;
       }
     }
 
@@ -191,7 +210,7 @@ exports.getLeads = async (req, res, next) => {
 // @access  Private (Agent)
 exports.getAssignedLeads = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, status, orderId, leadType } = req.query;
+    const { page = 1, limit = 10, status, orderId, leadType, searchName, searchEmail, searchPhone } = req.query;
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
     const skip = (pageNum - 1) * limitNum;
@@ -206,6 +225,49 @@ exports.getAssignedLeads = async (req, res, next) => {
     if (status) filter.status = status;
     if (orderId) filter.orderId = new mongoose.Types.ObjectId(orderId);
     if (leadType) filter.leadType = leadType;
+
+    // Add search functionality for separate fields
+    if (searchName || searchEmail || searchPhone) {
+      const searchConditions = [];
+
+      // Search by name (firstName, lastName, client fields)
+      if (searchName) {
+        searchConditions.push({
+          $or: [
+            { firstName: new RegExp(searchName, "i") },
+            { lastName: new RegExp(searchName, "i") },
+            { client: new RegExp(searchName, "i") },
+            { clientBroker: new RegExp(searchName, "i") },
+            { clientNetwork: new RegExp(searchName, "i") },
+          ]
+        });
+      }
+
+      // Search by email
+      if (searchEmail) {
+        searchConditions.push({
+          $or: [
+            { newEmail: new RegExp(searchEmail, "i") },
+            { oldEmail: new RegExp(searchEmail, "i") },
+          ]
+        });
+      }
+
+      // Search by phone
+      if (searchPhone) {
+        searchConditions.push({
+          $or: [
+            { newPhone: new RegExp(searchPhone, "i") },
+            { oldPhone: new RegExp(searchPhone, "i") },
+          ]
+        });
+      }
+
+      // Combine all search conditions with AND logic
+      if (searchConditions.length > 0) {
+        filter.$and = searchConditions;
+      }
+    }
 
     // Use promise.all to run count and data queries in parallel
     const [results, totalCount] = await Promise.all([
