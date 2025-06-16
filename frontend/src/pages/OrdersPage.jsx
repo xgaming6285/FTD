@@ -39,6 +39,7 @@ import {
   Visibility as ViewIcon,
   Download as DownloadIcon,
   Assignment as AssignmentIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -126,9 +127,12 @@ const OrdersPage = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [assignClientDialogOpen, setAssignClientDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedOrderForClient, setSelectedOrderForClient] = useState(null);
+  const [orderToDelete, setOrderToDelete] = useState(null);
   const [isAssigningClient, setIsAssigningClient] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Exclusion options state
   const [exclusionOptions, setExclusionOptions] = useState({
@@ -420,6 +424,48 @@ const OrdersPage = () => {
     setSelectedOrderForClient(null);
   }, []);
 
+  // Delete order handlers
+  const handleOpenDeleteDialog = useCallback(async (orderId) => {
+    try {
+      const response = await api.get(`/orders/${orderId}`);
+      setOrderToDelete(response.data.data);
+      setDeleteDialogOpen(true);
+    } catch (err) {
+      setNotification({
+        message: err.response?.data?.message || 'Failed to fetch order details',
+        severity: 'error',
+      });
+    }
+  }, []);
+
+  const handleDeleteOrder = useCallback(async () => {
+    if (!orderToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await api.post(`/orders/${orderToDelete._id}/delete`);
+      setNotification({
+        message: response.data.message || 'Order and associated leads deleted successfully!',
+        severity: 'success'
+      });
+      setDeleteDialogOpen(false);
+      setOrderToDelete(null);
+      fetchOrders(); // Refresh the orders list
+    } catch (err) {
+      setNotification({
+        message: err.response?.data?.message || 'Failed to delete order',
+        severity: 'error',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [orderToDelete, fetchOrders]);
+
+  const handleCloseDeleteDialog = useCallback(() => {
+    setDeleteDialogOpen(false);
+    setOrderToDelete(null);
+  }, []);
+
   // Handle opening create dialog and fetching exclusion options
   const handleOpenCreateDialog = useCallback(() => {
     setCreateDialogOpen(true);
@@ -565,6 +611,7 @@ const OrdersPage = () => {
                           {order.leads && order.leads.length > 0 && (
                             <IconButton size="small" onClick={() => handleOpenAssignClientDialog(order._id)} title="Assign Client Info to All Leads"><AssignmentIcon fontSize="small" /></IconButton>
                           )}
+                          <IconButton size="small" onClick={() => handleOpenDeleteDialog(order._id)} title="Delete Order and Leads" color="error"><DeleteIcon fontSize="small" /></IconButton>
                           <IconButton size="small" onClick={() => toggleRowExpansion(order._id)} title={isExpanded ? "Collapse" : "Expand"}>
                             {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                           </IconButton>
@@ -1030,6 +1077,50 @@ const OrdersPage = () => {
         isSubmitting={isAssigningClient}
         orderData={selectedOrderForClient}
       />
+
+      {/* Delete Order Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ color: 'error.main' }}>Delete Order</DialogTitle>
+        <DialogContent dividers>
+          {orderToDelete && (
+            <Box>
+              <Typography variant="body1" gutterBottom>
+                Are you sure you want to delete this order? This action cannot be undone.
+              </Typography>
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+                <Typography variant="subtitle2"><strong>Order ID:</strong> {orderToDelete._id}</Typography>
+                <Typography variant="subtitle2"><strong>Requester:</strong> {orderToDelete.requester?.fullName}</Typography>
+                <Typography variant="subtitle2"><strong>Leads Count:</strong> {orderToDelete.leads?.length || 0}</Typography>
+                <Typography variant="subtitle2"><strong>Status:</strong> {orderToDelete.status}</Typography>
+              </Box>
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  <strong>Warning:</strong> This will permanently:
+                </Typography>
+                <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                  <li>Delete the order and all its data</li>
+                  <li>Unassign all {orderToDelete.leads?.length || 0} leads from this order</li>
+                  <li>Remove client, broker, and network tags from the leads</li>
+                  <li><strong>Note:</strong> The leads themselves will remain in the system</li>
+                </ul>
+              </Alert>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog} disabled={isDeleting}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteOrder} 
+            variant="contained" 
+            color="error" 
+            disabled={isDeleting}
+          >
+            {isDeleting ? <CircularProgress size={24} /> : 'Delete Order'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

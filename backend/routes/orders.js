@@ -7,6 +7,7 @@ const {
   getOrderById,
   updateOrder,
   cancelOrder,
+  deleteOrder,
   getOrderStats,
   exportOrderLeads,
   getExclusionOptions,
@@ -223,6 +224,15 @@ router.delete(
       .withMessage("Cancellation reason must be less than 200 characters"),
   ],
   cancelOrder
+);
+
+// @route   POST /api/orders/:id/delete
+// @desc    Permanently delete order and its leads
+// @access  Private (Admin, Manager - own orders only)
+router.post(
+  "/:id/delete",
+  [protect, isManager],
+  deleteOrder
 );
 
 // @route   PUT /api/orders/:id/assign-client-info

@@ -64,6 +64,20 @@ export const getOrderById = createAsyncThunk(
   }
 );
 
+export const deleteOrder = createAsyncThunk(
+  'orders/deleteOrder',
+  async (orderId, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`/orders/${orderId}/delete`);
+      return { orderId, data: response.data.data };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to delete order'
+      );
+    }
+  }
+);
+
 // Orders slice
 const ordersSlice = createSlice({
   name: 'orders',
@@ -124,6 +138,24 @@ const ordersSlice = createSlice({
         state.error = null;
       })
       .addCase(getOrderById.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+      // Delete order
+      .addCase(deleteOrder.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(deleteOrder.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.orders = state.orders.filter(order => order._id !== action.payload.orderId);
+        state.error = null;
+        // Clear current order if it was deleted
+        if (state.currentOrder && state.currentOrder._id === action.payload.orderId) {
+          state.currentOrder = null;
+        }
+      })
+      .addCase(deleteOrder.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       });

@@ -948,6 +948,70 @@ exports.cancelOrder = async (req, res, next) => {
   }
 };
 
+// @desc    Delete order and remove assigned tags from leads
+// @route   POST /api/orders/:id/delete
+// @access  Private (Admin, Manager - own orders only)
+exports.deleteOrder = async (req, res, next) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    // Check permission
+    if (
+      req.user.role !== "admin" &&
+      order.requester.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to delete this order",
+      });
+    }
+
+    // Get all leads associated with this order
+    const orderLeads = await Lead.find({ orderId: order._id });
+    
+    if (orderLeads.length > 0) {
+      // Remove client, broker, network tags and unassign leads from order
+      await Lead.updateMany(
+        { orderId: order._id },
+        {
+          $unset: {
+            client: "",
+            clientBroker: "",
+            clientNetwork: "",
+            orderId: ""
+          },
+          $set: {
+            isAssigned: false,
+            assignedTo: null,
+            assignedAt: null
+          }
+        }
+      );
+    }
+
+    // Delete the order
+    await Order.findByIdAndDelete(order._id);
+
+    res.status(200).json({
+      success: true,
+      message: `Order deleted successfully. ${orderLeads.length} leads unassigned and tags removed.`,
+      data: {
+        deletedOrderId: order._id,
+        unassignedLeadsCount: orderLeads.length
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get order statistics
 // @route   GET /api/orders/stats
 // @access  Private (Admin, Manager)
