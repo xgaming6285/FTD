@@ -604,17 +604,27 @@ exports.createOrder = async (req, res, next) => {
 
     // Then update leads with the order ID
     if (pulledLeads.length > 0) {
-      await Lead.updateMany(
-        { _id: { $in: pulledLeads.map((l) => l._id) } },
-        {
-          $set: {
-            // Keep assignment tracking for audit purposes, but don't block reuse
-            assignedTo: req.user._id,
-            assignedAt: new Date(),
-            orderId: order._id,
-          },
+      // Fetch the current state of leads to check their assignment status
+      const currentLeads = await Lead.find({
+        _id: { $in: pulledLeads.map((l) => l._id) }
+      }).select('_id isAssigned assignedTo assignedAt');
+
+      // Process leads individually to preserve existing agent assignments
+      for (const currentLead of currentLeads) {
+        const updateData = {
+          orderId: order._id,
+        };
+
+        // Only update assignment if the lead is not already assigned to an agent
+        if (!currentLead.isAssigned || !currentLead.assignedTo) {
+          updateData.assignedTo = req.user._id;
+          updateData.assignedAt = new Date();
+          updateData.isAssigned = true;
         }
-      );
+        // If lead is already assigned to an agent, preserve the original assignment
+
+        await Lead.findByIdAndUpdate(currentLead._id, { $set: updateData });
+      }
 
       // Verify the update was successful
       const updatedLeads = await Lead.find({
@@ -915,14 +925,12 @@ exports.cancelOrder = async (req, res, next) => {
         });
       }
 
-      // Unassign leads
+      // Remove order association but preserve agent assignments
       await Lead.updateMany(
         { _id: { $in: order.leads } },
         {
-          $set: {
-            isAssigned: false,
-            assignedTo: null,
-            assignedAt: null,
+          $unset: {
+            orderId: 1,
           },
         },
         { session }
@@ -977,7 +985,7 @@ exports.deleteOrder = async (req, res, next) => {
     const orderLeads = await Lead.find({ orderId: order._id });
     
     if (orderLeads.length > 0) {
-      // Remove client, broker, network tags and unassign leads from order
+      // Remove client, broker, network tags and order association but preserve agent assignments
       await Lead.updateMany(
         { orderId: order._id },
         {
@@ -986,12 +994,8 @@ exports.deleteOrder = async (req, res, next) => {
             clientBroker: "",
             clientNetwork: "",
             orderId: ""
-          },
-          $set: {
-            isAssigned: false,
-            assignedTo: null,
-            assignedAt: null
           }
+          // Note: Preserving agent assignments (isAssigned, assignedTo, assignedAt)
         }
       );
     }
