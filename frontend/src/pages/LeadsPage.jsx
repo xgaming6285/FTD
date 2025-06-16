@@ -462,7 +462,7 @@ const LeadsPage = () => {
 
   const fetchAgents = useCallback(async () => {
     try {
-      const response = await api.get("/users?role=agent&isActive=true");
+      const response = await api.get("/users/agents/active");
       setAgents(response.data.data);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to fetch agents");
