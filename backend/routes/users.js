@@ -17,7 +17,6 @@ const {
   assignAsLeadManager,
   approveLeadManager,
   acceptEula,
-  getActiveAgents,
 } = require("../controllers/users");
 
 const router = express.Router();
@@ -50,7 +49,6 @@ router.get("/", [
 
 router.get("/stats", [protect, isAdmin], getUserStats);
 router.get("/team-stats", [protect, isAdmin], getDailyTeamStats);
-router.get("/agents/active", [protect, authorize("admin", "affiliate_manager")], getActiveAgents);
 
 // Performance routes
 router.get(

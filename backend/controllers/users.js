@@ -787,27 +787,3 @@ exports.acceptEula = async (req, res, next) => {
     next(error);
   }
 };
-
-// @desc    Get all active agents for assignment dropdowns
-// @route   GET /api/users/agents/active
-// @access  Private (Admin, Affiliate Manager)
-exports.getActiveAgents = async (req, res, next) => {
-  try {
-    // Get all active agents without pagination
-    const agents = await User.find({
-      role: 'agent',
-      isActive: true,
-      status: 'approved'
-    })
-      .select("_id fullName fourDigitCode email")
-      .sort({ fullName: 1 });
-
-    res.status(200).json({
-      success: true,
-      data: agents,
-      count: agents.length,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
